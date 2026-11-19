@@ -1398,5 +1398,581 @@
     "definition": "Cheval en pyjama rayé",
     "type": "classique",
     "longueur": 5
+  },
+  {
+    "id": "a96",
+    "mot": "GALERE",
+    "affichage": "galère",
+    "definition": "Situation pénible dont on ne voit pas le bout",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a97",
+    "mot": "ZARMA",
+    "affichage": "zarma",
+    "definition": "Interjection pour se moquer : « soi-disant », « genre »",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a98",
+    "mot": "TARPIN",
+    "affichage": "tarpin",
+    "definition": "Beaucoup, à la marseillaise",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a99",
+    "mot": "BENDO",
+    "affichage": "bendo",
+    "definition": "Maison abandonnée ou squat, popularisé par le rap",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a100",
+    "mot": "BIFF",
+    "affichage": "biff",
+    "definition": "Argent, billets",
+    "type": "argot",
+    "longueur": 4
+  },
+  {
+    "id": "a101",
+    "mot": "BICRAVE",
+    "affichage": "bicrave",
+    "definition": "Vendre en douce, souvent de la came",
+    "type": "argot",
+    "longueur": 7
+  },
+  {
+    "id": "a102",
+    "mot": "SCHMITT",
+    "affichage": "schmitt",
+    "definition": "Policier, version qui sent la sirène",
+    "type": "argot",
+    "longueur": 7
+  },
+  {
+    "id": "a103",
+    "mot": "SHEITAN",
+    "affichage": "sheitan",
+    "definition": "Le diable. Se dit aussi de quelqu'un de complètement fou",
+    "type": "argot",
+    "longueur": 7
+  },
+  {
+    "id": "a104",
+    "mot": "HAGRA",
+    "affichage": "hagra",
+    "definition": "Injustice, humiliation, gros abus",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a105",
+    "mot": "GOVA",
+    "affichage": "gova",
+    "definition": "Une voiture",
+    "type": "argot",
+    "longueur": 4
+  },
+  {
+    "id": "a106",
+    "mot": "GADJO",
+    "affichage": "gadjo",
+    "definition": "Un gars, un type",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a107",
+    "mot": "KEUM",
+    "affichage": "keum",
+    "definition": "Un mec, en verlan",
+    "type": "argot",
+    "longueur": 4
+  },
+  {
+    "id": "a108",
+    "mot": "REUF",
+    "affichage": "reuf",
+    "definition": "Ton frère, en verlan",
+    "type": "argot",
+    "longueur": 4
+  },
+  {
+    "id": "a109",
+    "mot": "NARVALO",
+    "affichage": "narvalo",
+    "definition": "Fou, cinglé",
+    "type": "argot",
+    "longueur": 7
+  },
+  {
+    "id": "a110",
+    "mot": "ZONZON",
+    "affichage": "zonzon",
+    "definition": "La prison",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a111",
+    "mot": "ZINZIN",
+    "affichage": "zinzin",
+    "definition": "Un peu fou, timbré",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a112",
+    "mot": "FLEMME",
+    "affichage": "flemme",
+    "definition": "Grosse envie de ne rien faire",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a113",
+    "mot": "OSEF",
+    "affichage": "osef",
+    "definition": "« On s'en fout », en quatre lettres",
+    "type": "argot",
+    "longueur": 4
+  },
+  {
+    "id": "a114",
+    "mot": "ASKIP",
+    "affichage": "askip",
+    "definition": "« À ce qu'il paraît », version rapide",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a115",
+    "mot": "RATIO",
+    "affichage": "ratio",
+    "definition": "Quand ta réponse a plus de likes que le message d'origine",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a116",
+    "mot": "STALKER",
+    "affichage": "stalker",
+    "definition": "Espionner le profil de quelqu'un sur les réseaux",
+    "type": "argot",
+    "longueur": 7
+  },
+  {
+    "id": "a117",
+    "mot": "SWAG",
+    "affichage": "swag",
+    "definition": "Style, allure qui en jette",
+    "type": "argot",
+    "longueur": 4
+  },
+  {
+    "id": "a118",
+    "mot": "BADER",
+    "affichage": "bader",
+    "definition": "Avoir le moral à zéro, être dans le mal",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a119",
+    "mot": "GAMBERGER",
+    "affichage": "gamberger",
+    "definition": "Réfléchir, cogiter, ruminer",
+    "type": "argot",
+    "longueur": 9
+  },
+  {
+    "id": "a120",
+    "mot": "CRARI",
+    "affichage": "crari",
+    "definition": "Soi-disant, « genre »",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a121",
+    "mot": "BAIL",
+    "affichage": "bail",
+    "definition": "Un truc, une affaire, un plan",
+    "type": "argot",
+    "longueur": 4
+  },
+  {
+    "id": "a122",
+    "mot": "TARBA",
+    "affichage": "tarba",
+    "definition": "Bâtard, en verlan",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a123",
+    "mot": "TEUBE",
+    "affichage": "teubé",
+    "definition": "Bête, idiot, en verlan",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a124",
+    "mot": "MICHTO",
+    "affichage": "michto",
+    "definition": "Qui sort avec quelqu'un pour son argent",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a125",
+    "mot": "POTO",
+    "affichage": "poto",
+    "definition": "Ton pote, ton ami",
+    "type": "argot",
+    "longueur": 4
+  },
+  {
+    "id": "a126",
+    "mot": "ZOUZ",
+    "affichage": "zouz",
+    "definition": "Une fille",
+    "type": "argot",
+    "longueur": 4
+  },
+  {
+    "id": "a127",
+    "mot": "FRATE",
+    "affichage": "fraté",
+    "definition": "Frère, en version corse",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a128",
+    "mot": "CLASHER",
+    "affichage": "clasher",
+    "definition": "Critiquer quelqu'un violemment, en public",
+    "type": "argot",
+    "longueur": 7
+  },
+  {
+    "id": "a129",
+    "mot": "CRAMER",
+    "affichage": "cramer",
+    "definition": "Se faire repérer, démasquer",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a130",
+    "mot": "TIEKS",
+    "affichage": "tieks",
+    "definition": "Le quartier, la cité, en verlan",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a131",
+    "mot": "CHARO",
+    "affichage": "charo",
+    "definition": "Dragueur lourd et insistant",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a132",
+    "mot": "GENANCE",
+    "affichage": "gênance",
+    "definition": "Malaise collectif, gêne maximale",
+    "type": "argot",
+    "longueur": 7
+  },
+  {
+    "id": "c81",
+    "mot": "PARACHUTE",
+    "affichage": "parachute",
+    "definition": "Il vaut mieux qu'il s'ouvre",
+    "type": "classique",
+    "longueur": 9
+  },
+  {
+    "id": "c82",
+    "mot": "ASCENSEUR",
+    "affichage": "ascenseur",
+    "definition": "Machine à silences gênants entre voisins",
+    "type": "classique",
+    "longueur": 9
+  },
+  {
+    "id": "c83",
+    "mot": "DENTISTE",
+    "affichage": "dentiste",
+    "definition": "Il te pose des questions la bouche pleine d'instruments",
+    "type": "classique",
+    "longueur": 8
+  },
+  {
+    "id": "c84",
+    "mot": "KANGOUROU",
+    "affichage": "kangourou",
+    "definition": "Il saute et porte son petit dans une poche",
+    "type": "classique",
+    "longueur": 9
+  },
+  {
+    "id": "c85",
+    "mot": "TRAMPOLINE",
+    "affichage": "trampoline",
+    "definition": "Toile tendue pour rebondir",
+    "type": "classique",
+    "longueur": 10
+  },
+  {
+    "id": "c86",
+    "mot": "BROCOLI",
+    "affichage": "brocoli",
+    "definition": "Petit arbre vert que les enfants refusent",
+    "type": "classique",
+    "longueur": 7
+  },
+  {
+    "id": "c87",
+    "mot": "LASAGNE",
+    "affichage": "lasagne",
+    "definition": "Pâtes en couches avec sauce et fromage",
+    "type": "classique",
+    "longueur": 7
+  },
+  {
+    "id": "c88",
+    "mot": "RACLETTE",
+    "affichage": "raclette",
+    "definition": "Fromage fondu de l'hiver",
+    "type": "classique",
+    "longueur": 8
+  },
+  {
+    "id": "c89",
+    "mot": "PASTEQUE",
+    "affichage": "pastèque",
+    "definition": "Gros fruit vert, rouge à l'intérieur",
+    "type": "classique",
+    "longueur": 8
+  },
+  {
+    "id": "c90",
+    "mot": "MANEGE",
+    "affichage": "manège",
+    "definition": "Il tourne à la fête foraine",
+    "type": "classique",
+    "longueur": 6
+  },
+  {
+    "id": "c91",
+    "mot": "CIRQUE",
+    "affichage": "cirque",
+    "definition": "Spectacle sous chapiteau, ou gros bazar",
+    "type": "classique",
+    "longueur": 6
+  },
+  {
+    "id": "c92",
+    "mot": "CLOWN",
+    "affichage": "clown",
+    "definition": "Nez rouge et chaussures géantes",
+    "type": "classique",
+    "longueur": 5
+  },
+  {
+    "id": "c93",
+    "mot": "SORCIERE",
+    "affichage": "sorcière",
+    "definition": "Chapeau pointu et balai volant",
+    "type": "classique",
+    "longueur": 8
+  },
+  {
+    "id": "c94",
+    "mot": "MOMIE",
+    "affichage": "momie",
+    "definition": "Égyptien emballé dans des bandelettes",
+    "type": "classique",
+    "longueur": 5
+  },
+  {
+    "id": "c95",
+    "mot": "ZOMBIE",
+    "affichage": "zombie",
+    "definition": "Mort-vivant qui marche lentement",
+    "type": "classique",
+    "longueur": 6
+  },
+  {
+    "id": "c96",
+    "mot": "ROBOT",
+    "affichage": "robot",
+    "definition": "Machine qui fait le travail à ta place",
+    "type": "classique",
+    "longueur": 5
+  },
+  {
+    "id": "c97",
+    "mot": "FUSEE",
+    "affichage": "fusée",
+    "definition": "Elle décolle vers l'espace",
+    "type": "classique",
+    "longueur": 5
+  },
+  {
+    "id": "c98",
+    "mot": "ASTRONAUTE",
+    "affichage": "astronaute",
+    "definition": "Voyageur de l'espace",
+    "type": "classique",
+    "longueur": 10
+  },
+  {
+    "id": "c99",
+    "mot": "PLANETE",
+    "affichage": "planète",
+    "definition": "Elle tourne autour d'une étoile",
+    "type": "classique",
+    "longueur": 7
+  },
+  {
+    "id": "c100",
+    "mot": "COMETE",
+    "affichage": "comète",
+    "definition": "Boule de glace à longue queue dans le ciel",
+    "type": "classique",
+    "longueur": 6
+  },
+  {
+    "id": "c101",
+    "mot": "TORNADE",
+    "affichage": "tornade",
+    "definition": "Vent qui tourne et arrache tout",
+    "type": "classique",
+    "longueur": 7
+  },
+  {
+    "id": "c102",
+    "mot": "IGLOO",
+    "affichage": "igloo",
+    "definition": "Maison en blocs de neige",
+    "type": "classique",
+    "longueur": 5
+  },
+  {
+    "id": "c103",
+    "mot": "REQUIN",
+    "affichage": "requin",
+    "definition": "Prédateur des mers à aileron",
+    "type": "classique",
+    "longueur": 6
+  },
+  {
+    "id": "c104",
+    "mot": "POULPE",
+    "affichage": "poulpe",
+    "definition": "Il a huit bras et de l'encre",
+    "type": "classique",
+    "longueur": 6
+  },
+  {
+    "id": "c105",
+    "mot": "MEDUSE",
+    "affichage": "méduse",
+    "definition": "Gélatine des mers qui pique",
+    "type": "classique",
+    "longueur": 6
+  },
+  {
+    "id": "c106",
+    "mot": "CROCODILE",
+    "affichage": "crocodile",
+    "definition": "Reptile aux grandes dents qui pleure, dit-on",
+    "type": "classique",
+    "longueur": 9
+  },
+  {
+    "id": "c107",
+    "mot": "HERISSON",
+    "affichage": "hérisson",
+    "definition": "Petit animal couvert de piquants",
+    "type": "classique",
+    "longueur": 8
+  },
+  {
+    "id": "c108",
+    "mot": "PARESSEUX",
+    "affichage": "paresseux",
+    "definition": "Animal le plus lent, ou toi le dimanche",
+    "type": "classique",
+    "longueur": 9
+  },
+  {
+    "id": "c109",
+    "mot": "COCCINELLE",
+    "affichage": "coccinelle",
+    "definition": "Petite bête rouge à points noirs",
+    "type": "classique",
+    "longueur": 10
+  },
+  {
+    "id": "c110",
+    "mot": "BOUILLOTTE",
+    "affichage": "bouillotte",
+    "definition": "Elle te réchauffe les pieds l'hiver",
+    "type": "classique",
+    "longueur": 10
+  },
+  {
+    "id": "c111",
+    "mot": "COUETTE",
+    "affichage": "couette",
+    "definition": "Grosse couverture, ou coiffure attachée",
+    "type": "classique",
+    "longueur": 7
+  },
+  {
+    "id": "c112",
+    "mot": "KARAOKE",
+    "affichage": "karaoké",
+    "definition": "Chanter faux devant tout le monde",
+    "type": "classique",
+    "longueur": 7
+  },
+  {
+    "id": "c113",
+    "mot": "SELFIE",
+    "affichage": "selfie",
+    "definition": "Photo de soi par soi",
+    "type": "classique",
+    "longueur": 6
+  },
+  {
+    "id": "c114",
+    "mot": "TELECOMMANDE",
+    "affichage": "télécommande",
+    "definition": "Elle disparaît toujours entre les coussins",
+    "type": "classique",
+    "longueur": 12
+  },
+  {
+    "id": "c115",
+    "mot": "TROTTINETTE",
+    "affichage": "trottinette",
+    "definition": "Planche à guidon pour rouler en ville",
+    "type": "classique",
+    "longueur": 11
   }
 ]
