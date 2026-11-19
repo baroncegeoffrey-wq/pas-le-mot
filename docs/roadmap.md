@@ -34,6 +34,19 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 - [x] 2 utilisations par partie, compteur affiché, pas de pouvoir en solo
 - [x] **En ligne sur Render**, testé avec 2 joueurs simulés sur le site en ligne (nouveau Freeze compris)
 
+## Combat JRPG (branche `combat`, pas encore sur main ni en ligne) [ ]
+- [x] 100 PV par joueur, dégâts = lettres × 3, recul de 5 PV sur erreur, lettre achetée = 3 PV, calculés par le serveur
+- [x] Fin au K.O. ou au chrono (le plus de PV gagne)
+- [x] Arène : avatars face à face, barres de PV animées, fond d'arène
+- [x] Images provisoires (silhouettes colorées), un seul visuel par avatar
+- [x] Impacts : hit-stop 80 ms, tremblement proportionnel, flash blanc, recul, chiffres de dégâts, étincelles et sang stylisé
+- [x] K.O. au ralenti avec zoom
+- [x] Une super attaque par partie, vidéo plein écran synchronisée par le serveur (flash blanc si la vidéo manque)
+- [x] `scripts/prepare-assets.js` (`npm run assets`) : fond vert retiré, sprites 160 px nets, vidéos .webm < 2 Mo
+- [ ] Vraies images des avatars et vraies vidéos (à fournir dans assets-src/)
+- [ ] Tester le rendu animé (ralenti, impacts) sur un écran visible, à deux
+- [ ] Fusionner dans main et mettre en ligne
+
 ## Après le rendu
 - [x] Direction artistique « Néon acide » (dark, ville isométrique, néons, glitchs), d'après la maquette D
 - [x] Petits personnages 8 bits originaux, face à face sur des plateformes isométriques, qui respirent

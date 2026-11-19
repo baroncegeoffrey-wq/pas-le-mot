@@ -1,11 +1,11 @@
 # C'est pas le mot que tu crois
 
 **En 5 lignes**
-1. Un jeu de mots croisés en ligne, à 2 joueurs, en mode course, sur la même grille de 12 mots, très croisés : chaque mot trouvé donne des lettres à ceux qu'il croise.
+1. Un combat de mots croisés en ligne, façon JRPG : 2 joueurs, face à face dans une arène, sur la même grille de 12 mots très croisés (chaque mot trouvé donne des lettres à ceux qu'il croise).
 2. La moitié des mots est classique, l'autre moitié vient de l'argot d'aujourd'hui (vulgaire autorisé). Ce sont des mots qui existent, avec de vraies définitions.
-3. Tu remplis les cases d'un mot puis tu appuies sur Entrée : juste = un point par lettre et le mot est à toi, faux = -1.
+3. Chacun a 100 PV. Tu remplis les cases d'un mot puis tu appuies sur Entrée : juste = tu frappes l'adversaire (3 dégâts par lettre), faux = 5 dégâts de recul pour toi.
 4. Un mot validé s'affiche chez les deux joueurs dans la couleur de celui qui l'a trouvé, et ses lettres aident pour les mots qui le croisent.
-5. Au bout de 2 minutes, ou quand la grille est pleine, le plus gros score gagne.
+5. K.O. dès qu'un joueur tombe à 0 PV. Sinon, au bout de 2 minutes (ou grille pleine), celui qui a le plus de PV gagne.
 
 ---
 
@@ -23,34 +23,42 @@
 - Dès qu'un mot est validé, il est révélé chez les deux, dans la couleur du joueur qui l'a trouvé. Il est verrouillé et plus personne ne peut le jouer.
 - Ses lettres apparaissent dans les mots qui le croisent.
 
-**Score**
-| Action | Points |
+**Combat (points de vie)**
+| Action | Effet |
 |---|---|
-| Mot juste | +1 par lettre du mot (FLEX = 4, CHAUSSETTE = 10) |
-| Mot faux | -1, et ce mot est bloqué 3 secondes pour toi (anti-spam) |
-| Acheter une lettre (révélée pour toi seul) | -1 |
+| Départ | 100 PV chacun |
+| Mot juste | Dégâts à l'adversaire = lettres × 3 (FLEX = 12, CHAUSSETTE = 30) |
+| Mot faux | 5 PV de dégâts de recul pour toi, et ce mot est bloqué 3 secondes pour toi (anti-spam) |
+| Acheter une lettre (révélée pour toi seul) | 3 PV |
 
-- Le score peut être négatif.
-- Égalité : affichée comme telle.
+- Les PV ne descendent jamais sous 0. À 0 PV : K.O., la partie s'arrête tout de suite (on peut aussi se mettre K.O. tout seul à force d'erreurs).
+- Au chrono (ou grille pleine) : le plus de PV gagne. Égalité : affichée comme telle.
+- Le serveur calcule tout ; le navigateur ne fait qu'afficher.
+
+**Ressenti des coups**
+- Chaque coup : arrêt sur image de 80 ms, tremblement de l'écran proportionnel aux dégâts, flash blanc et recul de la cible, chiffre de dégâts qui jaillit, étincelles et sang stylisé (pixels).
+- K.O. : ralenti, zoom sur celui qui tombe, grand « K.O. », puis l'écran de fin.
 
 **Comparaison des réponses**
 - Sans tenir compte des majuscules ni des accents : « frérot » = « FREROT ».
 
 **Fin de partie**
-- Chrono à zéro, ou tous les mots trouvés.
-- Écran de résultat : gagnant et perdant, stats de chacun (mots trouvés, erreurs, lettres achetées, super attaques), puis toutes les réponses de la partie (mot, définition, qui l'a trouvé). Boutons « Rejouer » et « Accueil ».
+- K.O., chrono à zéro, ou tous les mots trouvés.
+- Écran de résultat : gagnant (par K.O. ou aux PV) et perdant, PV restants, stats de chacun (dégâts infligés, mots trouvés, erreurs, lettres achetées, super attaques), puis toutes les réponses de la partie (mot, définition, qui l'a trouvé). Boutons « Rejouer » et « Accueil ».
 - Si un joueur se déconnecte, l'autre est prévenu (« Adversaire déconnecté »).
 
 ## Mode solo
 
 - Bouton « Jouer seul » à l'accueil : la partie démarre tout de suite, sans adversaire.
-- Mêmes règles qu'à deux : même grille, chrono de 2 minutes, un point par lettre / -1, mot bloqué 3 s après une erreur, achat de lettre à -1.
-- Fin au chrono ou quand la grille est pleine. Pas de gagné ni de perdu : l'écran de fin affiche le score et le nombre de mots trouvés.
+- On frappe un mannequin d'entraînement (100 PV). Mêmes règles qu'à deux : chrono de 2 minutes, dégâts lettres × 3, recul de 5 PV par erreur, lettre achetée à 3 PV.
+- Fin au K.O. du mannequin, au chrono ou quand la grille est pleine. L'écran de fin affiche les dégâts infligés et le nombre de mots trouvés.
 - « Rejouer » relance une partie solo.
 
 ## Avatars et pouvoirs (lot 3)
 
-Avant la partie, chaque joueur choisit un avatar. Chaque avatar a un pouvoir, utilisable 2 fois par partie. Pas de pouvoir en mode solo.
+Avant la partie, chaque joueur choisit un avatar. Chaque avatar a une **super attaque, une seule fois par partie**. Pas de super attaque en mode solo.
+
+Quand elle est lancée, une **vidéo plein écran** se joue chez les deux joueurs en même temps (le serveur fixe l'heure de départ, 0,6 s après le clic), puis l'effet du pouvoir s'applique. Les vidéos : `public/assets/cine/givre.webm`, `perche.webm`, `verlan.webm`. Tant qu'une vidéo n'existe pas, un flash blanc la remplace.
 
 | Avatar | Pouvoir | Effet chez l'adversaire |
 |---|---|---|
@@ -71,7 +79,9 @@ Avant la partie, chaque joueur choisit un avatar. Chaque avatar a un pouvoir, ut
 
 - Direction « Néon acide » : maquette https://claude.ai/artifact/PYEdxibqoKmARi29Gpj1wJ (direction D ; privée, à partager depuis la page si besoin).
 - Une arène en haut de l'écran : moi à gauche sur une plateforme verte, l'adversaire à droite sur une plateforme rose, devant une ville de nuit.
-- Quand un pouvoir est lancé, les deux joueurs voient la super attaque : une cinématique (bande diagonale, le personnage en gros plan, le nom de l'attaque) puis un rayon géant avec éclairs et explosion à l'impact. L'effet du pouvoir commence juste après (environ 2,7 s).
+- Arène : les deux avatars face à face au-dessus de la grille, sur leurs plateformes, devant la ville de nuit, avec leurs barres de PV animées (la partie perdue reste blanche un instant).
+- Un seul visuel par avatar : `public/assets/avatars/<avatar>.png` (160 px de haut, pixels nets). Pour l'instant, des silhouettes colorées provisoires.
+- Les images et vidéos se préparent avec `npm run assets` (voir `scripts/prepare-assets.js`) à partir de `~/Documents/01-Projets/pas-le-mot/assets-src/` : fond vert retiré, sprites réduits à 160 px sans lissage, vidéos converties en .webm de moins de 2 Mo.
 
 ## Salons privés et attente
 

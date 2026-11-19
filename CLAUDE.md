@@ -7,11 +7,13 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 - `docs/roadmap.md` : les lots, à cocher quand un lot est livré ET en ligne
 - `data/mots.json` : la bibliothèque de mots (mot, affichage, définition, type)
 - `server.js` : Express + Socket.io, branche les événements
-- `game.js` : la logique d'une partie (grille, validation, score, chrono, pouvoirs), sans Socket.io
+- `game.js` : la logique d'une partie (grille, validation, combat en PV, K.O., pouvoirs), sans Socket.io
 - `grid.js` : le placement des mots dans une grille qui se croise
 - `matchmaking.js` : la file d'attente et les salons (repris du morpion)
 - `powers.js` : les avatars, leurs pouvoirs et leurs durées
-- `public/` : index.html, style.css, client.js, sprites.js (les personnages 8 bits), sounds.js (les sons, fabriqués avec Web Audio)
+- `public/` : index.html, style.css, client.js, sounds.js (les sons, fabriqués avec Web Audio)
+- `public/assets/` : `avatars/<avatar>.png` (un visuel par avatar), `cine/<avatar>.webm` (vidéos de super attaque), `arena/` (décors)
+- `scripts/prepare-assets.js` : prépare images et vidéos depuis `assets-src/` (`npm run assets`, nécessite ffmpeg)
 
 ## Stack
 - Node.js + Express : serveur HTTP, sert les fichiers statiques
@@ -22,7 +24,7 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 - Déploiement sur Render (Web Service), jamais sur Vercel, Netlify ou GitHub Pages : le jeu a besoin d'un serveur qui reste allumé
 
 ## Règles
-1. Le serveur fait autorité. Il valide chaque mot, calcule les scores, gère le chrono et les pouvoirs. Le client ne fait qu'afficher.
+1. Le serveur fait autorité. Il valide chaque mot, calcule les PV et les dégâts, décide du K.O., gère le chrono et les pouvoirs. Le client ne fait qu'afficher.
 2. **Le serveur n'envoie jamais les solutions au client pendant la partie.** Le client reçoit la grille vide (positions, longueurs, numéros, définitions). Une lettre n'est envoyée que lorsqu'un mot est trouvé (aux deux joueurs) ou achetée (à l'acheteur seul). Toutes les réponses ne partent qu'avec `game-over`, une fois la partie terminée.
 3. Les réponses sont comparées sans majuscules ni accents.
 4. Un mot trouvé est verrouillé : aucun des deux joueurs ne peut plus le jouer.
@@ -39,22 +41,22 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 | `find-game` | client → serveur | `{ pseudo, avatar }` (avatar : `givre`, `perche` ou `verlan`) |
 | `play-solo` | client → serveur | `{ pseudo }` (mode solo) |
 | `waiting` | serveur → client | |
-| `game-start` | serveur → clients | `{ roomId, grid, clues, you, opponent, startsAt, endsAt, serverNow }` (`startsAt` = le « GO » après le compte à rebours ; rien n'est accepté avant) (sans solutions ; `you` = `{ pseudo, slot, avatar, powersLeft }`, `opponent` = `{ pseudo, slot, avatar }` ou `null` en solo) |
+| `game-start` | serveur → clients | `{ roomId, grid, clues, you, opponent, startsAt, endsAt, maxHp, serverNow }` (`startsAt` = le « GO » après le compte à rebours ; rien n'est accepté avant) (sans solutions ; `you` = `{ pseudo, slot, avatar, powersLeft }`, `opponent` = `{ pseudo, slot, avatar }` ou `null` en solo) |
 | `submit-word` | client → serveur | `{ roomId, wordId, letters }` |
-| `word-claimed` | serveur → clients | `{ wordId, letters, by, scores }` |
-| `word-wrong` | serveur → client fautif | `{ wordId, scores, lockedUntil, serverNow }` |
+| `word-claimed` | serveur → clients | `{ wordId, letters, by, target, damage, hp }` (`hp` = PV des deux joueurs) |
+| `word-wrong` | serveur → client fautif | `{ wordId, target, damage, hp, lockedUntil, serverNow }` |
 | `word-locked` | serveur → client fautif | `{ wordId, lockedUntil, serverNow }` (renvoi pendant le blocage de 3 s, sans pénalité) |
-| `scores` | serveur → adversaire | `{ scores }` (après une erreur ou un achat de l'autre joueur) |
+| `hp` | serveur → adversaire | `{ target, damage, hp }` (recul ou lettre achetée par l'autre joueur) |
 | `buy-letter` | client → serveur | `{ roomId, wordId }` |
-| `letter-revealed` | serveur → acheteur | `{ wordId, index, letter, scores }` |
+| `letter-revealed` | serveur → acheteur | `{ wordId, index, letter, target, damage, hp }` |
 | `use-power` | client → serveur | `{ roomId }` |
-| `power-hit` | serveur → cible | `{ power, duration, payload, from }` (`power` : `freeze`, `trip` ou `verlan` ; `payload.layers` = couches de givre pour le Freeze) |
-| `power-used` | serveur → lanceur | `{ power, remaining }` |
+| `power-hit` | serveur → cible | `{ power, duration, payload, from, cine }` (`cine` = `{ avatar, at, serverNow }` : la vidéo démarre à l'heure `at` du serveur chez les deux joueurs) (`power` : `freeze`, `trip` ou `verlan` ; `payload.layers` = couches de givre pour le Freeze) |
+| `power-used` | serveur → lanceur | `{ power, remaining, cine }` |
 | `power-refused` | serveur → lanceur | `{ reason }` (solo, plus d'utilisation, déjà gelé, partie finie) |
 | `scrape` | client gelé → serveur | `{ roomId }` (un coup de raclette sur son avatar) |
 | `frost` | serveur → client gelé | `{ layers }` (couches de givre restantes, après un coup ou quand ça repousse) |
 | `unfrozen` | serveur → clients | `{ slot }` (ce joueur est dégivré et peut rejouer) |
-| `game-over` | serveur → clients | `{ scores, winner, stats, solutions }` (en solo : `{ scores: [score], winner: null, found, total, stats, solutions }`) ; `stats[slot]` = `{ found, wrong, bought, powers }`, `solutions` = `[{ number, direction, word, clue, foundBy }]` |
+| `game-over` | serveur → clients | `{ hp, winner, ko, stats, solutions }` (`ko` = slot tombé à 0 PV ou null ; en solo : `{ hp, winner, ko, found, total, stats, solutions }`, le slot 1 étant le mannequin) ; `stats[slot]` = `{ found, wrong, bought, powers, damage }`, `solutions` = `[{ number, direction, word, clue, foundBy }]` |
 | `opponent-left` | serveur → client | |
 | `create-room` | client → serveur | `{ pseudo, avatar }` (salon privé) |
 | `room-created` | serveur → client | `{ code }` (4 lettres, à partager) |
@@ -72,11 +74,11 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 - Couleurs (variables dans `public/style.css`, jamais en dur ailleurs) : fond `#0a0c12`, panneaux `#10131b`, texte `#e8ecf5`, moi = vert acide `#c6ff00`, l'adversaire = rose `#ff2a6d`, accents jaune `#f5e100` et cyan `#00e5ff`.
 - Moi toujours à gauche, l'adversaire à droite.
 - Polices (Google Fonts) : Silkscreen (titres, étiquettes), VT323 (texte).
-- Personnages : 3 personnages 8 bits originaux, dessinés pixel par pixel dans `public/sprites.js`. Ne reprendre aucun personnage ni visuel d'un jeu ou d'une série existants (l'inspiration se limite à l'ambiance).
+- Personnages : un seul visuel par avatar, `public/assets/avatars/<avatar>.png` (silhouettes provisoires pour l'instant). Ne reprendre aucun personnage ni visuel d'un jeu ou d'une série existants (l'inspiration se limite à l'ambiance).
 - Animations coupées si le système demande de réduire les animations.
 
 ## À ne pas faire
-- Ne jamais faire confiance au client pour valider un mot ou un score
+- Ne jamais faire confiance au client pour valider un mot, des dégâts ou des PV
 - Ne jamais envoyer les solutions au navigateur
 - Pas de framework frontend, pas de base de données
 - Pas de console.log de débogage laissé dans le code final (garder connexion/déconnexion)

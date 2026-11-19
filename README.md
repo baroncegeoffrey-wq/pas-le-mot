@@ -16,8 +16,8 @@ Puis ouvrir http://localhost:3000 dans deux onglets (un par joueur), choisir un 
 - Tape les lettres (les accents sont ignorés), Retour arrière pour effacer, flèches pour te déplacer.
 - Entrée valide le mot : juste = un point par lettre et le mot prend ta couleur chez les deux joueurs ; faux = -1 et ce mot est bloqué 3 secondes pour toi.
 - « Acheter une lettre (-1) » révèle une lettre du mot sélectionné, à toi seul.
-- La partie s'arrête au bout de 2 minutes ou quand la grille est pleine. Le plus gros score gagne.
-- Avant la partie, choisis un avatar. Son pouvoir (bouton à côté de « Acheter une lettre ») sert 2 fois par partie : Freeze (Le Givré), Trip (Le Perché) ou Verlan (Le Verlan). Pas de pouvoir en solo.
+- C'est un combat : chacun a 100 PV. Un mot trouvé frappe l'adversaire (3 dégâts par lettre), une erreur te coûte 5 PV, une lettre achetée 3 PV. K.O. à 0 PV ; au bout de 2 minutes, le plus de PV gagne.
+- Avant la partie, choisis un avatar. Sa super attaque (bouton à côté de « Acheter une lettre ») sert 1 fois par partie : Freeze (Le Givré), Trip (Le Perché) ou Verlan (Le Verlan). Une vidéo plein écran se joue chez les deux joueurs. Pas de super attaque en solo.
 - Gelé par un Freeze ? Racle le givre de ton avatar en passant vite ta souris d'un bord à l'autre, plusieurs fois.
 - Pour jouer contre un ami précis : « Créer un salon privé », puis envoie-lui le code ou le lien. Il clique « Rejoindre ».
 - Le bouton « SON : ON/OFF » en haut à droite coupe les sons.
@@ -33,11 +33,12 @@ Les tests lancent le vrai serveur et simulent deux joueurs avec `socket.io-clien
 |---|---|
 | `server.js` | Express + Socket.io : reçoit les événements et répond |
 | `matchmaking.js` | File d'attente et salons (repris du morpion) |
-| `game.js` | Une partie : validation des mots, scores, blocage, achat de lettre, pouvoirs |
+| `game.js` | Une partie : validation des mots, PV et dégâts, K.O., blocage, achat de lettre, pouvoirs |
 | `powers.js` | Les avatars et leurs pouvoirs |
 | `grid.js` | Pioche les mots et les place dans une grille qui se croise |
 | `data/mots.json` | La bibliothèque de mots et de définitions |
-| `public/` | La page du jeu (HTML, CSS, JS sans framework), avec `sprites.js` pour les personnages 8 bits |
+| `public/` | La page du jeu (HTML, CSS, JS sans framework) ; `public/assets/` : visuels des avatars, vidéos de super attaque |
+| `scripts/prepare-assets.js` | Prépare images et vidéos (`npm run assets`, nécessite ffmpeg) |
 | `tests/` | Les tests automatiques |
 
 ## Mise en ligne (Render)
@@ -46,3 +47,14 @@ Web Service Node : commande de build `npm install`, commande de démarrage `npm 
 Variable facultative : `GAME_DURATION_MS` (durée d'une partie en millisecondes, 120000 par défaut).
 
 Règles du jeu : `docs/brief.md`. Avancement : `docs/roadmap.md`.
+
+## Préparer les images et vidéos
+1. Dépose les fichiers bruts dans `~/Documents/01-Projets/pas-le-mot/assets-src/` :
+   - `givre.png`, `perche.png`, `verlan.png` : les avatars, sur fond vert uni ;
+   - `givre.mp4`, `perche.mp4`, `verlan.mp4` : les vidéos de super attaque ;
+   - un fichier qui commence par `fond`, `arene` ou `bg` : un décor d'arène.
+2. Lance (ffmpeg doit être installé) :
+```bash
+npm run assets
+```
+3. Les fichiers prêts arrivent dans `public/assets/` : avatars en 160 px de haut (pixels nets, fond transparent), vidéos en .webm de moins de 2 Mo.
