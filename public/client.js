@@ -868,7 +868,9 @@ socket.on('word-claimed', ({ wordId, letters, by, scores }) => {
   w.clueEl.classList.add(by === mySlot ? 'mine' : 'theirs');
   if (currentWord === wordId) buyBtn.disabled = true;
   setScores(scores);
-  gameStatus.textContent = by === mySlot ? `Bien vu ! +1 (${w.number})` : `L'adversaire a trouvé le ${w.number}.`;
+  gameStatus.textContent = by === mySlot
+    ? `Bien vu ! +${w.length} points (${w.number})`
+    : `L'adversaire a trouvé le ${w.number} (+${w.length}).`;
   Sound.play(by === mySlot ? 'good' : 'theirs');
 
   // Si j'étais sur ce mot, je passe au prochain mot libre.

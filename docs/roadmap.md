@@ -5,10 +5,10 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 ## L1 · Le cœur jouable (jeudi) [x]
 - [x] Projet initialisé (git, npm, express, socket.io), CLAUDE.md et docs/ commités
 - [x] Serveur + matchmaking repris du morpion, avec pseudo
-- [x] `grid.js` : pioche 8 à 10 mots (moitié classique, moitié argot) et les place dans une grille qui se croise
+- [x] `grid.js` : pioche 12 mots (moitié classique, moitié argot) et les place dans une grille très croisée
 - [x] Affichage de la grille + liste des définitions numérotées
 - [x] Saisie lettre par lettre dans les cases, Entrée pour valider le mot
-- [x] Validation serveur : +1 / -1, mot révélé chez les deux dans la couleur du joueur
+- [x] Validation serveur : un point par lettre / -1, mot révélé chez les deux dans la couleur du joueur
 - [x] Les solutions ne partent jamais au navigateur (vérifié par `tests/game.test.js`, qui inspecte chaque message reçu par 2 joueurs simulés)
 - [x] **En ligne sur Render** (https://pas-le-mot.onrender.com/), testé avec 2 joueurs simulés sur le site en ligne
 

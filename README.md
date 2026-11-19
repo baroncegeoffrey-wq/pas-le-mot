@@ -2,7 +2,7 @@
 
 **Jouer en ligne : https://pas-le-mot.onrender.com/**
 
-Mots croisés multijoueur en temps réel : deux joueurs font la course sur la même grille de 8 à 10 mots, moitié mots classiques, moitié argot. Mot juste +1, mot faux -1, 2 minutes de chrono.
+Mots croisés multijoueur en temps réel : deux joueurs font la course sur la même grille de 12 mots très croisés, moitié mots classiques, moitié argot. Mot juste = un point par lettre, mot faux -1, 2 minutes de chrono.
 
 ## Jouer en local
 ```bash
@@ -14,7 +14,7 @@ Puis ouvrir http://localhost:3000 dans deux onglets (un par joueur), choisir un 
 ## Comment jouer
 - Clique une case ou une définition pour choisir un mot. Un deuxième clic sur une case de croisement change de direction.
 - Tape les lettres (les accents sont ignorés), Retour arrière pour effacer, flèches pour te déplacer.
-- Entrée valide le mot : juste = +1 et le mot prend ta couleur chez les deux joueurs ; faux = -1 et ce mot est bloqué 3 secondes pour toi.
+- Entrée valide le mot : juste = un point par lettre et le mot prend ta couleur chez les deux joueurs ; faux = -1 et ce mot est bloqué 3 secondes pour toi.
 - « Acheter une lettre (-1) » révèle une lettre du mot sélectionné, à toi seul.
 - La partie s'arrête au bout de 2 minutes ou quand la grille est pleine. Le plus gros score gagne.
 - Avant la partie, choisis un avatar. Son pouvoir (bouton à côté de « Acheter une lettre ») sert 2 fois par partie : Freeze (Le Givré), Trip (Le Perché) ou Verlan (Le Verlan). Pas de pouvoir en solo.

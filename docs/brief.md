@@ -1,9 +1,9 @@
 # C'est pas le mot que tu crois
 
 **En 5 lignes**
-1. Un jeu de mots croisés en ligne, à 2 joueurs, en mode course, sur la même grille de 8 à 10 mots.
+1. Un jeu de mots croisés en ligne, à 2 joueurs, en mode course, sur la même grille de 12 mots, très croisés : chaque mot trouvé donne des lettres à ceux qu'il croise.
 2. La moitié des mots est classique, l'autre moitié vient de l'argot d'aujourd'hui (vulgaire autorisé). Ce sont des mots qui existent, avec de vraies définitions.
-3. Tu remplis les cases d'un mot puis tu appuies sur Entrée : juste = +1 et le mot est à toi, faux = -1.
+3. Tu remplis les cases d'un mot puis tu appuies sur Entrée : juste = un point par lettre et le mot est à toi, faux = -1.
 4. Un mot validé s'affiche chez les deux joueurs dans la couleur de celui qui l'a trouvé, et ses lettres aident pour les mots qui le croisent.
 5. Au bout de 2 minutes, ou quand la grille est pleine, le plus gros score gagne.
 
@@ -26,7 +26,7 @@
 **Score**
 | Action | Points |
 |---|---|
-| Mot juste | +1 |
+| Mot juste | +1 par lettre du mot (FLEX = 4, CHAUSSETTE = 10) |
 | Mot faux | -1, et ce mot est bloqué 3 secondes pour toi (anti-spam) |
 | Acheter une lettre (révélée pour toi seul) | -1 |
 
@@ -44,7 +44,7 @@
 ## Mode solo
 
 - Bouton « Jouer seul » à l'accueil : la partie démarre tout de suite, sans adversaire.
-- Mêmes règles qu'à deux : même grille, chrono de 2 minutes, +1 / -1, mot bloqué 3 s après une erreur, achat de lettre à -1.
+- Mêmes règles qu'à deux : même grille, chrono de 2 minutes, un point par lettre / -1, mot bloqué 3 s après une erreur, achat de lettre à -1.
 - Fin au chrono ou quand la grille est pleine. Pas de gagné ni de perdu : l'écran de fin affiche le score et le nombre de mots trouvés.
 - « Rejouer » relance une partie solo.
 
