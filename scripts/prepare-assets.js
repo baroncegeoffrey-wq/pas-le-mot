@@ -20,12 +20,18 @@
 //     sans lissage (pixels nets) ;
 //   * arene.jpeg devient <sortie>/arena/arene.png, l'image de secours (même
 //     agrandissement), affichée si la vidéo ne se lit pas.
-// - Vidéos de super attaque (.mp4 .mov .mkv .webm, ex. givre.mp4) : converties
-//   en .webm (VP9 + Opus), 1280 px de large au maximum, moins de 2 Mo, dans
-//   <sortie>/cine/.
+// - Cinématiques de super attaque (givre-cine.mp4, perche-cine.mp4,
+//   verlan-cine.mp4) : gardées en entier ; seules les images vraiment vides
+//   (noires) ou figées au tout début et à la toute fin sont coupées, 0,5 s
+//   maximum de chaque côté. Converties en .webm 720p (VP9 + Opus, bonne
+//   qualité, 4 Mo maximum) dans <sortie>/cine/givre.webm, etc. Leurs durées
+//   sont écrites dans <sortie>/cine/durations.json (le serveur s'en sert pour
+//   mettre le chrono en pause pendant la vidéo).
+// - Images des cinématiques (givre-cine.jpeg...) : réduites à 1280 px de large,
+//   dans <sortie>/cine/givre.jpg : affichées le temps que la vidéo démarre.
 //
-// Réglage : BG_TOLERANCE=60 node scripts/prepare-assets.js (défaut 70) pour
-// retirer plus ou moins de fond autour du perso.
+// Réglage : BG_TOLERANCE=60 node scripts/prepare-assets.js pour retirer plus
+// ou moins de fond autour de TOUS les persos (sinon : voir TOLERANCE_BY_SPRITE).
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -37,11 +43,21 @@ const OUT = path.resolve(process.argv[3] || path.join(__dirname, '..', 'public',
 const SPRITE_HEIGHT = 160;
 const ARENA_MIN_WIDTH = 1280; // l'arène est agrandie (facteur entier) jusqu'à au moins cette largeur
 const ARENA_MAX_WIDTH = 2560;
-const VIDEO_MAX_WIDTH = 1280;
-const VIDEO_MAX_BYTES = 2 * 1024 * 1024; // 2 Mo
-const AUDIO_KBPS = 64;
+const VIDEO_HEIGHT = 720; // cinématiques en 720p
+const VIDEO_MAX_BYTES = 4 * 1024 * 1024; // 4 Mo maximum par cinématique
+const AUDIO_KBPS = 96;
+const MAX_EDGE_TRIM = 0.5; // on ne coupe jamais plus de 0,5 s au début ni à la fin
 // Tolérance de couleur pour le remplissage du fond (distance RVB, de 0 à 441).
-const BG_TOLERANCE = Number(process.env.BG_TOLERANCE) || 70;
+// 70 retire bien le fond vert et son halo. Le Perché a de la fumée verte proche
+// du fond (distance 40 à 55, le bruit du fond allant jusqu'à 30) : 34 la garde.
+const DEFAULT_TOLERANCE = 70;
+const TOLERANCE_BY_SPRITE = { perche: 34 };
+const toleranceFor = (name) => Number(process.env.BG_TOLERANCE) || TOLERANCE_BY_SPRITE[name] || DEFAULT_TOLERANCE;
+// Poches de fond enfermées (ex. entre un bras et le corps) : retirées seulement
+// si elles sont TRÈS proches du fond (tolérance serrée, 3/4 de celle du fond)
+// et assez grandes, pour ne jamais toucher à la fumée verte du Perché.
+const HOLE_SHARE_OF_TOLERANCE = 0.75;
+const HOLE_MIN_SHARE = 0.0004; // taille minimale d'une poche : 0,04 % de l'image
 
 const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 const ARENA_NAME = /^(fond|arene|arène|bg)/i;
@@ -63,6 +79,9 @@ function checkFfmpeg() {
     }
   }
 }
+
+// « givre-cine.mp4 » → « givre » : le nom de l'avatar, sans le suffixe -cine.
+const cineName = (file) => slug(file).replace(/-cine$/, '');
 
 const slug = (file) => path.basename(file, path.extname(file))
   .normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -132,6 +151,28 @@ function floodRemoveBackground(img, tolerance) {
     if (touches && near(p, tolFringe2)) fringe.push(p);
   }
   fringe.forEach((p) => { removed[p] = 1; });
+
+  // Poches enfermées : morceaux de fond qui ne touchent pas les bords.
+  const holeTol = Math.min(32, tolerance * HOLE_SHARE_OF_TOLERANCE);
+  const holeTol2 = holeTol * holeTol;
+  const minHole = Math.max(50, Math.round(w * h * HOLE_MIN_SHARE));
+  const seen = new Uint8Array(w * h);
+  for (let start = 0; start < w * h; start++) {
+    if (removed[start] || seen[start] || !near(start, holeTol2)) continue;
+    const pocket = [start];
+    seen[start] = 1;
+    for (let k = 0; k < pocket.length; k++) {
+      const p = pocket[k];
+      const x = p % w; const y = (p - x) / w;
+      const visit = (q) => { if (!removed[q] && !seen[q] && near(q, holeTol2)) { seen[q] = 1; pocket.push(q); } };
+      if (x > 0) visit(p - 1);
+      if (x < w - 1) visit(p + 1);
+      if (y > 0) visit(p - w);
+      if (y < h - 1) visit(p + w);
+    }
+    if (pocket.length >= minHole) pocket.forEach((p) => { removed[p] = 1; });
+  }
+
   let count = 0;
   for (let p = 0; p < w * h; p++) {
     if (removed[p]) { data[p * 4 + 3] = 0; count++; }
@@ -171,10 +212,11 @@ function writeScaledPng({ w, h, data }, height, out) {
 function prepareSprite(file) {
   const out = path.join(OUT, 'avatars', `${slug(file)}.png`);
   const img = readPixels(file);
-  const removed = floodRemoveBackground(img, BG_TOLERANCE);
+  const tolerance = toleranceFor(slug(file));
+  const removed = floodRemoveBackground(img, tolerance);
   const cropped = cropToContent(img);
   writeScaledPng(cropped, SPRITE_HEIGHT, out);
-  return { out, detail: `fond retiré (${Math.round((100 * removed) / (img.w * img.h))} %), recadré ${cropped.w}×${cropped.h}, réduit à ${SPRITE_HEIGHT} px de haut` };
+  return { out, detail: `fond retiré (${Math.round((100 * removed) / (img.w * img.h))} %, tolérance ${tolerance}), recadré ${cropped.w}×${cropped.h}, réduit à ${SPRITE_HEIGHT} px de haut` };
 }
 
 // Facteur d'agrandissement entier (pixels nets) pour que l'arène fasse au
@@ -184,13 +226,22 @@ function arenaFactor(width) {
   return width * factor > ARENA_MAX_WIDTH ? Math.max(1, Math.floor(ARENA_MAX_WIDTH / width)) : factor;
 }
 
-// arene.jpeg (ou .png) : l'image de secours, agrandie sans lissage.
+// arene.jpeg : l'image de secours, à la largeur de l'arène (1280 px), sans
+// lissage : agrandie par un facteur entier si elle est petite, réduite si elle
+// est grande. En .jpg pour rester légère (c'est une illustration détaillée).
 function prepareArenaImage(file) {
-  const out = path.join(OUT, 'arena', `${slug(file)}.png`);
+  const out = path.join(OUT, 'arena', `${slug(file)}.jpg`);
   const { w } = sizeOf(file);
-  const f = arenaFactor(w);
-  run('ffmpeg', ['-y', '-loglevel', 'error', '-i', file, '-vf', `scale=iw*${f}:ih*${f}:flags=neighbor`, '-frames:v', '1', out]);
-  return { out, detail: `image de secours, agrandie ×${f} sans lissage` };
+  const scale = w < ARENA_MIN_WIDTH ? `iw*${arenaFactor(w)}:-2` : `${ARENA_MIN_WIDTH}:-2`;
+  run('ffmpeg', ['-y', '-loglevel', 'error', '-i', file, '-vf', `scale=${scale}:flags=neighbor`, '-frames:v', '1', '-q:v', '3', out]);
+  return { out, detail: `image de secours, ${ARENA_MIN_WIDTH} px de large, sans lissage` };
+}
+
+// Image d'une cinématique (givre-cine.jpeg) : l'image d'attente de la vidéo.
+function prepareCinePoster(file) {
+  const out = path.join(OUT, 'cine', `${cineName(file)}.jpg`);
+  run('ffmpeg', ['-y', '-loglevel', 'error', '-i', file, '-vf', 'scale=1280:-2', '-frames:v', '1', '-q:v', '4', out]);
+  return { out, detail: 'image d\'attente de la cinématique, 1280 px' };
 }
 
 // arene.gif : une vidéo .webm qui boucle (la boucle se fait dans la page), agrandie sans lissage.
@@ -216,22 +267,46 @@ function hasAudio(file) {
   return out.trim().length > 0;
 }
 
-// Encode en VP9 deux passes avec un débit calculé pour tenir sous 2 Mo ;
-// si le fichier dépasse quand même, on réessaie avec un débit plus bas.
+// Repère les passages noirs ou figés qui touchent le tout début ou la toute
+// fin de la vidéo. Renvoie combien de secondes couper de chaque côté
+// (0,5 s au maximum). Le reste de la vidéo est gardé en entier.
+function edgeTrims(file, duration) {
+  const res = spawnSync('ffmpeg', ['-hide_banner', '-i', file, '-vf',
+    'blackdetect=d=0.04:pix_th=0.08,freezedetect=n=0.002:d=0.08', '-an', '-f', 'null', '-'], { encoding: 'utf8' });
+  const log = res.stderr || '';
+  const spans = [];
+  for (const m of log.matchAll(/black_start:([\d.]+) black_end:([\d.]+)/g)) spans.push([+m[1], +m[2]]);
+  const starts = [...log.matchAll(/freeze_start: ([\d.]+)/g)].map((m) => +m[1]);
+  const ends = [...log.matchAll(/freeze_end: ([\d.]+)/g)].map((m) => +m[1]);
+  starts.forEach((start, i) => spans.push([start, ends[i] !== undefined ? ends[i] : duration]));
+  let head = 0;
+  let tail = 0;
+  for (const [start, end] of spans) {
+    if (start <= 0.05) head = Math.max(head, end); // vide ou figé dès la première image
+    if (end >= duration - 0.05) tail = Math.max(tail, duration - start); // jusqu'à la dernière image
+  }
+  return { head: Math.min(MAX_EDGE_TRIM, head), tail: Math.min(MAX_EDGE_TRIM, tail) };
+}
+
+// Encode en VP9 deux passes, 720p, avec le meilleur débit qui tient sous 4 Mo ;
+// si le fichier dépasse quand même, on réessaie un peu plus bas.
 function prepareVideo(file) {
-  const out = path.join(OUT, 'cine', `${slug(file)}.webm`);
-  const seconds = durationOf(file);
+  const out = path.join(OUT, 'cine', `${cineName(file)}.webm`);
+  const total = durationOf(file);
+  const { head, tail } = edgeTrims(file, total);
+  const seconds = total - head - tail;
   const audio = hasAudio(file);
   const audioKbps = audio ? AUDIO_KBPS : 0;
-  let videoKbps = Math.floor(((VIDEO_MAX_BYTES * 8) / 1000 / seconds) * 0.9) - audioKbps;
+  let videoKbps = Math.floor(((VIDEO_MAX_BYTES * 8) / 1000 / seconds) * 0.92) - audioKbps;
   const passlog = path.join(os.tmpdir(), `prepare-assets-${process.pid}`);
 
   for (let attempt = 1; attempt <= 4; attempt++) {
-    if (videoKbps < 50) throw new Error(`${path.basename(file)} est trop longue pour tenir sous 2 Mo (${seconds.toFixed(1)} s)`);
+    if (videoKbps < 100) throw new Error(`${path.basename(file)} est trop longue pour tenir sous 4 Mo (${seconds.toFixed(1)} s)`);
     const common = ['-y', '-loglevel', 'error', '-i', file,
-      '-vf', `scale='min(${VIDEO_MAX_WIDTH},iw)':-2`,
-      // -deadline good -cpu-used 4 : bonne qualité, encodage plusieurs fois plus rapide.
-      '-c:v', 'libvpx-vp9', '-b:v', `${videoKbps}k`, '-deadline', 'good', '-cpu-used', '4',
+      '-ss', head.toFixed(3), '-t', seconds.toFixed(3),
+      '-vf', `scale=-2:${VIDEO_HEIGHT}`,
+      // -deadline good -cpu-used 2 : bonne qualité, encodage raisonnablement rapide.
+      '-c:v', 'libvpx-vp9', '-b:v', `${videoKbps}k`, '-deadline', 'good', '-cpu-used', '2',
       '-row-mt', '1', '-passlogfile', passlog];
     run('ffmpeg', [...common, '-pass', '1', '-an', '-f', 'webm', os.platform() === 'win32' ? 'NUL' : '/dev/null']);
     run('ffmpeg', [...common, '-pass', '2', ...(audio ? ['-c:a', 'libopus', '-b:a', `${audioKbps}k`] : ['-an']), out]);
@@ -240,11 +315,21 @@ function prepareVideo(file) {
       for (const f of fs.readdirSync(os.tmpdir())) {
         if (f.startsWith(path.basename(passlog))) fs.rmSync(path.join(os.tmpdir(), f), { force: true });
       }
-      return { out, size };
+      return {
+        out, size, seconds: durationOf(out), head, tail,
+      };
     }
-    videoKbps = Math.floor(videoKbps * 0.75 * (VIDEO_MAX_BYTES / size));
+    videoKbps = Math.floor(videoKbps * 0.9 * (VIDEO_MAX_BYTES / size));
   }
-  throw new Error(`impossible de passer ${path.basename(file)} sous 2 Mo`);
+  throw new Error(`impossible de passer ${path.basename(file)} sous 4 Mo`);
+}
+
+// Durées des cinématiques, lues par le serveur pour la pause du chrono.
+function writeDurations(durations) {
+  const file = path.join(OUT, 'cine', 'durations.json');
+  let current = {};
+  try { current = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { /* pas encore de fichier */ }
+  fs.writeFileSync(file, `${JSON.stringify({ ...current, ...durations }, null, 2)}\n`);
 }
 
 function main() {
@@ -261,6 +346,7 @@ function main() {
     return;
   }
   let errors = 0;
+  const durations = {};
   for (const name of files) {
     const file = path.join(SRC, name);
     const ext = path.extname(name).toLowerCase();
@@ -269,11 +355,17 @@ function main() {
         const { out, detail } = prepareArenaLoop(file);
         console.log(`✓ ${name} → ${path.relative(process.cwd(), out)} (${detail})`);
       } else if (IMAGE_EXT.has(ext)) {
-        const { out, detail } = ARENA_NAME.test(name) ? prepareArenaImage(file) : prepareSprite(file);
-        console.log(`✓ ${name} → ${path.relative(process.cwd(), out)} (${detail})`);
+        let result;
+        if (ARENA_NAME.test(name)) result = prepareArenaImage(file);
+        else if (/-cine$/.test(slug(file))) result = prepareCinePoster(file);
+        else result = prepareSprite(file);
+        console.log(`✓ ${name} → ${path.relative(process.cwd(), result.out)} (${result.detail})`);
       } else if (VIDEO_EXT.has(ext)) {
-        const { out, size } = prepareVideo(file);
-        console.log(`✓ ${name} → ${path.relative(process.cwd(), out)} (${(size / 1024 / 1024).toFixed(2)} Mo)`);
+        const {
+          out, size, seconds, head, tail,
+        } = prepareVideo(file);
+        durations[cineName(file)] = Math.round(seconds * 1000) / 1000;
+        console.log(`✓ ${name} → ${path.relative(process.cwd(), out)} (${seconds.toFixed(2)} s, coupé ${head.toFixed(2)} s au début et ${tail.toFixed(2)} s à la fin, ${(size / 1024 / 1024).toFixed(2)} Mo)`);
       } else {
         console.log(`- ${name} ignoré (format non pris en charge)`);
       }
@@ -282,6 +374,7 @@ function main() {
       console.error(`✗ ${name} : ${err.message}`);
     }
   }
+  if (Object.keys(durations).length) writeDurations(durations);
   if (errors) process.exit(1);
 }
 
