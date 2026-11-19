@@ -20,6 +20,10 @@ const GAME_DURATION_MS = Number(process.env.GAME_DURATION_MS) || 4 * 60 * 1000;
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Petit signal envoyé par la page toutes les 4 minutes : sur l'offre gratuite,
+// Render éteint le serveur après 15 minutes sans visite, même en pleine partie.
+app.get('/ping', (req, res) => res.type('text').send('ok'));
+
 // Filet de sécurité : une erreur dans un événement ne doit jamais faire tomber
 // le serveur (sinon toutes les parties en cours sont perdues). On la note dans
 // les logs (visibles sur Render) et on continue.

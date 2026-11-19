@@ -66,6 +66,9 @@ const writeStep = () => (verlanActive ? -1 : 1);
 
 const key = (r, c) => `${r},${c}`;
 
+// Garde le serveur éveillé tant que la page est ouverte (voir /ping dans server.js).
+setInterval(() => { fetch('ping', { cache: 'no-store' }).catch(() => {}); }, 4 * 60 * 1000);
+
 // Retire les accents et garde une seule lettre majuscule (ou '').
 function cleanLetter(text) {
   const letter = text.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z]/g, '');

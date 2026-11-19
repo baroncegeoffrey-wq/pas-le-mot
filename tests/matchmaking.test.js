@@ -59,3 +59,14 @@ test('matchmaking : pseudo vide ou trop long nettoyé', async () => {
     a.close(); b.close(); server.stop();
   }
 });
+
+test('ping : le serveur répond (signal de maintien en vie)', async () => {
+  const server = await startServer();
+  try {
+    const res = await fetch(`${server.url}/ping`);
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(await res.text(), 'ok');
+  } finally {
+    server.stop();
+  }
+});
