@@ -14,6 +14,27 @@
     <form id="find-form">
       <label for="pseudo">Ton pseudo</label>
       <input id="pseudo" name="pseudo" maxlength="16" autocomplete="off" required>
+      <fieldset class="avatars">
+        <legend>Ton avatar (son pouvoir sert 2 fois par partie, pas en solo)</legend>
+        <label class="avatar-card">
+          <input type="radio" name="avatar" value="givre" checked>
+          <span class="badge givre" aria-hidden="true"></span>
+          <span class="avatar-name">Le Givré</span>
+          <span class="avatar-power">Freeze : gèle 3 cases de l'adversaire pendant 10 s</span>
+        </label>
+        <label class="avatar-card">
+          <input type="radio" name="avatar" value="perche">
+          <span class="badge perche" aria-hidden="true"></span>
+          <span class="avatar-name">Le Perché</span>
+          <span class="avatar-power">Trip : tout devient flou, il ne voit net qu'autour de sa souris pendant 10 s</span>
+        </label>
+        <label class="avatar-card">
+          <input type="radio" name="avatar" value="verlan">
+          <span class="badge verlan" aria-hidden="true"></span>
+          <span class="avatar-name">Le Verlan</span>
+          <span class="avatar-power">Verlan : son écran se retourne et il écrit les mots par la fin pendant 10 s</span>
+        </label>
+      </fieldset>
       <button type="submit" id="find-btn" disabled>Trouver une partie</button>
       <button type="button" id="solo-btn" class="secondary" disabled>Jouer seul</button>
     </form>
@@ -23,9 +44,9 @@
   <!-- Écran de jeu -->
   <section id="game" class="screen" hidden>
     <header class="scoreboard">
-      <div class="player" id="player-0"><span class="name"></span><span class="score">0</span></div>
+      <div class="player" id="player-0"><span class="badge" aria-hidden="true"></span><span class="name"></span><span class="score">0</span></div>
       <div class="timer" id="timer" aria-label="Temps restant">4:00</div>
-      <div class="player" id="player-1"><span class="name"></span><span class="score">0</span></div>
+      <div class="player" id="player-1"><span class="badge" aria-hidden="true"></span><span class="name"></span><span class="score">0</span></div>
     </header>
     <p id="game-status" class="status">Remplis un mot puis appuie sur Entrée.</p>
     <div class="actions">

@@ -26,6 +26,23 @@ test('matchmaking : deux joueurs sont appariés avec leur pseudo', async () => {
   }
 });
 
+test('matchmaking : avatar choisi transmis, avatar inconnu remplacé', async () => {
+  const server = await startServer();
+  const a = createPlayer(server.url);
+  const b = createPlayer(server.url);
+  try {
+    a.emit('find-game', { pseudo: 'A', avatar: 'perche' });
+    await waitFor(a, 'waiting');
+    const start = waitFor(a, 'game-start');
+    b.emit('find-game', { pseudo: 'B', avatar: '__proto__' });
+    const data = await start;
+    assert.strictEqual(data.you.avatar, 'perche');
+    assert.strictEqual(data.opponent.avatar, 'givre');
+  } finally {
+    a.close(); b.close(); server.stop();
+  }
+});
+
 test('matchmaking : pseudo vide ou trop long nettoyé', async () => {
   const server = await startServer();
   const a = createPlayer(server.url);

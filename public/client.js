@@ -37,7 +37,16 @@ function cleanLetter(text) {
 
 /* ---------- Accueil et recherche de partie ---------- */
 
-try { pseudoInput.value = localStorage.getItem('pseudo') || ''; } catch (e) { /* stockage indisponible */ }
+try {
+  pseudoInput.value = localStorage.getItem('pseudo') || '';
+  const saved = findForm.querySelector(`input[name="avatar"][value="${localStorage.getItem('avatar')}"]`);
+  if (saved) saved.checked = true;
+} catch (e) { /* stockage indisponible */ }
+
+findForm.addEventListener('change', (event) => {
+  if (event.target.name !== 'avatar') return;
+  try { localStorage.setItem('avatar', event.target.value); } catch (e) { /* tant pis */ }
+});
 
 socket.on('connect', () => {
   statusText.textContent = 'Connecté. Choisis un pseudo.';
@@ -57,16 +66,21 @@ findForm.addEventListener('submit', (event) => {
   findGame();
 });
 
+function chosenAvatar() {
+  const checked = findForm.querySelector('input[name="avatar"]:checked');
+  return checked ? checked.value : 'givre';
+}
+
 function findGame() {
   lastMode = 'duo';
-  socket.emit('find-game', { pseudo: pseudoInput.value.trim() });
+  socket.emit('find-game', { pseudo: pseudoInput.value.trim(), avatar: chosenAvatar() });
   findBtn.disabled = true;
   statusText.textContent = 'Recherche d\'un adversaire...';
 }
 
 function playSolo() {
   lastMode = 'solo';
-  socket.emit('play-solo', { pseudo: pseudoInput.value.trim() });
+  socket.emit('play-solo', { pseudo: pseudoInput.value.trim(), avatar: chosenAvatar() });
 }
 
 soloBtn.addEventListener('click', () => {
@@ -101,6 +115,7 @@ socket.on('game-start', (data) => {
   for (const p of players) {
     const box = $(`player-${p.slot}`);
     box.querySelector('.name').textContent = p.pseudo;
+    box.querySelector('.badge').className = `badge ${p.avatar}`;
     box.querySelector('.score').textContent = '0';
     box.classList.toggle('me', p.slot === mySlot);
   }

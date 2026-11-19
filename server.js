@@ -32,9 +32,9 @@ function startGame(roomId, room) {
       roomId,
       grid,
       clues,
-      you: { pseudo: player.pseudo, slot: index },
+      you: { pseudo: player.pseudo, slot: index, avatar: player.avatar },
       // En solo, pas d'adversaire.
-      opponent: opponent ? { pseudo: opponent.pseudo, slot: 1 - index } : null,
+      opponent: opponent ? { pseudo: opponent.pseudo, slot: 1 - index, avatar: opponent.avatar } : null,
       endsAt,
       // L'heure du serveur, pour que le client corrige un écart d'horloge.
       serverNow: Date.now(),
@@ -125,11 +125,11 @@ io.on('connection', (socket) => {
   console.log('Player connected', socket.id);
 
   socket.on('find-game', (data) => {
-    addToQueue(socket, data && data.pseudo, startGame);
+    addToQueue(socket, data, startGame);
   });
 
   socket.on('play-solo', (data) => {
-    createSoloRoom(socket, data && data.pseudo, startGame);
+    createSoloRoom(socket, data, startGame);
   });
 
   socket.on('submit-word', (data) => handleSubmitWord(socket, data));

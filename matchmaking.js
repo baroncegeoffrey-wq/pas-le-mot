@@ -2,13 +2,14 @@
 // Repris du morpion (docs/reference-morpion/matchmaking.js) : même file
 // d'attente, mêmes salons, mais avec un pseudo et sans logique de jeu ici.
 const crypto = require('crypto');
+const { cleanAvatar } = require('./powers');
 
 const MAX_PSEUDO_LENGTH = 16;
 
-// Joueurs en attente d'un adversaire : [{ socket, pseudo }]
+// Joueurs en attente d'un adversaire : [{ socket, pseudo, avatar }]
 const queue = [];
 
-// roomId -> { game, timer, solo, players: [{ id, pseudo }, { id, pseudo }] }
+// roomId -> { game, timer, solo, players: [{ id, pseudo, avatar }, { id, pseudo, avatar }] }
 // (un seul joueur dans players en mode solo)
 const activeGames = new Map();
 
@@ -21,16 +22,23 @@ function cleanPseudo(raw) {
   return pseudo.slice(0, MAX_PSEUDO_LENGTH) || 'Joueur';
 }
 
+// Pseudo et avatar envoyés par le client, nettoyés.
+function cleanProfile(data) {
+  const raw = data && typeof data === 'object' ? data : {};
+  return { pseudo: cleanPseudo(raw.pseudo), avatar: cleanAvatar(raw.avatar) };
+}
+
 // Met le joueur en file. Si quelqu'un attend déjà, crée un salon pour les deux
 // et appelle onMatch(roomId, room) : c'est server.js qui lance la partie.
-function addToQueue(socket, rawPseudo, onMatch) {
+// data = { pseudo, avatar } tel qu'envoyé par le client.
+function addToQueue(socket, data, onMatch) {
   // Ignore un joueur déjà en attente ou déjà en partie.
   if (queue.some((entry) => entry.socket === socket) || playerRooms.has(socket.id)) return;
 
-  const pseudo = cleanPseudo(rawPseudo);
+  const profile = cleanProfile(data);
   const opponent = queue.shift();
   if (!opponent) {
-    queue.push({ socket, pseudo });
+    queue.push({ socket, ...profile });
     socket.emit('waiting');
     return;
   }
@@ -40,8 +48,8 @@ function addToQueue(socket, rawPseudo, onMatch) {
     game: null,
     timer: null,
     players: [
-      { id: opponent.socket.id, pseudo: opponent.pseudo },
-      { id: socket.id, pseudo },
+      { id: opponent.socket.id, pseudo: opponent.pseudo, avatar: opponent.avatar },
+      { id: socket.id, ...profile },
     ],
   };
   activeGames.set(roomId, room);
@@ -55,12 +63,12 @@ function addToQueue(socket, rawPseudo, onMatch) {
 }
 
 // Mode solo : un salon pour un seul joueur, sans passer par la file d'attente.
-function createSoloRoom(socket, rawPseudo, onMatch) {
+function createSoloRoom(socket, data, onMatch) {
   if (playerRooms.has(socket.id)) return;
   removeFromQueue(socket); // il attendait peut-être un adversaire
 
   const roomId = crypto.randomUUID();
-  const room = { game: null, timer: null, solo: true, players: [{ id: socket.id, pseudo: cleanPseudo(rawPseudo) }] };
+  const room = { game: null, timer: null, solo: true, players: [{ id: socket.id, ...cleanProfile(data) }] };
   activeGames.set(roomId, room);
   playerRooms.set(socket.id, roomId);
   socket.join(roomId);

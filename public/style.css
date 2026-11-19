@@ -10,6 +10,11 @@
   --current-clue: rgba(255, 233, 168, .15);
   --focus: #F5B942;
   --size: 2.4rem;
+  --givre: #7FD3F5;
+  --perche: #B57BF0;
+  --verlan: #F5A442;
+  --card: rgba(242, 238, 227, .06);
+  --card-on: rgba(242, 238, 227, .14);
 }
 
 * { box-sizing: border-box; }
@@ -38,13 +43,53 @@ h1 { font-size: 3rem; margin: 0; letter-spacing: .05em; }
 .sub { opacity: .7; margin-top: .25rem; }
 #result .status { font-size: 1.2rem; margin-bottom: 1.5rem; }
 #find-form { display: flex; flex-direction: column; gap: .5rem; margin-top: 2rem; min-width: 16rem; }
-#find-form input, button {
+/* Choix de l'avatar */
+.avatars { border: 0; padding: 0; margin: .5rem 0; display: grid; gap: .5rem; text-align: left; max-width: 26rem; }
+.avatars legend { font-size: .9rem; opacity: .8; margin-bottom: .4rem; text-align: center; width: 100%; }
+.avatar-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "badge name" "badge power";
+  column-gap: .7rem;
+  align-items: center;
+  padding: .5rem .7rem;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: var(--card);
+  cursor: pointer;
+}
+.avatar-card:has(input:checked) { border-color: var(--cell); background: var(--card-on); }
+.avatar-card:has(input:focus-visible) { outline: 2px solid var(--focus); }
+.avatar-card input { position: absolute; opacity: 0; pointer-events: none; }
+.avatar-card .badge { grid-area: badge; width: 2.4rem; height: 2.4rem; font-size: 1.3rem; }
+.avatar-name { grid-area: name; font-weight: 700; }
+.avatar-power { grid-area: power; font-size: .85rem; opacity: .8; }
+
+/* Badges provisoires (en attendant les personnages 8 bits) */
+.badge {
+  display: inline-grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  color: var(--ink);
+  font-weight: 700;
+  line-height: 1;
+}
+.badge.givre { background: var(--givre); }
+.badge.givre::before { content: "\2744\FE0E"; }
+.badge.perche { background: var(--perche); }
+.badge.perche::before { content: "\25CE"; }
+.badge.verlan { background: var(--verlan); }
+.badge.verlan::before { content: "\21C4"; }
+
+#find-form input:not([type="radio"]), button {
   font: inherit;
   padding: .6rem .8rem;
   border-radius: 6px;
   border: 0;
 }
-#find-form input { background: var(--cell); color: var(--ink); }
+#find-form #pseudo { background: var(--cell); color: var(--ink); }
 button { background: var(--p0); color: white; cursor: pointer; font-weight: 600; }
 button.secondary { background: transparent; border: 1px solid var(--cell); color: var(--cell); }
 button:disabled { opacity: .5; cursor: default; }
