@@ -93,6 +93,7 @@ function closeRoom(roomId, io) {
   if (!room) return null;
   activeGames.delete(roomId);
   if (room.timer) clearTimeout(room.timer);
+  if (room.onClose) room.onClose(); // autres minuteries de la partie (pouvoirs)
 
   for (const { id } of room.players) {
     playerRooms.delete(id);

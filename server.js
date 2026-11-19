@@ -7,6 +7,7 @@ const {
   addToQueue, createSoloRoom, handleDisconnect, getRoomOf, endGame,
 } = require('./matchmaking');
 const { Game } = require('./game');
+const { FREEZE } = require('./powers');
 
 const app = express();
 const server = http.createServer(app);
@@ -22,6 +23,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 // on crée la grille et on envoie à chacun la version publique (sans les solutions).
 function startGame(roomId, room) {
   room.game = new Game(undefined, room.players.map((p) => p.avatar));
+  // Minuteries du Freeze, par joueur gelé : { regrow, safety }
+  room.freezeTimers = [null, null];
+  room.onClose = () => room.freezeTimers.forEach((_, slot) => clearFreezeTimers(room, slot));
   const { grid, clues } = room.game.getPublicGrid();
   const endsAt = Date.now() + GAME_DURATION_MS;
   room.timer = setTimeout(() => finishGame(roomId, room), GAME_DURATION_MS);
@@ -104,12 +108,7 @@ function handleSubmitWord(socket, data) {
     socket.to(roomId).emit('scores', { scores: result.scores });
   } else if (result.type === 'locked') {
     // Mot encore bloqué : pas de pénalité, on rappelle juste jusqu'à quand.
-    socket.emit('word-locked', {
-      wordId: result.wordId,
-      lockedUntil: result.lockedUntil,
-      reason: result.reason || 'wrong', // 'wrong' (erreur récente) ou 'freeze' (case gelée)
-      serverNow: Date.now(),
-    });
+    socket.emit('word-locked', { wordId: result.wordId, lockedUntil: result.lockedUntil, serverNow: Date.now() });
   }
 }
 
@@ -131,11 +130,54 @@ function handleBuyLetter(socket, data) {
   socket.to(roomId).emit('scores', { scores: result.scores });
 }
 
+/* ---------- Freeze : gel, givre qui repousse, dégivrage ---------- */
+
+function clearFreezeTimers(room, slot) {
+  const timers = room.freezeTimers[slot];
+  if (!timers) return;
+  clearInterval(timers.regrow);
+  clearTimeout(timers.safety);
+  room.freezeTimers[slot] = null;
+}
+
+// Le joueur `slot` est dégivré : on prévient les deux joueurs.
+function thawPlayer(roomId, room, slot) {
+  clearFreezeTimers(room, slot);
+  io.to(roomId).emit('unfrozen', { slot });
+}
+
+function startFreezeTimers(roomId, room, slot) {
+  clearFreezeTimers(room, slot);
+  const target = room.players[slot].id;
+  room.freezeTimers[slot] = {
+    // S'il arrête de racler, le givre repousse.
+    regrow: setInterval(() => {
+      const layers = room.game.regrow(slot);
+      if (layers !== null) io.to(target).emit('frost', { layers });
+    }, FREEZE.regrowMs / 4),
+    // Sécurité : personne ne reste bloqué plus de 20 s.
+    safety: setTimeout(() => {
+      if (room.game.thaw(slot)) thawPlayer(roomId, room, slot);
+    }, FREEZE.maxMs),
+  };
+}
+
+function handleScrape(socket, data) {
+  if (!data || typeof data !== 'object') return;
+  const found = findPlayerGame(socket, data.roomId);
+  if (!found) return;
+  const { roomId, room, slot } = found;
+
+  const result = room.game.scrape(slot);
+  if (result.type === 'frost') socket.emit('frost', { layers: result.layers });
+  else if (result.type === 'thawed') thawPlayer(roomId, room, slot);
+}
+
 function handleUsePower(socket, data) {
   if (!data || typeof data !== 'object') return;
   const found = findPlayerGame(socket, data.roomId);
   if (!found) return;
-  const { room, slot } = found;
+  const { roomId, room, slot } = found;
 
   const result = room.game.usePower(slot);
   if (result.type !== 'used') {
@@ -151,6 +193,7 @@ function handleUsePower(socket, data) {
     from: attacker.pseudo,
   });
   socket.emit('power-used', { power: result.power, remaining: result.remaining });
+  if (result.power === 'freeze') startFreezeTimers(roomId, room, result.target);
 }
 
 io.on('connection', (socket) => {
@@ -167,6 +210,7 @@ io.on('connection', (socket) => {
   socket.on('submit-word', (data) => handleSubmitWord(socket, data));
   socket.on('buy-letter', (data) => handleBuyLetter(socket, data));
   socket.on('use-power', (data) => handleUsePower(socket, data));
+  socket.on('scrape', (data) => handleScrape(socket, data));
 
   socket.on('disconnect', () => {
     console.log('Player disconnected', socket.id);

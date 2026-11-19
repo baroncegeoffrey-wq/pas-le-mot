@@ -18,10 +18,6 @@ async function matchWith(server, avatar1, avatar2) {
   return { p1, p2, g1, g2 };
 }
 
-// Cases d'un mot, au format "ligne,colonne".
-const cellsOf = (w) => Array.from({ length: w.length }, (_, i) =>
-  `${w.row + (w.direction === 'down' ? i : 0)},${w.col + (w.direction === 'across' ? i : 0)}`);
-
 test('Game : 2 pouvoirs par partie, pas en solo', () => {
   const game = new Game(undefined, ['perche', 'verlan']);
   const first = game.usePower(0);
@@ -37,38 +33,49 @@ test('Game : 2 pouvoirs par partie, pas en solo', () => {
   assert.strictEqual(solo.usePower(0).type, 'refused');
 });
 
-test('Game : Freeze gèle 3 cases libres et bloque la validation pendant 10 s', () => {
+test('Game : Freeze bloque tout, le raclage dégivre (pas avant 2 s)', () => {
   const game = new Game(undefined, ['givre', 'perche']);
   const t0 = 5000000;
   const r = game.usePower(0, t0);
-  assert.strictEqual(r.payload.cells.length, 3);
-  const frozen = new Set(r.payload.cells.map(({ row, col }) => `${row},${col}`));
-  const hit = game.grid.words.find((w) => cellsOf(w).some((k) => frozen.has(k)));
-  const free = game.grid.words.find((w) => !cellsOf(w).some((k) => frozen.has(k)));
+  assert.deepStrictEqual(r.payload, { layers: 8 });
+  assert.strictEqual(r.duration, 20000);
+  const [w] = game.grid.words;
 
-  // La cible (joueur 1) ne peut pas valider un mot gelé, sans pénalité.
-  assert.deepStrictEqual(game.submitWord(1, hit.id, hit.answer, t0 + 9999), {
-    type: 'locked', wordId: hit.id, lockedUntil: t0 + 10000, reason: 'freeze',
-  });
-  assert.deepStrictEqual(game.scores, [0, 0]);
-  // Les mots sans case gelée restent jouables.
-  if (free) assert.strictEqual(game.submitWord(1, free.id, free.answer, t0).type, 'claimed');
-  // Après 10 s, c'est dégelé.
-  assert.strictEqual(game.submitWord(1, hit.id, hit.answer, t0 + 10000).type, 'claimed');
+  // Gelé : il ne peut ni valider, ni acheter, ni lancer son pouvoir.
+  assert.deepStrictEqual(game.submitWord(1, w.id, w.answer, t0 + 10), { type: 'ignored' });
+  assert.deepStrictEqual(game.buyLetter(1, w.id), { type: 'ignored' });
+  assert.strictEqual(game.usePower(1, t0 + 10).type, 'refused');
+  // On ne gèle pas deux fois, et le pouvoir n'est pas consommé.
+  assert.strictEqual(game.usePower(0, t0 + 10).type, 'refused');
+  assert.strictEqual(game.powersLeft[0], 1);
+
+  // Coups trop rapprochés : ignorés.
+  assert.strictEqual(game.scrape(1, t0 + 100).layers, 7);
+  assert.strictEqual(game.scrape(1, t0 + 120).type, 'ignored');
+  // Raclage très rapide : il reste au moins une couche avant 2 s.
+  let t = t0 + 100;
+  for (let i = 0; i < 10; i++) { t += 100; game.scrape(1, t); }
+  assert.strictEqual(game.frozen[1].layers, 1);
+  // Après 2 s, le dernier coup le libère.
+  assert.deepStrictEqual(game.scrape(1, t0 + 2000), { type: 'thawed' });
+  assert.strictEqual(game.submitWord(1, w.id, w.answer, t0 + 2100).type, 'claimed');
+  assert.strictEqual(game.scrape(1, t0 + 2200).type, 'ignored');
 });
 
-test('Game : Freeze ne gèle jamais une case déjà trouvée', () => {
-  const game = new Game(undefined, ['givre', 'givre']);
-  const words = game.grid.words;
-  // On trouve tous les mots sauf le dernier : seules ses cases libres restent.
-  words.slice(0, -1).forEach((w) => game.submitWord(1, w.id, w.answer));
-  const last = words[words.length - 1];
-  const known = new Set(words.slice(0, -1).flatMap(cellsOf));
-  const r = game.usePower(0);
-  for (const { row, col } of r.payload.cells) {
-    assert.ok(cellsOf(last).includes(`${row},${col}`));
-    assert.ok(!known.has(`${row},${col}`));
-  }
+test('Game : le givre repousse s\'il arrête de racler', () => {
+  const game = new Game(undefined, ['givre', 'verlan']);
+  const t0 = 1000000;
+  game.usePower(0, t0);
+  game.scrape(1, t0 + 100);
+  game.scrape(1, t0 + 200);
+  assert.strictEqual(game.frozen[1].layers, 6);
+  assert.strictEqual(game.regrow(1, t0 + 1000), null); // il a raclé il y a moins de 2 s
+  assert.strictEqual(game.regrow(1, t0 + 2200), 7);
+  assert.strictEqual(game.regrow(1, t0 + 3000), null);
+  assert.strictEqual(game.regrow(1, t0 + 4200), 8);
+  assert.strictEqual(game.regrow(1, t0 + 9000), null); // jamais plus de 8 couches
+  assert.strictEqual(game.thaw(1), true);
+  assert.strictEqual(game.frozen[1], null);
 });
 
 test('en vrai : le pouvoir touche la cible seule, 3e utilisation refusée', async () => {
@@ -94,17 +101,30 @@ test('en vrai : le pouvoir touche la cible seule, 3e utilisation refusée', asyn
     assert.strictEqual(p1.received.filter((m) => m.event === 'power-hit').length, 0);
     assert.strictEqual(p2.received.filter((m) => m.event === 'power-hit').length, 2);
 
-    // Le Givré gèle des cases ; la cible ne peut pas valider un mot gelé.
+    // Le Givré gèle l'adversaire : il ne peut plus rien valider.
     const frozenHit = waitFor(p1, 'power-hit');
     p2.emit('use-power', { roomId: g2.roomId });
     const { payload } = await frozenHit;
-    assert.strictEqual(payload.cells.length, 3);
-    const frozen = new Set(payload.cells.map(({ row, col }) => `${row},${col}`));
-    const word = g1.grid.words.find((w) => cellsOf(w).some((k) => frozen.has(k)));
-    const clue = g1.clues.find((c) => c.wordId === word.id);
-    const locked = waitFor(p1, 'word-locked');
-    p1.emit('submit-word', { roomId: g1.roomId, wordId: word.id, letters: answerOfClue(clue.clue) });
-    assert.strictEqual((await locked).reason, 'freeze');
+    assert.deepStrictEqual(payload, { layers: 8 });
+    const clue = g1.clues[0];
+    p1.emit('submit-word', { roomId: g1.roomId, wordId: clue.wordId, letters: answerOfClue(clue.clue) });
+    await expectNothing(p1, 'word-claimed');
+
+    // Il racle : une couche de moins à chaque coup, puis dégivré (chez les deux).
+    p1.emit('scrape', { roomId: g1.roomId });
+    assert.strictEqual((await waitFor(p1, 'frost')).layers, 7);
+    await sleep(1900);
+    const thaw1 = waitFor(p1, 'unfrozen');
+    const thaw2 = waitFor(p2, 'unfrozen');
+    for (let i = 0; i < 7; i++) {
+      p1.emit('scrape', { roomId: g1.roomId });
+      await sleep(100);
+    }
+    assert.deepStrictEqual(await thaw1, { slot: 0 });
+    assert.deepStrictEqual(await thaw2, { slot: 0 });
+    const claimed = waitFor(p1, 'word-claimed');
+    p1.emit('submit-word', { roomId: g1.roomId, wordId: clue.wordId, letters: answerOfClue(clue.clue) });
+    await claimed;
 
     for (const p of [p1, p2]) assert.deepStrictEqual(forbiddenKeys(p.received), []);
   } finally {
@@ -131,5 +151,22 @@ test('en vrai : pas de pouvoir en solo, ni hors partie, ni avec un faux roomId',
     assert.deepStrictEqual(intruder.received, []);
   } finally {
     solo.close(); intruder.close(); server.stop();
+  }
+});
+
+
+test('en vrai : dégivrage automatique au bout du temps maximum', async () => {
+  const server = await startServer({ FREEZE_MAX_MS: '800' });
+  const { p1, p2, g2 } = await matchWith(server, 'perche', 'givre');
+  try {
+    const hit = waitFor(p1, 'power-hit');
+    p2.emit('use-power', { roomId: g2.roomId });
+    assert.strictEqual((await hit).duration, 800);
+    // Il ne racle pas du tout : il est quand même libéré.
+    const [t1, t2] = await Promise.all([waitFor(p1, 'unfrozen'), waitFor(p2, 'unfrozen')]);
+    assert.deepStrictEqual(t1, { slot: 0 });
+    assert.deepStrictEqual(t2, { slot: 0 });
+  } finally {
+    p1.close(); p2.close(); server.stop();
   }
 });

@@ -2,7 +2,7 @@
 // les scores. Le serveur fait autorité : tout se décide ici.
 const { generateGrid } = require('./grid');
 const {
-  AVATARS, USES_PER_GAME, POWER_DURATION_MS, FREEZE_CELLS,
+  AVATARS, USES_PER_GAME, POWER_DURATION_MS, FREEZE,
 } = require('./powers');
 
 const WRONG_LOCK_MS = 3000; // un mot raté est bloqué 3 s pour celui qui s'est trompé
@@ -37,7 +37,8 @@ class Game {
     this.bought = [new Set(), new Set()]; // par joueur : cases "ligne,colonne" achetées
     this.avatars = avatars;
     this.powersLeft = [USES_PER_GAME, USES_PER_GAME];
-    this.frozen = [null, null]; // par joueur : { cells: Set, until } quand ses cases sont gelées
+    // Par joueur : null, ou { layers, since, lastScrapeAt } tant qu'il est gelé.
+    this.frozen = [null, null];
   }
 
   // Ce que le navigateur a le droit de voir : positions, longueurs, numéros et
@@ -68,18 +69,12 @@ class Game {
   // - { type: 'wrong', ... } : faux, -1, et le mot est bloqué 3 s pour lui
   // - { type: 'locked', ... } : le mot est encore bloqué pour lui (pas de pénalité)
   submitWord(slot, wordId, letters, now = Date.now()) {
-    if (this.over) return { type: 'ignored' };
+    if (this.over || this.frozen[slot]) return { type: 'ignored' }; // gelé : il ne peut rien faire
     const word = this.getWord(wordId);
     if (!word || this.claimedBy.has(wordId)) return { type: 'ignored' };
 
     const lockedUntil = this.lockedUntil[slot].get(wordId) || 0;
     if (now < lockedUntil) return { type: 'locked', wordId, lockedUntil };
-
-    // Une case gelée par le Givré : impossible de valider ce mot tant que ça dure.
-    const frozen = this.frozen[slot];
-    if (frozen && now < frozen.until && this.cellsOf(word).some((k) => frozen.cells.has(k))) {
-      return { type: 'locked', wordId, lockedUntil: frozen.until, reason: 'freeze' };
-    }
 
     const answer = readLetters(letters);
     if (answer.length !== word.length) return { type: 'ignored' };
@@ -107,7 +102,7 @@ class Game {
   // Le joueur achète une lettre du mot (-1). On lui révèle, à lui seul, une case
   // qu'il ne connaît pas encore : ni achetée, ni venue d'un mot déjà trouvé.
   buyLetter(slot, wordId) {
-    if (this.over) return { type: 'ignored' };
+    if (this.over || this.frozen[slot]) return { type: 'ignored' };
     const word = this.getWord(wordId);
     if (!word || this.claimedBy.has(wordId)) return { type: 'ignored' };
 
@@ -130,30 +125,63 @@ class Game {
   usePower(slot, now = Date.now()) {
     if (this.over) return { type: 'refused', reason: 'La partie est finie' };
     if (this.avatars.length < 2) return { type: 'refused', reason: 'Pas de pouvoir en solo' };
+    if (this.frozen[slot]) return { type: 'refused', reason: 'Tu es gelé : racle d\'abord ton givre !' };
     if (this.powersLeft[slot] <= 0) return { type: 'refused', reason: 'Plus de pouvoir pour cette partie' };
 
     const power = AVATARS[this.avatars[slot]].power;
     const target = 1 - slot;
     let payload = {};
+    let duration = POWER_DURATION_MS;
 
     if (power === 'freeze') {
-      // 3 cases au hasard que la cible peut encore remplir (ni trouvées, ni achetées).
-      const known = new Set(this.bought[target]);
-      for (const id of this.claimedBy.keys()) this.cellsOf(this.getWord(id)).forEach((k) => known.add(k));
-      const free = [...new Set(this.grid.words.flatMap((w) => this.cellsOf(w)))].filter((k) => !known.has(k));
-      if (free.length === 0) return { type: 'refused', reason: 'Plus aucune case à geler' };
-      const picked = [];
-      while (picked.length < FREEZE_CELLS && free.length) {
-        picked.push(free.splice(Math.floor(Math.random() * free.length), 1)[0]);
-      }
-      this.frozen[target] = { cells: new Set(picked), until: now + POWER_DURATION_MS };
-      payload = { cells: picked.map((k) => k.split(',').map(Number)).map(([row, col]) => ({ row, col })) };
+      // On ne gèle pas quelqu'un qui l'est déjà (et le pouvoir n'est pas consommé).
+      if (this.frozen[target]) return { type: 'refused', reason: 'Ton adversaire est déjà gelé' };
+      this.frozen[target] = { layers: FREEZE.layers, since: now, lastScrapeAt: now };
+      payload = { layers: FREEZE.layers };
+      duration = FREEZE.maxMs;
     }
 
     this.powersLeft[slot] -= 1;
     return {
-      type: 'used', power, target, duration: POWER_DURATION_MS, payload, remaining: this.powersLeft[slot],
+      type: 'used', power, target, duration, payload, remaining: this.powersLeft[slot],
     };
+  }
+
+  // Un coup de raclette du joueur gelé.
+  // - { type: 'ignored' } : pas gelé, ou coups trop rapprochés
+  // - { type: 'frost', layers } : une couche de moins
+  // - { type: 'thawed' } : plus de givre, il peut rejouer
+  scrape(slot, now = Date.now()) {
+    const frozen = this.frozen[slot];
+    if (!frozen || this.over) return { type: 'ignored' };
+    if (now - frozen.lastScrapeAt < FREEZE.minScrapeGapMs) return { type: 'ignored' };
+    frozen.lastScrapeAt = now;
+    // Avant 2 s de gel, il reste toujours au moins une couche.
+    const floor = now - frozen.since < FREEZE.minMs ? 1 : 0;
+    frozen.layers = Math.max(floor, frozen.layers - 1);
+    if (frozen.layers === 0) {
+      this.frozen[slot] = null;
+      return { type: 'thawed' };
+    }
+    return { type: 'frost', layers: frozen.layers };
+  }
+
+  // Appelé régulièrement : s'il a arrêté de racler depuis 2 s, une couche repousse.
+  // Renvoie le nouveau nombre de couches, ou null si rien n'a changé.
+  regrow(slot, now = Date.now()) {
+    const frozen = this.frozen[slot];
+    if (!frozen || frozen.layers >= FREEZE.layers) return null;
+    if (now - frozen.lastScrapeAt < FREEZE.regrowMs) return null;
+    frozen.layers += 1;
+    frozen.lastScrapeAt = now; // la prochaine couche repoussera 2 s plus tard
+    return frozen.layers;
+  }
+
+  // Dégivrage forcé (sécurité au bout de 20 s).
+  thaw(slot) {
+    const wasFrozen = Boolean(this.frozen[slot]);
+    this.frozen[slot] = null;
+    return wasFrozen;
   }
 
   isComplete() {
