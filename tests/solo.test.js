@@ -50,7 +50,7 @@ test('solo : mêmes règles (dégâts, recul, blocage, achat), K.O. du mannequin
     }
     const result = await over;
     assert.deepStrictEqual(pick(result, ['hp', 'winner', 'ko', 'total']), {
-      hp: [92, 0], winner: 0, ko: 1, total: g.clues.length,
+      hp: [100, 0], winner: 0, ko: 1, total: g.clues.length,
     });
     assert.strictEqual(result.stats[0].damage, 100);
     assert.strictEqual(result.stats[0].wrong, 1);

@@ -99,7 +99,8 @@ test('partie : mot juste, mot faux, verrou et premier arrivé gagne', async () =
     await new Promise((r) => setTimeout(r, 300));
     assert.strictEqual(claims.length, 1);
     const lost = 200 - claims[0].hp[0] - claims[0].hp[1];
-    assert.strictEqual(lost, 5 + damageOf(first.clue) + damageOf(second.clue));
+    // (moins le soin de celui qui a trouvé le 2e mot : lettres × 2, plafonné à 100 PV)
+    assert.strictEqual(lost, 5 + damageOf(first.clue) + damageOf(second.clue) - claims[0].heal);
 
     // Un intrus hors partie ne peut rien valider.
     const intruder = createPlayer(server.url);
@@ -166,4 +167,25 @@ test('coup critique en vrai : les deux joueurs reçoivent critical et les bons d
   } finally {
     p1.close(); p2.close(); server.stop();
   }
+});
+
+test('soin : un mot trouvé soigne celui qui l\'a trouvé (lettres × 2), jamais au-delà de 100 PV', () => {
+  const game = new Game();
+  const [a, b] = game.grid.words;
+  // Le joueur 0 s'est fait mal (deux erreurs) : 90 PV.
+  game.submitWord(0, a.id, 'Q'.repeat(a.length), 1);
+  game.submitWord(0, b.id, 'Q'.repeat(b.length), 2);
+  assert.deepStrictEqual(game.hp, [90, 100]);
+  const r = game.submitWord(0, a.id, a.answer, 5000);
+  assert.strictEqual(r.heal, Math.min(10, a.length * 2));
+  assert.strictEqual(r.hp[0], Math.min(100, 90 + a.length * 2));
+  assert.strictEqual(r.hp[1], 100 - r.damage);
+  // Le joueur 1 se soigne à son tour, mais jamais au-delà de 100 PV.
+  const r2 = game.submitWord(1, b.id, b.answer, 5000);
+  assert.strictEqual(r2.heal, Math.min(r.damage, b.length * 2));
+  assert.strictEqual(r2.hp[1], Math.min(100, 100 - r.damage + b.length * 2));
+  // À 100 PV pile : soin nul.
+  const full = new Game();
+  const [w] = full.grid.words;
+  assert.strictEqual(full.submitWord(0, w.id, w.answer, 1).heal, 0);
 });

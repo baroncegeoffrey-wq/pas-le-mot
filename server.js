@@ -156,6 +156,7 @@ function handleSubmitWord(socket, data) {
       target: result.target,
       damage: result.damage,
       critical: result.critical,
+      heal: result.heal,
       hp: result.hp,
     });
     if (result.ko || room.game.isComplete()) finishGame(roomId, room);

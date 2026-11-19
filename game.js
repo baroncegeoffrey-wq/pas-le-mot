@@ -13,6 +13,7 @@ const COMBAT = {
   damagePerLetter: 3, // mot trouvé : lettres × 3 de dégâts à l'adversaire
   critMinLetters: 7, // coup critique : un mot de 7 lettres ou plus...
   critMultiplier: 1.5, // ... fait 1,5 fois plus de dégâts (arrondi)
+  healPerLetter: 2, // mot trouvé : celui qui l'a trouvé récupère lettres × 2 PV (sans dépasser maxHp)
   wrongRecoil: 5, // erreur : 5 PV de dégâts de recul pour soi
   letterCost: 3, // acheter une lettre : 3 PV
 };
@@ -124,6 +125,8 @@ class Game {
       const hit = wordDamage(word.length);
       const damage = this.hurt(1 - slot, hit.damage);
       this.stats[slot].damage += damage;
+      // ... et un soin pour celui qui l'a trouvé : lettres × 2, plafonné à 100 PV.
+      const heal = this.heal(slot, word.length * COMBAT.healPerLetter);
       return {
         type: 'claimed',
         wordId,
@@ -132,6 +135,7 @@ class Game {
         target: 1 - slot,
         damage,
         critical: hit.critical,
+        heal,
         hp: [...this.hp],
         ko: this.koSlot !== null,
       };
@@ -147,6 +151,14 @@ class Game {
   }
 
   // Retire des PV (jamais sous 0) et note le K.O. Renvoie les dégâts réellement subis.
+  // Soigne un joueur sans dépasser maxHp. Renvoie les PV vraiment rendus.
+  heal(slot, amount) {
+    if (this.hp[slot] === 0) return 0; // K.O. : on ne se relève pas
+    const healed = Math.min(COMBAT.maxHp - this.hp[slot], amount);
+    this.hp[slot] += healed;
+    return healed;
+  }
+
   hurt(slot, amount) {
     const damage = Math.min(this.hp[slot], amount);
     this.hp[slot] -= damage;

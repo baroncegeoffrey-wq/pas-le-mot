@@ -416,15 +416,17 @@ function fillPlayerBox(box, player, isMe, powersLeft) {
 // Met à jour les deux barres de PV. La partie blanche (« ghost ») descend un peu
 // après la barre colorée, pour bien voir le morceau de vie perdu.
 // PV affichés = PV du serveur + dégâts encore « en vol » (le projectile n'a
-// pas encore touché) : la barre ne descend qu'à l'impact.
+// pas encore touché) - soin pas encore montré (il arrive au tir) : la barre
+// de la cible ne descend qu'à l'impact, celle du tireur remonte quand il tire.
 let lastHp = [100, 100];
 let pendingDamage = [0, 0];
+let pendingHeal = [0, 0];
 
 function setHp(hp, instant) {
   lastHp = hp.slice();
   hp.forEach((serverValue, slot) => {
     if (slot !== mySlot && slot !== 1 - mySlot) return;
-    const value = Math.min(maxHp, serverValue + (pendingDamage[slot] || 0));
+    const value = Math.max(0, Math.min(maxHp, serverValue + (pendingDamage[slot] || 0) - (pendingHeal[slot] || 0)));
     const box = boxOf(slot);
     const bar = box.querySelector('.hp');
     const pct = Math.max(0, Math.min(100, (value / maxHp) * 100));
@@ -446,7 +448,8 @@ function resetFighters() {
   finishCrit(false);
   Attack.clear();
   pendingDamage = [0, 0];
-  [fighterMe, fighterOpp].forEach((f) => f.classList.remove('iced', 'flash', 'recoil', 'lunge', 'ko-fall', 'charging'));
+  pendingHeal = [0, 0];
+  [fighterMe, fighterOpp].forEach((f) => f.classList.remove('iced', 'flash', 'recoil', 'lunge', 'ko-fall', 'charging', 'healed'));
   arena.classList.remove('ko-zoom', 'ko-left', 'ko-right', 'upside-down');
   $('ko-text').hidden = true;
 }
@@ -522,8 +525,9 @@ const avatarOfSlot = (slot) => (slot === mySlot ? myAvatar : (opponent ? opponen
 // PV, hit-stop, tremblement...) arrive quand il touche. Voir attack.js.
 // Coup critique : d'abord la mini-cinématique dans l'arène, puis un projectile
 // encore plus gros.
-function attackFx(by, target, letters, damage, critical = false) {
+function attackFx(by, target, letters, damage, critical = false, heal = 0) {
   pendingDamage[target] += damage;
+  pendingHeal[by] += heal;
   setHp(lastHp);
   const from = fighterOf(by);
   const release = Attack.hold(); // le K.O. attendra aussi cette attaque
@@ -534,7 +538,13 @@ function attackFx(by, target, letters, damage, critical = false) {
       avatar: avatarOfSlot(by),
       letters,
       big: critical,
-      onShot: () => replay(from, 'lunge'),
+      onShot: () => {
+        replay(from, 'lunge');
+        // Le soin du tireur : sa barre remonte, « +X » vert au-dessus de lui.
+        pendingHeal[by] = Math.max(0, pendingHeal[by] - heal);
+        setHp(lastHp);
+        if (heal > 0) healFx(by, heal);
+      },
       onImpact: () => {
         pendingDamage[target] = Math.max(0, pendingDamage[target] - damage);
         setHp(lastHp);
@@ -545,6 +555,22 @@ function attackFx(by, target, letters, damage, critical = false) {
   };
   if (critical) playCrit(avatarOfSlot(by), fire);
   else fire();
+}
+
+// Soin : chiffre vert « +X » qui monte au-dessus du perso, et un halo vert.
+function healFx(slot, amount) {
+  const fighter = fighterOf(slot);
+  const box = fighter.getBoundingClientRect();
+  const origin = arena.getBoundingClientRect();
+  const zoom = origin.width / arena.clientWidth || 1;
+  const n = document.createElement('span');
+  n.className = 'heal-num';
+  n.textContent = `+${amount}`;
+  n.style.left = `${(box.left - origin.left + box.width / 2) / zoom}px`;
+  n.style.top = `${(box.top - origin.top) / zoom + 10}px`;
+  arena.appendChild(n);
+  setTimeout(() => n.remove(), 1100);
+  replay(fighter, 'healed');
 }
 
 /* ---------- Coup critique : mini-cinématique dans l'arène ---------- */
@@ -1101,7 +1127,7 @@ function submitCurrentWord() {
 }
 
 socket.on('word-claimed', ({
-  wordId, letters, by, target, damage, critical, hp,
+  wordId, letters, by, target, damage, critical, heal, hp,
 }) => {
   const w = words.get(wordId);
   if (!w) return;
@@ -1119,9 +1145,9 @@ socket.on('word-claimed', ({
   w.clueEl.classList.add(by === mySlot ? 'mine' : 'theirs');
   if (currentWord === wordId) buyBtn.disabled = true;
   setHp(hp);
-  attackFx(by, target, letters.length, damage, critical);
+  attackFx(by, target, letters.length, damage, critical, heal || 0);
   gameStatus.textContent = by === mySlot
-    ? `${critical ? 'Coup critique ! ' : 'Bien vu ! '}${damage} dégâts (${w.number})`
+    ? `${critical ? 'Coup critique ! ' : 'Bien vu ! '}${damage} dégâts (${w.number})${heal ? `, +${heal} PV` : ''}`
     : `${opponent ? opponent.pseudo : 'L\'adversaire'} trouve le ${w.number} et te frappe : -${damage} PV`;
   Sound.play(by === mySlot ? 'good' : 'theirs');
 
