@@ -53,11 +53,11 @@ Avant la partie, chaque joueur choisit un avatar. Chaque avatar a un pouvoir, ut
 
 | Avatar | Pouvoir | Effet chez l'adversaire |
 |---|---|---|
-| Le Givré | Freeze | Il est gelé : il ne peut plus rien faire (ni taper, ni valider, ni acheter, ni lancer son pouvoir). Son avatar apparaît en grand, couvert de 8 couches de givre. Il doit le racler avec la souris : chaque passage rapide d'un bord à l'autre enlève une couche. S'il arrête de racler, une couche repousse toutes les 2 s. Pas de dégivrage avant 2 s, et dégivrage automatique au bout de 20 s. On ne peut pas geler quelqu'un qui l'est déjà |
-| Le Perché | Trip | Pendant 10 s, tout son écran devient flou et psychédélique (couleurs qui ondulent). Seul un petit cercle net suit sa souris (et la case où il tape) : il doit se promener pour lire |
-| Le Verlan | Verlan | Pendant 10 s, tout son écran est retourné comme dans un miroir (grille et définitions à lire à l'envers) et il doit remplir les mots en partant de la fin |
+| Le Givré | Freeze | Il est gelé : il ne peut plus rien faire (ni taper, ni valider, ni acheter, ni lancer son pouvoir). Son avatar apparaît en grand, couvert de 30 couches de givre. Il doit le racler avec la souris : chaque passage rapide d'un bord à l'autre enlève une couche. S'il arrête de racler, une couche repousse chaque seconde. Pas de dégivrage avant 2 s, et dégivrage automatique au bout de 45 s. On ne peut pas geler quelqu'un qui l'est déjà |
+| Le Perché | Trip | Pendant 20 s, tout son écran devient flou et psychédélique (couleurs qui ondulent). Seul un petit cercle net suit sa souris (et la case où il tape) : il doit se promener pour lire |
+| Le Verlan | Verlan | Pendant 20 s, tout son écran est retourné comme dans un miroir (grille et définitions à lire à l'envers) et il doit remplir les mots en partant de la fin |
 
-- Si un Trip ou un Verlan touche alors que le même effet est déjà en cours, l'effet repart pour 10 s.
+- Si un Trip ou un Verlan touche alors que le même effet est déjà en cours, l'effet repart pour 20 s.
 - Pour l'instant, les avatars sont de simples badges de couleur. Plus tard : des petits personnages 8 bits originaux (voir « Après le rendu » dans la roadmap).
 
 ## Les mots

@@ -8,16 +8,16 @@ const AVATARS = {
 
 const DEFAULT_AVATAR = 'givre';
 const USES_PER_GAME = 2;
-const POWER_DURATION_MS = 10000; // Trip et Verlan
+const POWER_DURATION_MS = 20000; // Trip et Verlan : 20 s
 
 // Freeze : le joueur gelé ne peut plus jouer. Il racle le givre de son avatar
 // avec la souris : un coup de raclette rapide enlève une couche.
 const FREEZE = {
-  layers: 8, // couches de givre au départ
+  layers: 30, // couches de givre au départ (30 coups de raclette)
   minMs: 2000, // pas de dégivrage avant 2 s, même en raclant très vite
-  // sécurité : dégivrage automatique au bout de 20 s (réglable pour les tests)
-  maxMs: Number(process.env.FREEZE_MAX_MS) || 20000,
-  regrowMs: 2000, // s'il arrête de racler, une couche repousse toutes les 2 s
+  // sécurité : dégivrage automatique au bout de 45 s (réglable pour les tests)
+  maxMs: Number(process.env.FREEZE_MAX_MS) || 45000,
+  regrowMs: 1000, // s'il arrête de racler, une couche repousse chaque seconde
   minScrapeGapMs: 80, // deux coups de raclette ne peuvent pas être plus rapprochés
 };
 

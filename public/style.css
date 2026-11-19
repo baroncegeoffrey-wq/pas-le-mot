@@ -224,7 +224,7 @@ button:disabled { opacity: .5; cursor: default; }
     radial-gradient(circle at calc(75% - var(--i) * 6%) calc(65% - var(--i) * 4%), var(--ice-2) 0 16%, transparent 17%),
     repeating-linear-gradient(calc(var(--i) * 45deg), var(--ice-1) 0 3px, transparent 3px 14px),
     radial-gradient(circle, var(--ice-2), var(--ice-1));
-  opacity: .5;
+  opacity: .14; /* 30 couches empilées : chaque couche est légère */
   transform: rotate(calc(var(--i) * 40deg));
   transition: opacity .25s, transform .25s;
 }

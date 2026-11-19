@@ -2,6 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { Game } = require('../game');
+const { FREEZE, POWER_DURATION_MS } = require('../powers');
 const {
   startServer, createPlayer, waitFor, expectNothing, answerOfClue, forbiddenKeys, sleep,
 } = require('./helpers');
@@ -24,7 +25,7 @@ test('Game : 2 pouvoirs par partie, pas en solo', () => {
   assert.strictEqual(first.type, 'used');
   assert.strictEqual(first.power, 'trip');
   assert.strictEqual(first.target, 1);
-  assert.strictEqual(first.duration, 10000);
+  assert.strictEqual(first.duration, POWER_DURATION_MS);
   assert.strictEqual(game.usePower(0).remaining, 0);
   assert.strictEqual(game.usePower(0).type, 'refused');
   assert.strictEqual(game.usePower(1).power, 'verlan');
@@ -33,12 +34,12 @@ test('Game : 2 pouvoirs par partie, pas en solo', () => {
   assert.strictEqual(solo.usePower(0).type, 'refused');
 });
 
-test('Game : Freeze bloque tout, le raclage dégivre (pas avant 2 s)', () => {
+test('Game : Freeze bloque tout, le raclage dégivre (pas avant le temps minimum)', () => {
   const game = new Game(undefined, ['givre', 'perche']);
   const t0 = 5000000;
   const r = game.usePower(0, t0);
-  assert.deepStrictEqual(r.payload, { layers: 8 });
-  assert.strictEqual(r.duration, 20000);
+  assert.deepStrictEqual(r.payload, { layers: FREEZE.layers });
+  assert.strictEqual(r.duration, FREEZE.maxMs);
   const [w] = game.grid.words;
 
   // Gelé : il ne peut ni valider, ni acheter, ni lancer son pouvoir.
@@ -50,30 +51,33 @@ test('Game : Freeze bloque tout, le raclage dégivre (pas avant 2 s)', () => {
   assert.strictEqual(game.powersLeft[0], 1);
 
   // Coups trop rapprochés : ignorés.
-  assert.strictEqual(game.scrape(1, t0 + 100).layers, 7);
+  assert.strictEqual(game.scrape(1, t0 + 100).layers, FREEZE.layers - 1);
   assert.strictEqual(game.scrape(1, t0 + 120).type, 'ignored');
-  // Raclage très rapide : il reste au moins une couche avant 2 s.
+  // Raclage très rapide : avant le temps minimum, il reste au moins une couche.
   let t = t0 + 100;
-  for (let i = 0; i < 10; i++) { t += 100; game.scrape(1, t); }
-  assert.strictEqual(game.frozen[1].layers, 1);
-  // Après 2 s, le dernier coup le libère.
-  assert.deepStrictEqual(game.scrape(1, t0 + 2000), { type: 'thawed' });
-  assert.strictEqual(game.submitWord(1, w.id, w.answer, t0 + 2100).type, 'claimed');
-  assert.strictEqual(game.scrape(1, t0 + 2200).type, 'ignored');
+  while (t + FREEZE.minScrapeGapMs < t0 + FREEZE.minMs) { t += FREEZE.minScrapeGapMs; game.scrape(1, t); }
+  assert.ok(game.frozen[1].layers >= 1);
+  // Ensuite, il faut racler toutes les couches restantes.
+  let result;
+  while (game.frozen[1]) { t += 100; result = game.scrape(1, t); }
+  assert.deepStrictEqual(result, { type: 'thawed' });
+  assert.strictEqual(game.submitWord(1, w.id, w.answer, t + 100).type, 'claimed');
+  assert.strictEqual(game.scrape(1, t + 200).type, 'ignored');
 });
 
 test('Game : le givre repousse s\'il arrête de racler', () => {
   const game = new Game(undefined, ['givre', 'verlan']);
   const t0 = 1000000;
+  const R = FREEZE.regrowMs;
   game.usePower(0, t0);
   game.scrape(1, t0 + 100);
   game.scrape(1, t0 + 200);
-  assert.strictEqual(game.frozen[1].layers, 6);
-  assert.strictEqual(game.regrow(1, t0 + 1000), null); // il a raclé il y a moins de 2 s
-  assert.strictEqual(game.regrow(1, t0 + 2200), 7);
-  assert.strictEqual(game.regrow(1, t0 + 3000), null);
-  assert.strictEqual(game.regrow(1, t0 + 4200), 8);
-  assert.strictEqual(game.regrow(1, t0 + 9000), null); // jamais plus de 8 couches
+  assert.strictEqual(game.frozen[1].layers, FREEZE.layers - 2);
+  assert.strictEqual(game.regrow(1, t0 + 200 + R - 1), null); // il vient de racler
+  assert.strictEqual(game.regrow(1, t0 + 200 + R), FREEZE.layers - 1);
+  assert.strictEqual(game.regrow(1, t0 + 200 + R + R / 2), null);
+  assert.strictEqual(game.regrow(1, t0 + 200 + 2 * R), FREEZE.layers);
+  assert.strictEqual(game.regrow(1, t0 + 200 + 10 * R), null); // jamais plus que le départ
   assert.strictEqual(game.thaw(1), true);
   assert.strictEqual(game.frozen[1], null);
 });
@@ -89,7 +93,7 @@ test('en vrai : le pouvoir touche la cible seule, 3e utilisation refusée', asyn
     const hit = waitFor(p2, 'power-hit');
     const used = waitFor(p1, 'power-used');
     p1.emit('use-power', { roomId: g1.roomId });
-    assert.deepStrictEqual(await hit, { power: 'verlan', duration: 10000, payload: {}, from: 'Un' });
+    assert.deepStrictEqual(await hit, { power: 'verlan', duration: POWER_DURATION_MS, payload: {}, from: 'Un' });
     assert.deepStrictEqual(await used, { power: 'verlan', remaining: 1 });
 
     p1.emit('use-power', { roomId: g1.roomId });
@@ -105,18 +109,18 @@ test('en vrai : le pouvoir touche la cible seule, 3e utilisation refusée', asyn
     const frozenHit = waitFor(p1, 'power-hit');
     p2.emit('use-power', { roomId: g2.roomId });
     const { payload } = await frozenHit;
-    assert.deepStrictEqual(payload, { layers: 8 });
+    assert.deepStrictEqual(payload, { layers: FREEZE.layers });
     const clue = g1.clues[0];
     p1.emit('submit-word', { roomId: g1.roomId, wordId: clue.wordId, letters: answerOfClue(clue.clue) });
     await expectNothing(p1, 'word-claimed');
 
     // Il racle : une couche de moins à chaque coup, puis dégivré (chez les deux).
     p1.emit('scrape', { roomId: g1.roomId });
-    assert.strictEqual((await waitFor(p1, 'frost')).layers, 7);
-    await sleep(1900);
-    const thaw1 = waitFor(p1, 'unfrozen');
-    const thaw2 = waitFor(p2, 'unfrozen');
-    for (let i = 0; i < 7; i++) {
+    assert.strictEqual((await waitFor(p1, 'frost')).layers, FREEZE.layers - 1);
+    await sleep(FREEZE.minMs);
+    const thaw1 = waitFor(p1, 'unfrozen', 10000);
+    const thaw2 = waitFor(p2, 'unfrozen', 10000);
+    for (let i = 0; i < FREEZE.layers + 2; i++) {
       p1.emit('scrape', { roomId: g1.roomId });
       await sleep(100);
     }
