@@ -19,6 +19,25 @@ const powerBtn = $('power-btn');
 const tripLayer = $('trip');
 const freezeLayer = $('freeze');
 const iceAvatar = $('ice-avatar');
+const fxLayer = $('fx');
+const fxTemplate = $('fx-template');
+const arena = $('arena');
+const boxMe = $('box-me');
+const boxOpp = $('box-opp');
+const fighterMe = $('fighter-me');
+const fighterOpp = $('fighter-opp');
+
+const USES_PER_GAME = 2;
+const SPRITE_PX = 8; // taille des personnages dans l'arène (16 × 8 = 128 px)
+// Couleurs de chaque super attaque (cœur et halo du rayon).
+const ATTACK_LOOK = {
+  freeze: { c1: '#00e5ff', c2: '#bfefff' },
+  trip: { c1: '#b57bf0', c2: '#ff7ad9' },
+  verlan: { c1: '#ff8a00', c2: '#f5e100' },
+};
+const CUTIN_MS = 1200; // cinématique
+const BEAM_MS = 1500; // rayon jusqu'à l'impact et sa fin
+const IMPACT_MS = 620; // moment de l'impact dans le rayon
 
 // Nom du pouvoir de chaque avatar (affiché sur le bouton).
 const POWER_NAMES = { givre: 'Freeze', perche: 'Trip', verlan: 'Verlan' };
@@ -29,7 +48,11 @@ let mySlot = null;
 let words = new Map(); // wordId -> { id, number, direction, cells: ["r,c", ...] }
 let cells = new Map(); // "r,c" -> { el, input, across, down, locked }
 let currentWord = null; // wordId sélectionné
-let players = []; // [{ pseudo, slot }] rangés par slot (un seul en solo)
+let players = []; // [{ pseudo, slot, avatar }] rangés par slot (un seul en solo)
+let opponent = null; // { pseudo, slot, avatar }, ou null en solo
+let oppPowersLeft = 0; // compté à chaque pouvoir reçu
+let fxTimers = []; // minuteries de la super attaque en cours
+let frostMax = 1; // couches de givre au départ (pour la barre)
 let lastMode = 'duo'; // 'duo' ou 'solo' : ce que relance le bouton Rejouer
 let timerInterval = null;
 let clockOffset = 0; // heure du serveur - heure locale
@@ -50,6 +73,11 @@ function cleanLetter(text) {
 }
 
 /* ---------- Accueil et recherche de partie ---------- */
+
+// Les personnages des cartes d'avatar.
+document.querySelectorAll('canvas.sprite[data-who]').forEach((canvas) => {
+  drawSprite(canvas, canvas.dataset.who, Number(canvas.dataset.px) || 6);
+});
 
 try {
   pseudoInput.value = localStorage.getItem('pseudo') || '';
@@ -113,6 +141,14 @@ $('replay-btn').addEventListener('click', () => {
   else findGame();
 });
 
+// Revient à l'accueil sans relancer de partie.
+$('home-btn').addEventListener('click', () => {
+  resultScreen.hidden = true;
+  gameScreen.hidden = true;
+  lobby.hidden = false;
+  statusText.textContent = 'Choisis ton avatar et relance une partie.';
+});
+
 socket.on('waiting', () => {
   statusText.textContent = 'En attente d\'un adversaire...';
 });
@@ -123,19 +159,23 @@ socket.on('game-start', (data) => {
   roomId = data.roomId;
   mySlot = data.you.slot;
   players = [data.you, data.opponent].filter(Boolean).sort((a, b) => a.slot - b.slot);
-
-  // En solo, la case de l'adversaire est cachée.
-  $('player-1').hidden = !data.opponent;
-  for (const p of players) {
-    const box = $(`player-${p.slot}`);
-    box.querySelector('.name').textContent = p.pseudo;
-    box.querySelector('.badge').className = `badge ${p.avatar}`;
-    box.querySelector('.score').textContent = '0';
-    box.classList.toggle('me', p.slot === mySlot);
-  }
+  opponent = data.opponent;
 
   clearEffects();
   myAvatar = data.you.avatar;
+  oppPowersLeft = opponent ? USES_PER_GAME : 0;
+
+  // L'arène : moi à gauche, l'adversaire à droite (caché en solo).
+  fillPlayerBox(boxMe, data.you, true, data.opponent ? data.you.powersLeft : 0);
+  drawSprite(fighterMe.querySelector('canvas'), data.you.avatar, SPRITE_PX);
+  boxOpp.hidden = !opponent;
+  fighterOpp.parentElement.hidden = !opponent;
+  if (opponent) {
+    fillPlayerBox(boxOpp, opponent, false, oppPowersLeft);
+    drawSprite(fighterOpp.querySelector('canvas'), opponent.avatar, SPRITE_PX);
+  }
+  fighterMe.classList.remove('iced', 'hit');
+  fighterOpp.classList.remove('iced', 'hit');
   setPowerButton(data.opponent ? data.you.powersLeft : 0);
   powerBtn.hidden = !data.opponent; // pas de pouvoir en solo
 
@@ -148,6 +188,27 @@ socket.on('game-start', (data) => {
   selectWord(data.grid.words[0].id, true);
   startTimer(data.endsAt, data.serverNow);
 });
+
+// Plaque de nom d'un joueur : pseudo, score, avatar, pouvoirs restants.
+function fillPlayerBox(box, player, isMe, powersLeft) {
+  box.querySelector('.name').textContent = player.pseudo;
+  box.querySelector('.score').textContent = '0';
+  box.querySelector('.avatar-label').textContent = `${SPRITES[player.avatar].name}${isMe ? ' · toi' : ''}`;
+  setPips(box, powersLeft);
+}
+
+function setPips(box, left) {
+  const pips = box.querySelector('.pips');
+  pips.innerHTML = '';
+  if (!opponent) return; // pas de pouvoir en solo
+  for (let i = 0; i < USES_PER_GAME; i++) {
+    const pip = document.createElement('span');
+    if (i < left) pip.className = 'on';
+    pips.appendChild(pip);
+  }
+}
+
+const boxOf = (slot) => (slot === mySlot ? boxMe : boxOpp);
 
 /* ---------- Chrono (affichage seulement : c'est le serveur qui arrête la partie) ---------- */
 
@@ -167,12 +228,24 @@ function startTimer(endsAt, serverNow) {
 
 /* ---------- Fin de partie ---------- */
 
-function showResult(title, detail) {
+// Écran de fin. tone : 'win', 'lose', 'draw' ou 'neutral'.
+// scores : les scores par slot, ou null quand il n'y a pas de podium à montrer.
+function showResult(title, detail, tone, scores, winner) {
   clearInterval(timerInterval);
   clearEffects();
   roomId = null;
-  $('result-title').textContent = title;
+  const titleEl = $('result-title');
+  titleEl.textContent = title;
+  titleEl.className = `result-title ${tone}`;
   $('result-detail').textContent = detail;
+
+  // Le podium : le gagnant en grand, le perdant K.O.
+  const me = players.find((p) => p.slot === mySlot);
+  fillPodium($('podium-me'), me, scores, winner);
+  const showOpp = Boolean(opponent && scores && scores.length > 1);
+  $('podium-opp').hidden = !showOpp;
+  if (showOpp) fillPodium($('podium-opp'), opponent, scores, winner);
+
   gameScreen.hidden = true;
   lobby.hidden = true;
   resultScreen.hidden = false;
@@ -181,14 +254,32 @@ function showResult(title, detail) {
   $('replay-btn').focus();
 }
 
+function fillPodium(card, player, scores, winner) {
+  const big = winner === null || winner === undefined || winner === player.slot;
+  drawSprite(card.querySelector('canvas'), player.avatar, big ? 11 : 8);
+  card.querySelector('.name').textContent = player.pseudo.toUpperCase();
+  card.querySelector('.score').textContent = scores ? scores[player.slot] ?? scores[0] : '';
+  const isWinner = winner !== null && winner !== undefined && winner === player.slot;
+  const isLoser = winner !== null && winner !== undefined && winner !== player.slot;
+  card.classList.toggle('winner', isWinner);
+  card.classList.toggle('ko', isLoser);
+  card.querySelector('.podium-tag').textContent = isWinner ? 'VAINQUEUR' : (isLoser ? 'K.O.' : '');
+}
+
 socket.on('game-over', ({ scores, winner, found, total }) => {
   if (players.length === 1) {
-    showResult('Partie terminée', `Score : ${scores[0]}  ·  ${found} mot${found > 1 ? 's' : ''} trouvé${found > 1 ? 's' : ''} sur ${total}`);
+    const words = `${found} mot${found > 1 ? 's' : ''} trouvé${found > 1 ? 's' : ''} sur ${total}`;
+    showResult('PARTIE TERMINÉE', `Score : ${scores[0]}  ·  ${words}`, 'neutral', scores, null);
     return;
   }
-  const title = winner === null ? 'Égalité !' : (winner === mySlot ? 'Gagné !' : 'Perdu...');
-  const detail = players.map((p) => `${p.pseudo} : ${scores[p.slot]}`).join('  ·  ');
-  showResult(title, detail);
+  const me = players.find((p) => p.slot === mySlot);
+  if (winner === null) {
+    showResult('ÉGALITÉ !', `${scores[0]} partout`, 'draw', scores, null);
+  } else if (winner === mySlot) {
+    showResult('GAGNÉ !', `${me.pseudo} remporte la manche, ${scores[mySlot]} à ${scores[1 - mySlot]}`, 'win', scores, winner);
+  } else {
+    showResult('PERDU...', `${opponent.pseudo} remporte la manche, ${scores[1 - mySlot]} à ${scores[mySlot]}`, 'lose', scores, winner);
+  }
 });
 
 function buildBoard(grid) {
@@ -382,7 +473,8 @@ board.addEventListener('input', (event) => {
 });
 
 socket.on('opponent-left', () => {
-  showResult('Adversaire déconnecté', 'Ton adversaire a quitté la partie.');
+  showResult('DÉCONNECTÉ', 'Ton adversaire a quitté la partie.', 'neutral', null, null);
+  $('podium-opp').hidden = true;
 });
 
 /* ---------- Validation ---------- */
@@ -399,7 +491,10 @@ function submitCurrentWord() {
 }
 
 function setScores(scores) {
-  scores.forEach((s, slot) => { $(`player-${slot}`).querySelector('.score').textContent = s; });
+  scores.forEach((score, slot) => {
+    if (slot !== mySlot && !opponent) return;
+    boxOf(slot).querySelector('.score').textContent = score;
+  });
 }
 
 socket.on('word-claimed', ({ wordId, letters, by, scores }) => {
@@ -412,11 +507,11 @@ socket.on('word-claimed', ({ wordId, letters, by, scores }) => {
     cell.input.readOnly = true;
     cell.locked = true;
     // Une case croisée garde la couleur du premier mot trouvé.
-    if (!cell.el.classList.contains('p0') && !cell.el.classList.contains('p1')) {
-      cell.el.classList.add(`p${by}`);
+    if (!cell.el.classList.contains('mine') && !cell.el.classList.contains('theirs')) {
+      cell.el.classList.add(by === mySlot ? 'mine' : 'theirs');
     }
   });
-  w.clueEl.classList.add(`p${by}`);
+  w.clueEl.classList.add(by === mySlot ? 'mine' : 'theirs');
   if (currentWord === wordId) buyBtn.disabled = true;
   setScores(scores);
   gameStatus.textContent = by === mySlot ? `Bien vu ! +1 (${w.number})` : `L'adversaire a trouvé le ${w.number}.`;
@@ -482,9 +577,9 @@ socket.on('letter-revealed', ({ wordId, index, letter, scores }) => {
 /* ---------- Pouvoirs : celui que je lance ---------- */
 
 function setPowerButton(left) {
-  powerBtn.className = myAvatar || '';
-  powerBtn.textContent = `${POWER_NAMES[myAvatar] || 'Pouvoir'} (${left})`;
+  powerBtn.textContent = `${(POWER_NAMES[myAvatar] || 'Pouvoir').toUpperCase()} ×${left}`;
   powerBtn.disabled = left <= 0;
+  setPips(boxMe, left);
 }
 
 powerBtn.addEventListener('click', () => {
@@ -496,14 +591,80 @@ powerBtn.addEventListener('click', () => {
 
 socket.on('power-used', ({ power, remaining }) => {
   setPowerButton(remaining);
-  gameStatus.textContent = `${POWER_NAMES[myAvatar]} lancé sur l'adversaire !`;
-  // Freeze : le badge de l'adversaire est givré jusqu'à ce qu'il se dégivre.
-  if (power === 'freeze') $(`player-${1 - mySlot}`).querySelector('.badge').classList.add('iced');
+  gameStatus.textContent = `${POWER_NAMES[myAvatar]} lancé sur ${opponent ? opponent.pseudo : 'l\'adversaire'} !`;
+  playSuperAttack('me', myAvatar, power, () => {
+    // Freeze : l'adversaire reste givré jusqu'à ce qu'il se dégivre.
+    if (power === 'freeze') fighterOpp.classList.add('iced');
+  });
 });
 
 socket.on('power-refused', ({ reason }) => {
   gameStatus.textContent = reason;
 });
+
+/* ---------- Super attaque : cinématique puis rayon géant ---------- */
+
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function stopFx() {
+  fxTimers.forEach(clearTimeout);
+  fxTimers = [];
+  fxLayer.hidden = true;
+  fxLayer.className = '';
+  fxLayer.innerHTML = '';
+}
+
+// Centre d'un élément à l'écran.
+function centerOf(el) {
+  const box = el.getBoundingClientRect();
+  return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+}
+
+// side : 'me' (je lance, le rayon part de ma plateforme) ou 'opp' (je reçois).
+// done() est appelé à la fin de l'animation.
+function playSuperAttack(side, avatar, power, done) {
+  stopFx();
+  if (reducedMotion() || !opponent) { done(); return; }
+
+  const look = ATTACK_LOOK[power] || ATTACK_LOOK.freeze;
+  fxLayer.appendChild(fxTemplate.content.cloneNode(true));
+  fxLayer.style.setProperty('--c1', look.c1);
+  fxLayer.style.setProperty('--c2', look.c2);
+  fxLayer.style.setProperty('--band', side === 'me' ? 'var(--acid)' : 'var(--pink)');
+  drawSprite(fxLayer.querySelector('.cutin-hero canvas'), avatar, 15);
+  fxLayer.querySelector('.cutin-name').textContent = (POWER_NAMES[avatar] || '').toUpperCase();
+  fxLayer.querySelector('.cutin-sub').textContent = `${SPRITES[avatar].name.toUpperCase()} · SUPER ATTAQUE`;
+
+  // Le rayon va du lanceur à la cible, quelle que soit la position à l'écran.
+  const shooter = side === 'me' ? fighterMe : fighterOpp;
+  const target = side === 'me' ? fighterOpp : fighterMe;
+  const from = centerOf(shooter);
+  const to = centerOf(target);
+  fxLayer.style.setProperty('--bx', `${from.x}px`);
+  fxLayer.style.setProperty('--by', `${from.y}px`);
+  fxLayer.style.setProperty('--dist', `${Math.abs(to.x - from.x)}px`);
+  fxLayer.querySelector('.beam-wrap').classList.toggle('reverse', to.x < from.x);
+
+  fxLayer.hidden = false;
+  fxLayer.className = 'phase-cutin';
+  fxTimers.push(setTimeout(() => {
+    fxLayer.className = 'phase-beam';
+    arena.classList.remove('quake');
+    void arena.offsetWidth; // relance l'animation
+    arena.classList.add('quake');
+  }, CUTIN_MS));
+  fxTimers.push(setTimeout(() => {
+    target.classList.remove('hit');
+    void target.offsetWidth;
+    target.classList.add('hit');
+  }, CUTIN_MS + IMPACT_MS));
+  fxTimers.push(setTimeout(() => {
+    stopFx();
+    arena.classList.remove('quake');
+    target.classList.remove('hit');
+    done();
+  }, CUTIN_MS + BEAM_MS));
+}
 
 /* ---------- Pouvoirs : ceux que je reçois ---------- */
 
@@ -528,7 +689,8 @@ let stroke = null; // coup de raclette en cours : { start, last }
 function setFrost(layers) {
   const frost = $('frost');
   [...frost.children].forEach((layer, i) => layer.classList.toggle('gone', i >= layers));
-  $('frost-left').textContent = layers > 0 ? `Encore ${layers} couche${layers > 1 ? 's' : ''} de givre` : '';
+  $('frost-fill').style.width = `${Math.round((layers / frostMax) * 100)}%`;
+  $('frost-left').textContent = layers > 0 ? `Encore ${layers} couche${layers > 1 ? 's' : ''} de givre sur ${frostMax}` : '';
 }
 
 // Points intermédiaires entre deux positions de la souris : un geste très
@@ -579,7 +741,8 @@ function stopFreeze() {
 
 function startFreeze({ layers }) {
   frozenActive = true;
-  $('ice-badge').className = `badge ${myAvatar}`;
+  frostMax = layers;
+  drawSprite($('ice-sprite'), myAvatar, 14);
   const frost = $('frost');
   frost.innerHTML = '';
   for (let i = 0; i < layers; i++) {
@@ -611,7 +774,7 @@ socket.on('unfrozen', ({ slot }) => {
       if (currentWord) selectWord(currentWord, true);
     }, 600);
   } else {
-    $(`player-${slot}`).querySelector('.badge').classList.remove('iced');
+    fighterOpp.classList.remove('iced');
     const p = players.find((x) => x.slot === slot);
     gameStatus.textContent = `${p ? p.pseudo : 'L\'adversaire'} s'est dégivré !`;
   }
@@ -658,6 +821,7 @@ function startVerlan(duration) {
 }
 
 function clearEffects() {
+  stopFx();
   for (const power of Object.keys(effectTimers)) {
     if (effectTimers[power].timer) clearTimeout(effectTimers[power].timer);
     effectTimers[power].stop();
@@ -667,17 +831,23 @@ function clearEffects() {
 }
 
 socket.on('power-hit', ({ power, duration, payload, from }) => {
-  if (power === 'freeze') {
-    startFreeze(payload);
-    announce(`${from} t'a gelé ! Racle ton givre pour rejouer.`);
-  } else if (power === 'trip') {
-    startTrip(duration);
-    announce(`${from} t'a lancé un Trip : promène ta souris pour voir net !`);
-  } else if (power === 'verlan') {
-    startVerlan(duration);
-    announce(`${from} t'a lancé un Verlan : tout est à l'envers, écris par la fin !`);
-  }
-  if (power !== 'freeze') setTimeout(() => gameStatus.classList.remove('hit'), duration);
+  oppPowersLeft = Math.max(0, oppPowersLeft - 1);
+  setPips(boxOpp, oppPowersLeft);
+  announce(`${from} lance une super attaque !`);
+  // D'abord la super attaque (vue aussi par celui qui la lance), puis l'effet.
+  playSuperAttack('opp', opponent ? opponent.avatar : 'givre', power, () => {
+    if (power === 'freeze') {
+      startFreeze(payload);
+      announce(`${from} t'a gelé ! Racle ton givre pour rejouer.`);
+    } else if (power === 'trip') {
+      startTrip(duration);
+      announce(`${from} t'a lancé un Trip : promène ta souris pour voir net !`);
+    } else if (power === 'verlan') {
+      startVerlan(duration);
+      announce(`${from} t'a lancé un Verlan : tout est à l'envers, écris par la fin !`);
+    }
+    if (power !== 'freeze') setTimeout(() => gameStatus.classList.remove('hit'), duration);
+  });
 });
 
 socket.on('scores', ({ scores }) => setScores(scores));

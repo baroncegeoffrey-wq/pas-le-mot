@@ -4,74 +4,155 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>C'est pas le mot que tu crois</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=VT323&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Écran d'accueil : pseudo + recherche d'adversaire -->
+  <!-- Ligne de balayage qui descend sur tout l'écran (décor) -->
+  <div class="scanline" aria-hidden="true"></div>
+
+  <!-- Écran d'accueil : pseudo, avatar, recherche d'adversaire -->
   <section id="lobby" class="screen">
-    <h1>PAS LE MOT</h1>
+    <h1 class="logo">PAS LE MOT</h1>
     <p class="sub">C'est pas le mot que tu crois</p>
     <form id="find-form">
-      <label for="pseudo">Ton pseudo</label>
+      <label for="pseudo" class="label">TON PSEUDO</label>
       <input id="pseudo" name="pseudo" maxlength="16" autocomplete="off" required>
       <fieldset class="avatars">
-        <legend>Ton avatar (son pouvoir sert 2 fois par partie, pas en solo)</legend>
-        <label class="avatar-card">
+        <legend class="label">CHOISIS TON AVATAR <span class="hint">(pouvoir : 2 fois par partie, pas en solo)</span></legend>
+        <label class="avatar-card givre">
           <input type="radio" name="avatar" value="givre" checked>
-          <span class="badge givre" aria-hidden="true"></span>
-          <span class="avatar-name">Le Givré</span>
-          <span class="avatar-power">Freeze : l'adversaire est gelé, il doit racler son givre à la souris pour rejouer</span>
+          <canvas class="sprite" data-who="givre" data-px="6" aria-hidden="true"></canvas>
+          <span class="avatar-name">LE GIVRÉ</span>
+          <span class="avatar-power">Freeze : l'adversaire est gelé, il doit racler son givre pour rejouer</span>
         </label>
-        <label class="avatar-card">
+        <label class="avatar-card perche">
           <input type="radio" name="avatar" value="perche">
-          <span class="badge perche" aria-hidden="true"></span>
-          <span class="avatar-name">Le Perché</span>
+          <canvas class="sprite" data-who="perche" data-px="6" aria-hidden="true"></canvas>
+          <span class="avatar-name">LE PERCHÉ</span>
           <span class="avatar-power">Trip : tout devient flou, il ne voit net qu'autour de sa souris pendant 20 s</span>
         </label>
-        <label class="avatar-card">
+        <label class="avatar-card verlan">
           <input type="radio" name="avatar" value="verlan">
-          <span class="badge verlan" aria-hidden="true"></span>
-          <span class="avatar-name">Le Verlan</span>
+          <canvas class="sprite" data-who="verlan" data-px="6" aria-hidden="true"></canvas>
+          <span class="avatar-name">LE VERLAN</span>
           <span class="avatar-power">Verlan : son écran se retourne et il écrit les mots par la fin pendant 20 s</span>
         </label>
       </fieldset>
-      <button type="submit" id="find-btn" disabled>Trouver une partie</button>
-      <button type="button" id="solo-btn" class="secondary" disabled>Jouer seul</button>
+      <div class="lobby-actions">
+        <button type="submit" id="find-btn" class="btn btn-primary" disabled>TROUVER UNE PARTIE</button>
+        <button type="button" id="solo-btn" class="btn btn-ghost" disabled>JOUER SEUL</button>
+      </div>
     </form>
     <p id="status" class="status">Connexion au serveur...</p>
   </section>
 
   <!-- Écran de jeu -->
   <section id="game" class="screen" hidden>
-    <header class="scoreboard">
-      <div class="player" id="player-0"><span class="badge" aria-hidden="true"></span><span class="name"></span><span class="score">0</span></div>
-      <div class="timer" id="timer" aria-label="Temps restant">4:00</div>
-      <div class="player" id="player-1"><span class="badge" aria-hidden="true"></span><span class="name"></span><span class="score">0</span></div>
-    </header>
-    <p id="game-status" class="status">Remplis un mot puis appuie sur Entrée.</p>
-    <div class="actions">
-      <button type="button" id="buy-btn">Acheter une lettre (-1)</button>
-      <button type="button" id="power-btn" hidden></button>
+    <!-- L'arène : la ville de nuit, les deux personnages sur leur plateforme -->
+    <div class="arena" id="arena">
+      <div class="skyline" aria-hidden="true">
+        <div class="building b1"></div>
+        <div class="building b2"><span class="sign pink">ARGOT</span></div>
+        <div class="building b3"></div>
+        <div class="building b4"></div>
+        <div class="spacer"></div>
+        <div class="building b5"></div>
+        <div class="building b6"><span class="sign cyan">MOTS 24/7</span></div>
+        <div class="building b7"></div>
+      </div>
+
+      <div class="player-box me" id="box-me">
+        <div class="nameplate"><span class="name"></span> · <span class="score">0</span></div>
+        <div class="avatar-label"></div>
+        <div class="pips" aria-hidden="true"></div>
+      </div>
+      <div class="player-box opp" id="box-opp">
+        <div class="nameplate"><span class="name"></span> · <span class="score">0</span></div>
+        <div class="avatar-label"></div>
+        <div class="pips" aria-hidden="true"></div>
+      </div>
+
+      <div class="platform me" aria-hidden="true">
+        <div class="face left"></div><div class="face right"></div><div class="face top"></div>
+        <div class="fighter" id="fighter-me"><canvas></canvas></div>
+      </div>
+      <div class="platform opp" aria-hidden="true">
+        <div class="face left"></div><div class="face right"></div><div class="face top"></div>
+        <div class="fighter" id="fighter-opp"><canvas></canvas></div>
+      </div>
+
+      <div class="arena-center">
+        <div class="timer" id="timer" aria-label="Temps restant">4:00</div>
+        <div class="vs" aria-hidden="true">VS</div>
+      </div>
     </div>
+
+    <div class="statusbar">
+      <div class="tape" aria-hidden="true"></div>
+      <p id="game-status" class="status" aria-live="polite">Remplis un mot puis appuie sur Entrée.</p>
+    </div>
+
     <div class="board-area">
-      <div id="board" class="board"></div>
-      <div class="clues">
-        <h2>Horizontal</h2>
-        <ol id="clues-across"></ol>
-        <h2>Vertical</h2>
-        <ol id="clues-down"></ol>
+      <div class="panel grid-panel">
+        <div id="board" class="board"></div>
+      </div>
+      <div class="side">
+        <div class="panel clues">
+          <h2>// HORIZONTAL</h2>
+          <ol id="clues-across"></ol>
+          <h2>// VERTICAL</h2>
+          <ol id="clues-down"></ol>
+        </div>
+        <div class="actions">
+          <button type="button" id="buy-btn" class="btn btn-ghost">ACHETER UNE LETTRE -1</button>
+          <button type="button" id="power-btn" class="btn btn-power" hidden></button>
+        </div>
       </div>
     </div>
   </section>
+
+  <!-- Super attaque : cinématique puis rayon géant (vue par les deux joueurs) -->
+  <div id="fx" aria-hidden="true" hidden></div>
+  <template id="fx-template">
+    <div class="cutin">
+      <div class="cutin-dim"></div>
+      <div class="cutin-band">
+        <div class="cutin-hero"><canvas></canvas></div>
+        <div class="cutin-name"></div>
+        <div class="cutin-sub"></div>
+      </div>
+      <div class="cutin-flash"></div>
+    </div>
+    <div class="beam-wrap">
+      <div class="beam-charge"></div>
+      <div class="beam"><div class="beam-flow"></div></div>
+      <svg class="bolts bolts-a" viewBox="0 0 720 300" preserveAspectRatio="none">
+        <polyline points="0,150 70,92 120,128 190,60 250,118 310,40 370,104 430,30 500,96 560,52 630,120 720,150" />
+        <polyline class="alt" points="0,150 60,212 130,170 200,250 260,190 330,268 400,200 460,276 530,206 590,250 660,180 720,150" />
+      </svg>
+      <svg class="bolts bolts-b" viewBox="0 0 720 300" preserveAspectRatio="none">
+        <polyline class="alt" points="0,150 50,110 110,150 170,80 230,140 290,70 360,130 420,60 480,120 550,70 620,130 720,150" />
+        <polyline points="0,150 80,190 140,160 220,230 280,180 350,240 410,186 480,262 540,196 610,236 670,172 720,150" />
+      </svg>
+      <div class="impact-ring"></div>
+      <div class="impact-ring late"></div>
+      <div class="impact-burst"></div>
+    </div>
+    <div class="impact-flash"></div>
+  </template>
 
   <!-- Effet du pouvoir Freeze : on est bloqué tant qu'on n'a pas raclé le givre -->
   <div id="freeze" hidden>
     <p class="freeze-title">GELÉ !</p>
     <div id="ice-avatar" class="ice-avatar">
-      <span id="ice-badge" class="badge" aria-hidden="true"></span>
+      <canvas id="ice-sprite" aria-hidden="true"></canvas>
       <div id="frost" aria-hidden="true"></div>
     </div>
-    <p class="freeze-help">Racle le givre : passe ta souris vite, d'un bord à l'autre de ton avatar !</p>
+    <p class="freeze-help">RACLE LE GIVRE ! Passe ta souris vite, d'un bord à l'autre de ton avatar. Si tu t'arrêtes, ça repousse.</p>
+    <div class="frost-bar" aria-hidden="true"><div id="frost-fill"></div></div>
     <p id="frost-left" class="freeze-count" aria-live="polite"></p>
   </div>
 
@@ -80,12 +161,28 @@
 
   <!-- Écran de fin -->
   <section id="result" class="screen" hidden>
-    <h1 id="result-title"></h1>
-    <p id="result-detail" class="status"></p>
-    <button type="button" id="replay-btn">Rejouer</button>
+    <h1 id="result-title" class="result-title"></h1>
+    <p id="result-detail" class="result-detail"></p>
+    <div class="podium">
+      <div class="podium-card" id="podium-me">
+        <div class="podium-tag"></div>
+        <div class="podium-frame"><canvas></canvas></div>
+        <div class="podium-plate"><span class="name"></span><span class="score"></span></div>
+      </div>
+      <div class="podium-card" id="podium-opp">
+        <div class="podium-tag"></div>
+        <div class="podium-frame"><canvas></canvas></div>
+        <div class="podium-plate"><span class="name"></span><span class="score"></span></div>
+      </div>
+    </div>
+    <div class="result-actions">
+      <button type="button" id="replay-btn" class="btn btn-primary">REJOUER</button>
+      <button type="button" id="home-btn" class="btn btn-ghost">ACCUEIL</button>
+    </div>
   </section>
 
   <script src="/socket.io/socket.io.js"></script>
+  <script src="sprites.js"></script>
   <script src="client.js"></script>
 </body>
 </html>
