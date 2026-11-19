@@ -16,6 +16,11 @@ const activeGames = new Map();
 // socketId -> roomId
 const playerRooms = new Map();
 
+// Salons privés en attente de l'ami : code -> { socket, pseudo, avatar }
+const privateRooms = new Map();
+const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // sans I ni O (confusion avec 1 et 0)
+const CODE_LENGTH = 4;
+
 // Nettoie le pseudo envoyé par le client (on ne lui fait pas confiance).
 function cleanPseudo(raw) {
   const pseudo = typeof raw === 'string' ? raw.replace(/\s+/g, ' ').trim() : '';
@@ -28,12 +33,37 @@ function cleanProfile(data) {
   return { pseudo: cleanPseudo(raw.pseudo), avatar: cleanAvatar(raw.avatar) };
 }
 
+// Crée le salon de deux joueurs ({ socket, pseudo, avatar }) et lance la partie.
+function startDuo(first, second, onMatch) {
+  const roomId = crypto.randomUUID();
+  const room = {
+    game: null,
+    timer: null,
+    players: [first, second].map(({ socket, pseudo, avatar }) => ({ id: socket.id, pseudo, avatar })),
+  };
+  activeGames.set(roomId, room);
+
+  for (const { socket } of [first, second]) {
+    playerRooms.set(socket.id, roomId);
+    socket.join(roomId);
+  }
+
+  onMatch(roomId, room);
+}
+
+// Est-ce que ce joueur attend déjà (file publique ou salon privé) ou joue ?
+function isBusy(socket) {
+  return queue.some((entry) => entry.socket === socket)
+    || [...privateRooms.values()].some((entry) => entry.socket === socket)
+    || playerRooms.has(socket.id);
+}
+
 // Met le joueur en file. Si quelqu'un attend déjà, crée un salon pour les deux
 // et appelle onMatch(roomId, room) : c'est server.js qui lance la partie.
 // data = { pseudo, avatar } tel qu'envoyé par le client.
 function addToQueue(socket, data, onMatch) {
   // Ignore un joueur déjà en attente ou déjà en partie.
-  if (queue.some((entry) => entry.socket === socket) || playerRooms.has(socket.id)) return;
+  if (isBusy(socket)) return;
 
   const profile = cleanProfile(data);
   const opponent = queue.shift();
@@ -42,30 +72,58 @@ function addToQueue(socket, data, onMatch) {
     socket.emit('waiting');
     return;
   }
+  startDuo(opponent, { socket, ...profile }, onMatch);
+}
 
-  const roomId = crypto.randomUUID();
-  const room = {
-    game: null,
-    timer: null,
-    players: [
-      { id: opponent.socket.id, pseudo: opponent.pseudo, avatar: opponent.avatar },
-      { id: socket.id, ...profile },
-    ],
-  };
-  activeGames.set(roomId, room);
+// Un code de salon libre, ex. « KXBF ».
+function newCode() {
+  let code;
+  do {
+    code = Array.from({ length: CODE_LENGTH }, () => CODE_LETTERS[crypto.randomInt(CODE_LETTERS.length)]).join('');
+  } while (privateRooms.has(code));
+  return code;
+}
 
-  for (const player of [opponent.socket, socket]) {
-    playerRooms.set(player.id, roomId);
-    player.join(roomId);
+// Salon privé : le joueur reçoit un code à envoyer à un ami.
+function createPrivateRoom(socket, data) {
+  if (isBusy(socket)) return;
+  const code = newCode();
+  privateRooms.set(code, { socket, ...cleanProfile(data) });
+  socket.emit('room-created', { code });
+}
+
+// L'ami rejoint avec le code : la partie démarre pour les deux.
+function joinPrivateRoom(socket, data, onMatch) {
+  if (isBusy(socket)) return;
+  const raw = data && typeof data === 'object' && typeof data.code === 'string' ? data.code : '';
+  const code = raw.toUpperCase().replace(/[^A-Z]/g, '').slice(0, CODE_LENGTH);
+  const host = privateRooms.get(code);
+  if (!host) {
+    socket.emit('room-error', { reason: 'Ce code ne correspond à aucun salon ouvert.' });
+    return;
   }
+  privateRooms.delete(code);
+  startDuo(host, { socket, ...cleanProfile(data) }, onMatch);
+}
 
-  onMatch(roomId, room);
+function removePrivateRoom(socket) {
+  for (const [code, entry] of privateRooms) {
+    if (entry.socket === socket) privateRooms.delete(code);
+  }
+}
+
+// Le joueur annule sa recherche (file publique ou salon privé).
+function cancelSearch(socket) {
+  removeFromQueue(socket);
+  removePrivateRoom(socket);
+  socket.emit('search-cancelled');
 }
 
 // Mode solo : un salon pour un seul joueur, sans passer par la file d'attente.
 function createSoloRoom(socket, data, onMatch) {
   if (playerRooms.has(socket.id)) return;
   removeFromQueue(socket); // il attendait peut-être un adversaire
+  removePrivateRoom(socket);
 
   const roomId = crypto.randomUUID();
   const room = { game: null, timer: null, solo: true, players: [{ id: socket.id, ...cleanProfile(data) }] };
@@ -105,6 +163,7 @@ function closeRoom(roomId, io) {
 
 function handleDisconnect(socket, io) {
   removeFromQueue(socket);
+  removePrivateRoom(socket);
 
   const roomId = playerRooms.get(socket.id);
   if (!roomId) return;
@@ -125,6 +184,9 @@ function endGame(roomId, io) {
 module.exports = {
   addToQueue,
   createSoloRoom,
+  createPrivateRoom,
+  joinPrivateRoom,
+  cancelSearch,
   removeFromQueue,
   handleDisconnect,
   endGame,

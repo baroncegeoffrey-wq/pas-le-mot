@@ -4,7 +4,8 @@ const http = require('http');
 const express = require('express');
 const { Server } = require('socket.io');
 const {
-  addToQueue, createSoloRoom, handleDisconnect, getRoomOf, endGame,
+  addToQueue, createSoloRoom, createPrivateRoom, joinPrivateRoom, cancelSearch,
+  handleDisconnect, getRoomOf, endGame,
 } = require('./matchmaking');
 const { Game } = require('./game');
 const { generateGrid } = require('./grid');
@@ -246,6 +247,9 @@ io.on('connection', (socket) => {
 
   socket.on('find-game', safe('find-game', (data) => addToQueue(socket, data, startGame)));
   socket.on('play-solo', safe('play-solo', (data) => createSoloRoom(socket, data, startGame)));
+  socket.on('create-room', safe('create-room', (data) => createPrivateRoom(socket, data)));
+  socket.on('join-room', safe('join-room', (data) => joinPrivateRoom(socket, data, startGame)));
+  socket.on('cancel-search', safe('cancel-search', () => cancelSearch(socket)));
   socket.on('submit-word', safe('submit-word', (data) => handleSubmitWord(socket, data)));
   socket.on('buy-letter', safe('buy-letter', (data) => handleBuyLetter(socket, data)));
   socket.on('use-power', safe('use-power', (data) => handleUsePower(socket, data)));
