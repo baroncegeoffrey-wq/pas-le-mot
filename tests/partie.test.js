@@ -130,3 +130,42 @@ test('acheter une lettre : -1, révélée à l\'acheteur seul, jamais deux fois 
     p1.close(); p2.close(); server.stop();
   }
 });
+
+test('adversaire déconnecté : l\'autre est prévenu et peut rejouer', async () => {
+  const server = await startServer();
+  const { p1, p2, g1 } = await startMatch(server);
+  try {
+    const left = waitFor(p1, 'opponent-left');
+    p2.close();
+    await left;
+    // Son ancienne partie est fermée : ses envois ne font plus rien.
+    p1.emit('submit-word', { roomId: g1.roomId, wordId: g1.clues[0].wordId, letters: answerOfClue(g1.clues[0].clue) });
+    await expectNothing(p1, 'word-claimed');
+    // Il peut chercher une nouvelle partie.
+    p1.emit('find-game', { pseudo: 'Un' });
+    await waitFor(p1, 'waiting');
+  } finally {
+    p1.close(); server.stop();
+  }
+});
+
+test('déconnexion en file d\'attente : le joueur suivant ne tombe pas sur un fantôme', async () => {
+  const server = await startServer();
+  const { createPlayer } = require('./helpers');
+  const ghost = createPlayer(server.url);
+  const a = createPlayer(server.url);
+  const b = createPlayer(server.url);
+  try {
+    ghost.emit('find-game', { pseudo: 'Fantome' });
+    await waitFor(ghost, 'waiting');
+    ghost.close();
+    await sleep(200);
+    a.emit('find-game', { pseudo: 'A' });
+    await waitFor(a, 'waiting');
+    const start = waitFor(a, 'game-start');
+    b.emit('find-game', { pseudo: 'B' });
+    assert.strictEqual((await start).opponent.pseudo, 'B');
+  } finally {
+    a.close(); b.close(); server.stop();
+  }
+});

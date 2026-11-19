@@ -318,6 +318,10 @@ board.addEventListener('input', (event) => {
   cell.input.focus();
 });
 
+socket.on('opponent-left', () => {
+  showResult('Adversaire déconnecté', 'Ton adversaire a quitté la partie.');
+});
+
 /* ---------- Validation ---------- */
 
 function submitCurrentWord() {
