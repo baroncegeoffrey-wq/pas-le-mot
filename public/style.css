@@ -305,11 +305,12 @@ body {
   padding: 0;
 }
 .board .cell input:focus { outline: 2px solid var(--yellow); outline-offset: -2px; }
-.board .cell .num { position: absolute; top: 0; left: 3px; font-size: 13px; color: var(--muted); pointer-events: none; }
+.board .cell .num { position: absolute; top: -1px; left: 3px; font-size: 16px; line-height: 1; color: var(--yellow); pointer-events: none; }
 .board .cell.current { background: var(--current); border-color: var(--yellow); }
 .board .cell.mine { background: var(--acid); border-color: var(--acid); box-shadow: 0 0 10px rgba(198, 255, 0, 0.6); }
 .board .cell.theirs { background: var(--pink); border-color: var(--pink); box-shadow: 0 0 10px rgba(255, 42, 109, 0.6); }
 .board .cell.mine input, .board .cell.theirs input, .board .cell.mine .num, .board .cell.theirs .num { color: var(--ink); }
+.board .cell.hover { box-shadow: inset 0 0 0 2px var(--cyan); }
 .board .cell.bought { box-shadow: inset 0 0 0 2px var(--cyan); }
 .board .cell.wrong { animation: shake 0.4s; background: var(--wrong); }
 
@@ -320,6 +321,8 @@ body {
 .clues li { font-size: 24px; line-height: 1.1; padding: 2px 8px; border-left: 3px solid transparent; cursor: pointer; }
 .clues li .n { font-family: var(--title); font-weight: 700; font-size: 17px; margin-right: 10px; color: var(--yellow); }
 .clues li.current { background: rgba(245, 225, 0, 0.1); border-left-color: var(--yellow); }
+.clues li.hover { background: rgba(0, 229, 255, 0.12); border-left-color: var(--cyan); }
+.clues li .dir { color: var(--muted); margin-right: 6px; }
 .clues li.mine, .clues li.theirs { text-decoration: line-through; opacity: 0.55; }
 .clues li.mine .n { color: var(--acid); }
 .clues li.theirs .n { color: var(--pink); }
@@ -488,6 +491,8 @@ body {
 
 #game { transition: transform 0.4s ease; }
 #game.verlan { transform: scaleX(-1); }
+/* Le message reste lisible à l'endroit pendant le Verlan (on retourne deux fois) */
+#game.verlan .statusbar { transform: scaleX(-1); }
 
 #trip {
   position: fixed;

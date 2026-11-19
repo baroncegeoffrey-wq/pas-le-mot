@@ -91,13 +91,22 @@ findForm.addEventListener('change', (event) => {
 });
 
 socket.on('connect', () => {
-  statusText.textContent = 'Connecté. Choisis un pseudo.';
+  statusText.textContent = 'Connecté. Choisis un pseudo et ton avatar.';
   findBtn.disabled = false;
   soloBtn.disabled = false;
 });
 socket.on('disconnect', () => {
-  statusText.textContent = 'Déconnecté du serveur';
-  gameStatus.textContent = 'Déconnecté du serveur';
+  statusText.textContent = 'Connexion au serveur perdue, reconnexion...';
+  findBtn.disabled = true;
+  soloBtn.disabled = true;
+  // En pleine partie, la partie est perdue côté serveur : on le dit clairement
+  // au lieu de laisser un écran qui ne répond plus.
+  if (roomId) {
+    showResult('CONNEXION PERDUE', 'La connexion au serveur a coupé, la partie est annulée. Relance-en une.', 'neutral', null, null);
+    $('podium-opp').hidden = true;
+    findBtn.disabled = true;
+    soloBtn.disabled = true;
+  }
 });
 
 findForm.addEventListener('submit', (event) => {
@@ -339,14 +348,44 @@ function buildClues(clues) {
     const n = document.createElement('span');
     n.className = 'n';
     n.textContent = clue.number;
-    li.append(n, document.createTextNode(clue.clue));
+    // Une flèche rappelle le sens du mot dans la grille.
+    const dir = document.createElement('span');
+    dir.className = 'dir';
+    dir.setAttribute('aria-hidden', 'true');
+    dir.textContent = clue.direction === 'across' ? '→' : '↓';
+    li.append(n, dir, document.createTextNode(clue.clue));
     li.addEventListener('click', () => selectWord(clue.wordId, true));
+    // Survoler une définition éclaire sa ligne dans la grille.
+    li.addEventListener('mouseenter', () => setHover(clue.wordId, true));
+    li.addEventListener('mouseleave', () => setHover(clue.wordId, false));
     $(`clues-${clue.direction}`).appendChild(li);
     words.get(clue.wordId).clueEl = li;
   }
 }
 
 /* ---------- Sélection d'un mot et déplacement ---------- */
+
+// Relie une définition et sa ligne : les deux s'éclairent ensemble.
+function setHover(wordId, on) {
+  const w = words.get(wordId);
+  if (!w) return;
+  w.cells.forEach((k) => cells.get(k).el.classList.toggle('hover', on));
+  w.clueEl.classList.toggle('hover', on);
+}
+
+// Survoler une case éclaire la ou les définitions qui passent par elle.
+board.addEventListener('mouseover', (event) => {
+  const k = event.target.dataset && event.target.dataset.key;
+  if (!k) return;
+  const cell = cells.get(k);
+  [cell.across, cell.down].filter(Boolean).forEach((id) => words.get(id).clueEl.classList.add('hover'));
+});
+board.addEventListener('mouseout', (event) => {
+  const k = event.target.dataset && event.target.dataset.key;
+  if (!k) return;
+  const cell = cells.get(k);
+  [cell.across, cell.down].filter(Boolean).forEach((id) => words.get(id).clueEl.classList.remove('hover'));
+});
 
 function selectWord(wordId, focusFirstEmpty) {
   if (currentWord) {
