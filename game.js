@@ -2,6 +2,8 @@
 // les scores. Le serveur fait autorité : tout se décide ici.
 const { generateGrid } = require('./grid');
 
+const WRONG_LOCK_MS = 3000; // un mot raté est bloqué 3 s pour celui qui s'est trompé
+
 // "frérot", "Frerot " et "FREROT" deviennent tous "FREROT".
 function normalize(text) {
   return text
@@ -27,6 +29,8 @@ class Game {
     this.scores = [0, 0];
     this.claimedBy = new Map(); // wordId -> numéro du joueur (0 ou 1)
     this.over = false;
+    this.lockedUntil = [new Map(), new Map()]; // par joueur : wordId -> heure de fin du blocage
+    this.bought = [new Set(), new Set()]; // par joueur : cases "ligne,colonne" achetées
   }
 
   // Ce que le navigateur a le droit de voir : positions, longueurs, numéros et
@@ -54,11 +58,15 @@ class Game {
   // Un joueur propose un mot. Renvoie ce qui s'est passé :
   // - { type: 'ignored' } : mot inconnu, déjà trouvé ou incomplet (pas de pénalité)
   // - { type: 'claimed', ... } : juste, +1, le mot est à lui
-  // - { type: 'wrong', ... } : faux, -1
-  submitWord(slot, wordId, letters) {
+  // - { type: 'wrong', ... } : faux, -1, et le mot est bloqué 3 s pour lui
+  // - { type: 'locked', ... } : le mot est encore bloqué pour lui (pas de pénalité)
+  submitWord(slot, wordId, letters, now = Date.now()) {
     if (this.over) return { type: 'ignored' };
     const word = this.getWord(wordId);
     if (!word || this.claimedBy.has(wordId)) return { type: 'ignored' };
+
+    const lockedUntil = this.lockedUntil[slot].get(wordId) || 0;
+    if (now < lockedUntil) return { type: 'locked', wordId, lockedUntil };
 
     const answer = readLetters(letters);
     if (answer.length !== word.length) return { type: 'ignored' };
@@ -70,7 +78,37 @@ class Game {
     }
 
     this.scores[slot] -= 1;
-    return { type: 'wrong', wordId, scores: [...this.scores] };
+    this.lockedUntil[slot].set(wordId, now + WRONG_LOCK_MS);
+    return { type: 'wrong', wordId, scores: [...this.scores], lockedUntil: now + WRONG_LOCK_MS };
+  }
+
+  // Les cases d'un mot, dans l'ordre : ["ligne,colonne", ...]
+  cellsOf(word) {
+    return Array.from({ length: word.length }, (_, i) => {
+      const r = word.row + (word.direction === 'down' ? i : 0);
+      const c = word.col + (word.direction === 'across' ? i : 0);
+      return `${r},${c}`;
+    });
+  }
+
+  // Le joueur achète une lettre du mot (-1). On lui révèle, à lui seul, une case
+  // qu'il ne connaît pas encore : ni achetée, ni venue d'un mot déjà trouvé.
+  buyLetter(slot, wordId) {
+    if (this.over) return { type: 'ignored' };
+    const word = this.getWord(wordId);
+    if (!word || this.claimedBy.has(wordId)) return { type: 'ignored' };
+
+    const known = new Set(this.bought[slot]);
+    for (const id of this.claimedBy.keys()) this.cellsOf(this.getWord(id)).forEach((k) => known.add(k));
+
+    const cells = this.cellsOf(word);
+    const hidden = cells.map((k, index) => ({ k, index })).filter(({ k }) => !known.has(k));
+    if (hidden.length === 0) return { type: 'ignored' };
+
+    const { k, index } = hidden[Math.floor(Math.random() * hidden.length)];
+    this.bought[slot].add(k);
+    this.scores[slot] -= 1;
+    return { type: 'revealed', wordId, index, letter: word.answer[index], scores: [...this.scores] };
   }
 
   isComplete() {
@@ -86,4 +124,4 @@ class Game {
   }
 }
 
-module.exports = { Game, normalize };
+module.exports = { Game, normalize, WRONG_LOCK_MS };

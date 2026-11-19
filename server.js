@@ -76,10 +76,36 @@ function handleSubmitWord(socket, data) {
     });
     if (room.game.isComplete()) finishGame(roomId, room);
   } else if (result.type === 'wrong') {
-    socket.emit('word-wrong', { wordId: result.wordId, scores: result.scores });
+    socket.emit('word-wrong', {
+      wordId: result.wordId,
+      scores: result.scores,
+      lockedUntil: result.lockedUntil,
+      serverNow: Date.now(),
+    });
     // L'adversaire voit le score bouger, mais pas le mot tenté.
     socket.to(roomId).emit('scores', { scores: result.scores });
+  } else if (result.type === 'locked') {
+    // Mot encore bloqué : pas de pénalité, on rappelle juste jusqu'à quand.
+    socket.emit('word-locked', { wordId: result.wordId, lockedUntil: result.lockedUntil, serverNow: Date.now() });
   }
+}
+
+function handleBuyLetter(socket, data) {
+  if (!data || typeof data !== 'object') return;
+  const found = findPlayerGame(socket, data.roomId);
+  if (!found) return;
+  const { roomId, room, slot } = found;
+
+  const result = room.game.buyLetter(slot, data.wordId);
+  if (result.type !== 'revealed') return;
+  // La lettre part à l'acheteur seul ; l'adversaire ne voit que les scores.
+  socket.emit('letter-revealed', {
+    wordId: result.wordId,
+    index: result.index,
+    letter: result.letter,
+    scores: result.scores,
+  });
+  socket.to(roomId).emit('scores', { scores: result.scores });
 }
 
 io.on('connection', (socket) => {
@@ -90,6 +116,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('submit-word', (data) => handleSubmitWord(socket, data));
+  socket.on('buy-letter', (data) => handleBuyLetter(socket, data));
 
   socket.on('disconnect', () => {
     console.log('Player disconnected', socket.id);

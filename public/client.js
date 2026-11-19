@@ -13,6 +13,7 @@ const pseudoInput = $('pseudo');
 const board = $('board');
 const timerEl = $('timer');
 const resultScreen = $('result');
+const buyBtn = $('buy-btn');
 
 // État de la partie en cours
 let roomId = null;
@@ -22,6 +23,7 @@ let cells = new Map(); // "r,c" -> { el, input, across, down, locked }
 let currentWord = null; // wordId sélectionné
 let players = []; // [{ pseudo, slot }] rangés par slot
 let timerInterval = null;
+let clockOffset = 0; // heure du serveur - heure locale
 
 const key = (r, c) => `${r},${c}`;
 
@@ -98,9 +100,9 @@ socket.on('game-start', (data) => {
 
 function startTimer(endsAt, serverNow) {
   clearInterval(timerInterval);
-  const offset = serverNow - Date.now(); // écart entre l'horloge du serveur et la nôtre
+  clockOffset = serverNow - Date.now(); // écart entre l'horloge du serveur et la nôtre
   const tick = () => {
-    const left = Math.max(0, endsAt - (Date.now() + offset));
+    const left = Math.max(0, endsAt - (Date.now() + clockOffset));
     const seconds = Math.ceil(left / 1000);
     timerEl.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
     timerEl.classList.toggle('low', seconds <= 30);
@@ -206,6 +208,7 @@ function selectWord(wordId, focusFirstEmpty) {
   const w = words.get(wordId);
   w.cells.forEach((k) => cells.get(k).el.classList.add('current'));
   w.clueEl.classList.add('current');
+  buyBtn.disabled = Boolean(w.claimed);
 
   if (focusFirstEmpty) {
     const target = w.cells.find((k) => !cells.get(k).input.value) || w.cells[0];
@@ -347,6 +350,7 @@ socket.on('word-claimed', ({ wordId, letters, by, scores }) => {
     }
   });
   w.clueEl.classList.add(`p${by}`);
+  if (currentWord === wordId) buyBtn.disabled = true;
   setScores(scores);
   gameStatus.textContent = by === mySlot ? `Bien vu ! +1 (${w.number})` : `L'adversaire a trouvé le ${w.number}.`;
 
@@ -357,10 +361,15 @@ socket.on('word-claimed', ({ wordId, letters, by, scores }) => {
   }
 });
 
-socket.on('word-wrong', ({ wordId, scores }) => {
+// Secondes restantes avant la fin d'un blocage (heure du serveur).
+function secondsUntil(serverTime, serverNow) {
+  return Math.max(1, Math.ceil((serverTime - serverNow) / 1000));
+}
+
+socket.on('word-wrong', ({ wordId, scores, lockedUntil, serverNow }) => {
   const w = words.get(wordId);
   setScores(scores);
-  gameStatus.textContent = 'Raté ! -1';
+  gameStatus.textContent = `Raté ! -1. Ce mot est bloqué ${secondsUntil(lockedUntil, serverNow)} s pour toi.`;
   if (!w) return;
   w.cells.forEach((k) => {
     const el = cells.get(k).el;
@@ -369,6 +378,38 @@ socket.on('word-wrong', ({ wordId, scores }) => {
     el.classList.add('wrong');
     setTimeout(() => el.classList.remove('wrong'), 600);
   });
+});
+
+socket.on('word-locked', ({ lockedUntil, serverNow }) => {
+  gameStatus.textContent = `Encore bloqué ${secondsUntil(lockedUntil, serverNow)} s : essaie un autre mot en attendant.`;
+});
+
+/* ---------- Acheter une lettre ---------- */
+
+buyBtn.addEventListener('click', () => {
+  const w = words.get(currentWord);
+  if (!w || w.claimed || !roomId) return;
+  socket.emit('buy-letter', { roomId, wordId: w.id });
+  // On rend la main à la grille pour continuer à taper.
+  const target = w.cells.find((k) => !cells.get(k).input.value) || w.cells[0];
+  cells.get(target).input.focus();
+});
+
+socket.on('letter-revealed', ({ wordId, index, letter, scores }) => {
+  const w = words.get(wordId);
+  setScores(scores);
+  if (!w) return;
+  const cell = cells.get(w.cells[index]);
+  cell.input.value = letter;
+  cell.input.readOnly = true;
+  cell.locked = true;
+  cell.el.classList.add('bought');
+  gameStatus.textContent = `Lettre achetée : ${letter} (-1)`;
+  // Si le curseur était sur cette case, on avance.
+  if (document.activeElement === cell.input && currentWord === wordId) {
+    const next = moveInWord(w.cells[index], 1);
+    if (next) next.input.focus();
+  }
 });
 
 socket.on('scores', ({ scores }) => setScores(scores));
