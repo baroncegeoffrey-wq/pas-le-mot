@@ -175,5 +175,6 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Serveur démarré sur http://localhost:${PORT}`);
+  // Le vrai port (utile quand PORT=0 : le système en choisit un libre, pour les tests).
+  console.log(`Serveur démarré sur http://localhost:${server.address().port}`);
 });

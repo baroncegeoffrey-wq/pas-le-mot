@@ -4,20 +4,17 @@ const { spawn } = require('child_process');
 const path = require('path');
 const { io } = require('socket.io-client');
 
-let nextPort = 4100 + Math.floor(Math.random() * 500);
-
 // Lance server.js et attend qu'il écoute. env permet de raccourcir le chrono.
 function startServer(env = {}) {
-  const port = nextPort++;
   const child = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], {
-    env: { ...process.env, PORT: String(port), ...env },
+    // PORT=0 : le système choisit un port libre (pas de collision entre fichiers de test).
+    env: { ...process.env, PORT: '0', ...env },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   return new Promise((resolve, reject) => {
     child.stdout.on('data', (chunk) => {
-      if (chunk.toString().includes('Serveur démarré')) {
-        resolve({ url: `http://localhost:${port}`, stop: () => child.kill() });
-      }
+      const match = chunk.toString().match(/Serveur démarré sur (http:\/\/localhost:\d+)/);
+      if (match) resolve({ url: match[1], stop: () => child.kill() });
     });
     child.stderr.on('data', (chunk) => reject(new Error(chunk.toString())));
   });
