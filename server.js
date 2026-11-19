@@ -9,7 +9,8 @@ const {
 } = require('./matchmaking');
 const { Game } = require('./game');
 const { generateGrid } = require('./grid');
-const { FREEZE } = require('./powers');
+const { FREEZE, CINE_DELAY_MS } = require('./powers');
+const { COMBAT } = require('./game');
 
 const app = express();
 const server = http.createServer(app);
@@ -87,6 +88,7 @@ function startGame(roomId, room) {
       opponent: opponent ? { pseudo: opponent.pseudo, slot: 1 - index, avatar: opponent.avatar } : null,
       startsAt,
       endsAt,
+      maxHp: COMBAT.maxHp,
       // L'heure du serveur, pour que le client corrige un écart d'horloge.
       serverNow: Date.now(),
     });
@@ -97,21 +99,26 @@ function startGame(roomId, room) {
 // on ferme le salon (le chrono est arrêté dans endGame).
 function finishGame(roomId, room) {
   if (room.game.over) return;
-  const { scores, winner, stats } = room.game.finish();
+  const {
+    hp, winner, ko, stats,
+  } = room.game.finish();
   // La partie est finie : on peut enfin montrer les réponses.
   const solutions = room.game.getSolutions();
   if (room.solo) {
-    // En solo : pas de gagnant, juste ton score et le nombre de mots trouvés.
+    // En solo : on frappe un mannequin d'entraînement (slot 1).
     io.to(roomId).emit('game-over', {
-      scores: [scores[0]],
-      winner: null,
+      hp,
+      winner: ko === 1 ? 0 : null,
+      ko,
       found: room.game.claimedBy.size,
       total: room.game.grid.words.length,
       stats: [stats[0]],
       solutions,
     });
   } else {
-    io.to(roomId).emit('game-over', { scores, winner, stats, solutions });
+    io.to(roomId).emit('game-over', {
+      hp, winner, ko, stats, solutions,
+    });
   }
   endGame(roomId, io);
 }
@@ -140,18 +147,23 @@ function handleSubmitWord(socket, data) {
       wordId: result.wordId,
       letters: result.letters,
       by: result.by,
-      scores: result.scores,
+      target: result.target,
+      damage: result.damage,
+      hp: result.hp,
     });
-    if (room.game.isComplete()) finishGame(roomId, room);
+    if (result.ko || room.game.isComplete()) finishGame(roomId, room);
   } else if (result.type === 'wrong') {
     socket.emit('word-wrong', {
       wordId: result.wordId,
-      scores: result.scores,
+      target: result.target,
+      damage: result.damage,
+      hp: result.hp,
       lockedUntil: result.lockedUntil,
       serverNow: Date.now(),
     });
-    // L'adversaire voit le score bouger, mais pas le mot tenté.
-    socket.to(roomId).emit('scores', { scores: result.scores });
+    // L'adversaire voit le recul, mais pas le mot tenté.
+    socket.to(roomId).emit('hp', { target: result.target, damage: result.damage, hp: result.hp });
+    if (result.ko) finishGame(roomId, room);
   } else if (result.type === 'locked') {
     // Mot encore bloqué : pas de pénalité, on rappelle juste jusqu'à quand.
     socket.emit('word-locked', { wordId: result.wordId, lockedUntil: result.lockedUntil, serverNow: Date.now() });
@@ -166,14 +178,17 @@ function handleBuyLetter(socket, data) {
 
   const result = room.game.buyLetter(slot, data.wordId);
   if (result.type !== 'revealed') return;
-  // La lettre part à l'acheteur seul ; l'adversaire ne voit que les scores.
+  // La lettre part à l'acheteur seul ; l'adversaire ne voit que les PV.
   socket.emit('letter-revealed', {
     wordId: result.wordId,
     index: result.index,
     letter: result.letter,
-    scores: result.scores,
+    target: result.target,
+    damage: result.damage,
+    hp: result.hp,
   });
-  socket.to(roomId).emit('scores', { scores: result.scores });
+  socket.to(roomId).emit('hp', { target: result.target, damage: result.damage, hp: result.hp });
+  if (result.ko) finishGame(roomId, room);
 }
 
 /* ---------- Freeze : gel, givre qui repousse, dégivrage ---------- */
@@ -231,14 +246,18 @@ function handleUsePower(socket, data) {
     return;
   }
   const attacker = room.players[slot];
+  // La vidéo de super attaque démarre à la même heure chez les deux joueurs.
+  const cineAt = Date.now() + CINE_DELAY_MS;
+  const cine = { avatar: attacker.avatar, at: cineAt, serverNow: Date.now() };
   // L'effet part chez la cible seulement ; le lanceur voit son compteur baisser.
   io.to(room.players[result.target].id).emit('power-hit', {
     power: result.power,
     duration: result.duration,
     payload: result.payload,
     from: attacker.pseudo,
+    cine,
   });
-  socket.emit('power-used', { power: result.power, remaining: result.remaining });
+  socket.emit('power-used', { power: result.power, remaining: result.remaining, cine });
   if (result.power === 'freeze') startFreezeTimers(roomId, room, result.target);
 }
 

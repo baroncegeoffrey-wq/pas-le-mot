@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const {
-  startServer, waitFor, expectNothing, answerOfClue, pointsOf, startMatch, sleep, pick,
+  startServer, waitFor, expectNothing, answerOfClue, damageOf, startMatch, sleep, pick,
 } = require('./helpers');
 const { Game } = require('../game');
 
@@ -11,16 +11,16 @@ test('chrono : game-start annonce la fin, game-over arrive au bout du temps', as
   const { p1, p2, g1 } = await startMatch(server);
   try {
     assert.ok(Math.abs(g1.endsAt - g1.serverNow - 1200) < 100);
-    // p1 trouve un mot : il doit gagner 1 à 0.
+    // p1 trouve un mot : il a plus de PV à la fin, il gagne.
     const first = g1.clues[0];
     p1.emit('submit-word', { roomId: g1.roomId, wordId: first.wordId, letters: answerOfClue(first.clue) });
     const [o1, o2] = await Promise.all([waitFor(p1, 'game-over', 3000), waitFor(p2, 'game-over', 3000)]);
-    assert.deepStrictEqual(pick(o1, ['scores', 'winner']), { scores: [pointsOf(first.clue), 0], winner: 0 });
+    assert.deepStrictEqual(pick(o1, ['hp', 'winner', 'ko']), { hp: [100, 100 - damageOf(first.clue)], winner: 0, ko: null });
     assert.deepStrictEqual(o2, o1);
     // Stats de fin : 1 mot trouvé pour p1, rien pour p2.
     assert.deepStrictEqual(o1.stats, [
-      { found: 1, wrong: 0, bought: 0, powers: 0 },
-      { found: 0, wrong: 0, bought: 0, powers: 0 },
+      { found: 1, wrong: 0, bought: 0, powers: 0, damage: damageOf(first.clue) },
+      { found: 0, wrong: 0, bought: 0, powers: 0, damage: 0 },
     ]);
     // Les réponses arrivent avec la fin : tous les mots, avec qui les a trouvés.
     assert.strictEqual(o1.solutions.length, g1.clues.length);
@@ -36,17 +36,17 @@ test('chrono : game-start annonce la fin, game-over arrive au bout du temps', as
   }
 });
 
-test('chrono : égalité à 0-0', async () => {
+test('chrono : égalité à 100 PV partout', async () => {
   const server = await startServer({ GAME_DURATION_MS: '500' });
   const { p1, p2 } = await startMatch(server);
   try {
-    assert.deepStrictEqual(pick(await waitFor(p1, 'game-over'), ['scores', 'winner']), { scores: [0, 0], winner: null });
+    assert.deepStrictEqual(pick(await waitFor(p1, 'game-over'), ['hp', 'winner', 'ko']), { hp: [100, 100], winner: null, ko: null });
   } finally {
     p1.close(); p2.close(); server.stop();
   }
 });
 
-test('grille pleine : la partie s\'arrête tout de suite, puis on peut rejouer', async () => {
+test('K.O. : la partie s\'arrête dès qu\'un joueur tombe à 0 PV, puis on peut rejouer', async () => {
   const server = await startServer();
   const { p1, p2, g1 } = await startMatch(server);
   try {
@@ -55,8 +55,12 @@ test('grille pleine : la partie s\'arrête tout de suite, puis on peut rejouer',
       p2.emit('submit-word', { roomId: g1.roomId, wordId: clue.wordId, letters: answerOfClue(clue.clue) });
     }
     const result = await over;
+    // 12 mots, c'est bien plus que 100 PV de dégâts : p1 est K.O. avant la fin.
     assert.strictEqual(result.winner, 1);
-    assert.strictEqual(result.scores[1], g1.clues.reduce((sum, c) => sum + pointsOf(c.clue), 0));
+    assert.strictEqual(result.ko, 0);
+    assert.deepStrictEqual(result.hp, [0, 100]);
+    assert.ok(result.stats[1].found < g1.clues.length);
+    assert.strictEqual(result.stats[1].damage, 100);
 
     // Plus rien ne compte après la fin.
     p1.emit('submit-word', { roomId: g1.roomId, wordId: g1.clues[0].wordId, letters: 'X' });
@@ -82,14 +86,14 @@ test('anti-spam : mot bloqué 3 s après une erreur, pour le fautif seulement', 
   // Pendant 3 s : bloqué, et pas de nouvelle pénalité.
   assert.strictEqual(game.submitWord(0, w.id, w.answer, t0 + 2999).type, 'locked');
   assert.strictEqual(game.submitWord(0, w.id, wrongLetters, t0 + 1000).type, 'locked');
-  assert.deepStrictEqual(game.scores, [-1, 0]);
+  assert.deepStrictEqual(game.hp, [95, 100]);
   // L'adversaire, lui, n'est pas bloqué.
   assert.strictEqual(game.submitWord(1, w.id, wrongLetters, t0 + 10).type, 'wrong');
   // Après 3 s, le fautif peut rejouer.
   assert.strictEqual(game.submitWord(0, w.id, w.answer, t0 + 3000).type, 'claimed');
 });
 
-test('anti-spam : en vrai, 20 mauvais envois d\'affilée ne coûtent que -1', async () => {
+test('anti-spam : en vrai, 20 mauvais envois d\'affilée ne coûtent qu\'un recul', async () => {
   const server = await startServer();
   const { p1, p2, g1 } = await startMatch(server);
   try {
@@ -104,13 +108,13 @@ test('anti-spam : en vrai, 20 mauvais envois d\'affilée ne coûtent que -1', as
     const locks = p1.received.filter((m) => m.event === 'word-locked');
     assert.strictEqual(wrongs.length, 1);
     assert.strictEqual(locks.length, 19);
-    assert.deepStrictEqual(wrongs[0].payload.scores, [-1, 0]);
+    assert.deepStrictEqual(wrongs[0].payload.hp, [95, 100]);
   } finally {
     p1.close(); p2.close(); server.stop();
   }
 });
 
-test('acheter une lettre : -1, révélée à l\'acheteur seul, jamais deux fois la même', async () => {
+test('acheter une lettre : 3 PV, révélée à l\'acheteur seul, jamais deux fois la même', async () => {
   const server = await startServer();
   const { p1, p2, g1 } = await startMatch(server);
   try {
@@ -119,14 +123,14 @@ test('acheter une lettre : -1, révélée à l\'acheteur seul, jamais deux fois 
     const seen = new Set();
     for (let i = 0; i < answer.length; i++) {
       const got = waitFor(p1, 'letter-revealed');
-      const opp = waitFor(p2, 'scores');
+      const opp = waitFor(p2, 'hp');
       p1.emit('buy-letter', { roomId: g1.roomId, wordId: clue.wordId });
       const r = await got;
       assert.strictEqual(r.letter, answer[r.index]);
       assert.ok(!seen.has(r.index), 'même lettre vendue deux fois');
       seen.add(r.index);
-      assert.deepStrictEqual(r.scores, [-(i + 1), 0]);
-      assert.deepStrictEqual((await opp).scores, [-(i + 1), 0]);
+      assert.deepStrictEqual(r.hp, [100 - 3 * (i + 1), 100]);
+      assert.deepStrictEqual((await opp).hp, [100 - 3 * (i + 1), 100]);
     }
     // Toutes les lettres connues : plus rien à acheter, pas de pénalité.
     p1.emit('buy-letter', { roomId: g1.roomId, wordId: clue.wordId });
@@ -203,7 +207,7 @@ test('compte à rebours : rien ne compte avant le GO, puis la partie dure son te
     await sleep(500);
     const ok = waitFor(p2, 'word-claimed');
     p1.emit('submit-word', { roomId: g1.roomId, wordId: clue.wordId, letters: answerOfClue(clue.clue) });
-    assert.deepStrictEqual((await ok).scores, [pointsOf(clue.clue), 0]);
+    assert.deepStrictEqual((await ok).hp, [100, 100 - damageOf(clue.clue)]);
   } finally {
     p1.close(); p2.close(); server.stop();
   }

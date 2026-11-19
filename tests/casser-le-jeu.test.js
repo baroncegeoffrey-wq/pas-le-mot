@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const {
-  startServer, createPlayer, waitFor, expectNothing, answerOfClue, pointsOf, forbiddenKeys, startMatch, sleep,
+  startServer, createPlayer, waitFor, expectNothing, answerOfClue, damageOf, forbiddenKeys, startMatch, sleep,
 } = require('./helpers');
 
 const GARBAGE = [
@@ -12,7 +12,7 @@ const GARBAGE = [
   { letters: { toString: 'boom' } }, { letters: 'A'.repeat(100000) },
 ];
 
-test('messages absurdes : le serveur ne plante pas et ne bouge pas les scores', async () => {
+test('messages absurdes : le serveur ne plante pas et ne touche pas aux PV', async () => {
   const server = await startServer();
   const { p1, p2, g1 } = await startMatch(server);
   try {
@@ -29,14 +29,14 @@ test('messages absurdes : le serveur ne plante pas et ne bouge pas les scores', 
     }
     await sleep(300);
     // Aucun effet : ni mot trouvé, ni erreur, ni lettre achetée.
-    const effects = p1.received.filter((m) => ['word-claimed', 'word-wrong', 'letter-revealed', 'scores'].includes(m.event));
+    const effects = p1.received.filter((m) => ['word-claimed', 'word-wrong', 'letter-revealed', 'hp'].includes(m.event));
     assert.deepStrictEqual(effects, []);
 
     // Le serveur répond toujours : la partie continue normalement.
     const clue = g1.clues[0];
     const claimed = waitFor(p2, 'word-claimed');
     p1.emit('submit-word', { roomId: g1.roomId, wordId: clue.wordId, letters: answerOfClue(clue.clue) });
-    assert.deepStrictEqual((await claimed).scores, [pointsOf(clue.clue), 0]);
+    assert.deepStrictEqual((await claimed).hp, [100, 100 - damageOf(clue.clue)]);
   } finally {
     p1.close(); p2.close(); server.stop();
   }
@@ -80,7 +80,7 @@ test('jouer dans la partie des autres : impossible', async () => {
     m2.p1.emit('buy-letter', { roomId: m1.g1.roomId, wordId: clue.wordId });
     await expectNothing(m1.p1, 'word-claimed');
     assert.ok(!m2.p1.received.some((m) => m.event === 'letter-revealed'));
-    assert.ok(!m1.p1.received.some((m) => m.event === 'scores'));
+    assert.ok(!m1.p1.received.some((m) => m.event === 'hp'));
   } finally {
     [m1.p1, m1.p2, m2.p1, m2.p2].forEach((p) => p.close());
     server.stop();

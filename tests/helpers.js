@@ -53,8 +53,8 @@ function expectNothing(socket, event, ms = 300) {
 // humain avec la bibliothèque. Le serveur, lui, ne les envoie jamais.
 const WORDS = require('../data/mots.json');
 const answerOfClue = (clue) => WORDS.find((w) => w.definition === clue).mot;
-// Points rapportés par un mot trouvé : un point par lettre.
-const pointsOf = (clue) => answerOfClue(clue).length;
+// Dégâts infligés par un mot trouvé : lettres × 3 (voir COMBAT dans game.js).
+const damageOf = (clue) => answerOfClue(clue).length * 3;
 
 // Cherche récursivement des clés de solution dans un message.
 function forbiddenKeys(value, found = []) {
@@ -86,5 +86,5 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const pick = (obj, keys) => Object.fromEntries(keys.map((k) => [k, obj[k]]));
 
 module.exports = {
-  startServer, createPlayer, waitFor, expectNothing, answerOfClue, pointsOf, forbiddenKeys, startMatch, sleep, pick,
+  startServer, createPlayer, waitFor, expectNothing, answerOfClue, damageOf, forbiddenKeys, startMatch, sleep, pick,
 };

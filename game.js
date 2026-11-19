@@ -1,11 +1,19 @@
 // Logique d'une partie, sans Socket.io : la grille, la validation des mots et
-// les scores. Le serveur fait autorité : tout se décide ici.
+// le combat (points de vie). Le serveur fait autorité : tout se décide ici.
 const { generateGrid } = require('./grid');
 const {
   AVATARS, USES_PER_GAME, POWER_DURATION_MS, FREEZE,
 } = require('./powers');
 
 const WRONG_LOCK_MS = 3000; // un mot raté est bloqué 3 s pour celui qui s'est trompé
+
+// Le combat : chaque joueur a 100 PV.
+const COMBAT = {
+  maxHp: 100,
+  damagePerLetter: 3, // mot trouvé : lettres × 3 de dégâts à l'adversaire
+  wrongRecoil: 5, // erreur : 5 PV de dégâts de recul pour soi
+  letterCost: 3, // acheter une lettre : 3 PV
+};
 
 // "frérot", "Frerot " et "FREROT" deviennent tous "FREROT".
 function normalize(text) {
@@ -31,7 +39,9 @@ class Game {
   // startsAt : heure du « GO » (avant, rien n'est accepté : compte à rebours).
   constructor(grid = generateGrid(), avatars = [], startsAt = 0) {
     this.grid = grid; // contient les solutions : ne quitte jamais le serveur
-    this.scores = [0, 0];
+    // Points de vie. En solo, le slot 1 est un mannequin d'entraînement.
+    this.hp = [COMBAT.maxHp, COMBAT.maxHp];
+    this.koSlot = null; // le joueur tombé à 0 PV, s'il y en a un
     this.claimedBy = new Map(); // wordId -> numéro du joueur (0 ou 1)
     this.over = false;
     this.lockedUntil = [new Map(), new Map()]; // par joueur : wordId -> heure de fin du blocage
@@ -42,7 +52,7 @@ class Game {
     this.frozen = [null, null];
     this.startsAt = startsAt;
     // Statistiques de fin de partie, par joueur.
-    this.stats = [0, 1].map(() => ({ found: 0, wrong: 0, bought: 0, powers: 0 }));
+    this.stats = [0, 1].map(() => ({ found: 0, wrong: 0, bought: 0, powers: 0, damage: 0 }));
   }
 
   hasStarted(now = Date.now()) {
@@ -90,15 +100,30 @@ class Game {
 
     if (answer === word.answer) {
       this.claimedBy.set(wordId, slot);
-      this.scores[slot] += word.length; // un point par lettre
       this.stats[slot].found += 1;
-      return { type: 'claimed', wordId, letters: word.answer, by: slot, scores: [...this.scores] };
+      // Mot trouvé : un coup porté à l'adversaire, lettres × 3.
+      const damage = this.hurt(1 - slot, word.length * COMBAT.damagePerLetter);
+      this.stats[slot].damage += damage;
+      return {
+        type: 'claimed', wordId, letters: word.answer, by: slot, target: 1 - slot, damage, hp: [...this.hp], ko: this.koSlot !== null,
+      };
     }
 
-    this.scores[slot] -= 1;
+    // Erreur : dégâts de recul pour celui qui s'est trompé.
     this.stats[slot].wrong += 1;
+    const damage = this.hurt(slot, COMBAT.wrongRecoil);
     this.lockedUntil[slot].set(wordId, now + WRONG_LOCK_MS);
-    return { type: 'wrong', wordId, scores: [...this.scores], lockedUntil: now + WRONG_LOCK_MS };
+    return {
+      type: 'wrong', wordId, target: slot, damage, hp: [...this.hp], ko: this.koSlot !== null, lockedUntil: now + WRONG_LOCK_MS,
+    };
+  }
+
+  // Retire des PV (jamais sous 0) et note le K.O. Renvoie les dégâts réellement subis.
+  hurt(slot, amount) {
+    const damage = Math.min(this.hp[slot], amount);
+    this.hp[slot] -= damage;
+    if (this.hp[slot] === 0 && this.koSlot === null) this.koSlot = slot;
+    return damage;
   }
 
   // Les cases d'un mot, dans l'ordre : ["ligne,colonne", ...]
@@ -110,7 +135,7 @@ class Game {
     });
   }
 
-  // Le joueur achète une lettre du mot (-1). On lui révèle, à lui seul, une case
+  // Le joueur achète une lettre du mot (3 PV). On lui révèle, à lui seul, une case
   // qu'il ne connaît pas encore : ni achetée, ni venue d'un mot déjà trouvé.
   buyLetter(slot, wordId, now = Date.now()) {
     if (this.over || this.frozen[slot] || !this.hasStarted(now)) return { type: 'ignored' };
@@ -126,9 +151,11 @@ class Game {
 
     const { k, index } = hidden[Math.floor(Math.random() * hidden.length)];
     this.bought[slot].add(k);
-    this.scores[slot] -= 1;
     this.stats[slot].bought += 1;
-    return { type: 'revealed', wordId, index, letter: word.answer[index], scores: [...this.scores] };
+    const damage = this.hurt(slot, COMBAT.letterCost);
+    return {
+      type: 'revealed', wordId, index, letter: word.answer[index], target: slot, damage, hp: [...this.hp], ko: this.koSlot !== null,
+    };
   }
 
   // Le joueur lance le pouvoir de son avatar sur l'adversaire.
@@ -202,14 +229,19 @@ class Game {
     return this.claimedBy.size === this.grid.words.length;
   }
 
-  // Termine la partie (chrono à zéro ou grille pleine). winner vaut le numéro
-  // du gagnant, ou null en cas d'égalité.
+  // Termine la partie : K.O., chrono à zéro ou grille pleine. winner vaut le
+  // numéro du gagnant (celui qui reste debout, sinon celui qui a le plus de PV),
+  // ou null en cas d'égalité.
   finish() {
     this.over = true;
-    const [a, b] = this.scores;
+    const [a, b] = this.hp;
+    let winner;
+    if (this.koSlot !== null) winner = 1 - this.koSlot;
+    else winner = a === b ? null : (a > b ? 0 : 1);
     return {
-      scores: [...this.scores],
-      winner: a === b ? null : (a > b ? 0 : 1),
+      hp: [...this.hp],
+      winner,
+      ko: this.koSlot,
       stats: this.stats.map((s) => ({ ...s })),
     };
   }
@@ -228,4 +260,6 @@ class Game {
   }
 }
 
-module.exports = { Game, normalize, WRONG_LOCK_MS };
+module.exports = {
+  Game, normalize, WRONG_LOCK_MS, COMBAT,
+};

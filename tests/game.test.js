@@ -1,10 +1,10 @@
-// Une vraie partie à deux joueurs simulés : validation, scores, verrou,
+// Une vraie partie à deux joueurs simulés : validation, combat (PV), verrou,
 // et surtout : aucune solution ne part vers le navigateur.
 const test = require('node:test');
 const assert = require('node:assert');
 const { Game, normalize } = require('../game');
 const {
-  startServer, createPlayer, waitFor, expectNothing, answerOfClue, pointsOf, forbiddenKeys, startMatch,
+  startServer, createPlayer, waitFor, expectNothing, answerOfClue, damageOf, forbiddenKeys, startMatch,
 } = require('./helpers');
 
 test('normalize : sans majuscules ni accents', () => {
@@ -13,15 +13,20 @@ test('normalize : sans majuscules ni accents', () => {
   assert.strictEqual(normalize('vénère'), 'VENERE');
 });
 
-test('Game : un point par lettre, -1, verrou, mot incomplet ignoré', () => {
+test('Game : dégâts = lettres × 3, recul de 5 sur erreur, verrou, mot incomplet ignoré', () => {
   const game = new Game();
   const [w] = game.grid.words;
+  assert.deepStrictEqual(game.hp, [100, 100]);
   assert.deepStrictEqual(game.submitWord(0, w.id, 'X'.repeat(w.length - 1)), { type: 'ignored' });
-  assert.strictEqual(game.submitWord(1, w.id, 'Q'.repeat(w.length)).type, 'wrong');
-  assert.deepStrictEqual(game.scores, [0, -1]);
+  const wrong = game.submitWord(1, w.id, 'Q'.repeat(w.length));
+  assert.strictEqual(wrong.type, 'wrong');
+  assert.strictEqual(wrong.damage, 5);
+  assert.deepStrictEqual(game.hp, [100, 95]); // recul pour le fautif
   const ok = game.submitWord(0, w.id, w.display.split(''));
   assert.strictEqual(ok.type, 'claimed');
-  assert.deepStrictEqual(game.scores, [w.length, -1]); // un point par lettre
+  assert.strictEqual(ok.damage, w.length * 3);
+  assert.strictEqual(ok.target, 1);
+  assert.deepStrictEqual(game.hp, [100, 95 - w.length * 3]);
   // Verrouillé : plus personne ne peut le jouer, même juste.
   assert.deepStrictEqual(game.submitWord(1, w.id, w.answer), { type: 'ignored' });
   assert.deepStrictEqual(game.submitWord(0, 'w999', 'ABC'), { type: 'ignored' });
@@ -54,14 +59,14 @@ test('partie : mot juste, mot faux, verrou et premier arrivé gagne', async () =
     const roomId = g1.roomId;
     const [first, second, third] = g1.clues;
 
-    // Mot faux : -1 pour le fautif seulement, l'adversaire voit juste le score.
+    // Mot faux : 5 PV de recul pour le fautif, l'adversaire voit juste les PV.
     const wrong = waitFor(p1, 'word-wrong');
-    const oppScores = waitFor(p2, 'scores');
+    const oppHp = waitFor(p2, 'hp');
     p1.emit('submit-word', { roomId, wordId: first.wordId, letters: 'Z'.repeat(answerOfClue(first.clue).length) });
-    assert.deepStrictEqual((await wrong).scores, [-1, 0]);
-    assert.deepStrictEqual((await oppScores).scores, [-1, 0]);
+    assert.deepStrictEqual((await wrong).hp, [95, 100]);
+    assert.deepStrictEqual(await oppHp, { target: 0, damage: 5, hp: [95, 100] });
 
-    // Mot juste (en minuscules) : révélé chez les deux, +1 pour le joueur 2.
+    // Mot juste (en minuscules) : révélé chez les deux, dégâts au joueur 1.
     const c1 = waitFor(p1, 'word-claimed');
     const c2 = waitFor(p2, 'word-claimed');
     p2.emit('submit-word', { roomId, wordId: first.wordId, letters: answerOfClue(first.clue).toLowerCase() });
@@ -69,7 +74,9 @@ test('partie : mot juste, mot faux, verrou et premier arrivé gagne', async () =
     assert.deepStrictEqual(r1, r2);
     assert.strictEqual(r1.by, 1);
     assert.strictEqual(r1.letters, answerOfClue(first.clue));
-    assert.deepStrictEqual(r1.scores, [-1, pointsOf(first.clue)]);
+    assert.strictEqual(r1.target, 0);
+    assert.strictEqual(r1.damage, damageOf(first.clue));
+    assert.deepStrictEqual(r1.hp, [95 - damageOf(first.clue), 100]);
 
     // Mot verrouillé : le rejouer ne fait rien.
     p1.emit('submit-word', { roomId, wordId: first.wordId, letters: answerOfClue(first.clue) });
@@ -89,8 +96,8 @@ test('partie : mot juste, mot faux, verrou et premier arrivé gagne', async () =
     p2.emit('submit-word', { roomId, wordId: second.wordId, letters: answer });
     await new Promise((r) => setTimeout(r, 300));
     assert.strictEqual(claims.length, 1);
-    const total = claims[0].scores[0] + claims[0].scores[1];
-    assert.strictEqual(total, -1 + pointsOf(first.clue) + pointsOf(second.clue));
+    const lost = 200 - claims[0].hp[0] - claims[0].hp[1];
+    assert.strictEqual(lost, 5 + damageOf(first.clue) + damageOf(second.clue));
 
     // Un intrus hors partie ne peut rien valider.
     const intruder = createPlayer(server.url);
@@ -108,4 +115,25 @@ test('partie : mot juste, mot faux, verrou et premier arrivé gagne', async () =
   } finally {
     p1.close(); p2.close(); server.stop();
   }
+});
+
+test('Game : K.O. quand les PV tombent à 0, jamais en dessous', () => {
+  const game = new Game();
+  let last;
+  for (const w of game.grid.words) {
+    last = game.submitWord(0, w.id, w.answer);
+    if (last.ko) break;
+  }
+  assert.strictEqual(last.ko, true);
+  assert.strictEqual(game.hp[1], 0);
+  assert.strictEqual(game.koSlot, 1);
+  const end = game.finish();
+  assert.strictEqual(end.winner, 0);
+  assert.strictEqual(end.ko, 1);
+  // Le recul peut aussi mettre K.O. : celui qui se trompe trop perd.
+  const g2 = new Game();
+  const [w] = g2.grid.words;
+  for (let i = 0; i < 20; i++) g2.submitWord(0, w.id, 'Q'.repeat(w.length), i * 4000);
+  assert.strictEqual(g2.hp[0], 0);
+  assert.strictEqual(g2.finish().winner, 1);
 });

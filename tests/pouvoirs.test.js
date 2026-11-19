@@ -4,7 +4,7 @@ const assert = require('node:assert');
 const { Game } = require('../game');
 const { FREEZE, POWER_DURATION_MS } = require('../powers');
 const {
-  startServer, createPlayer, waitFor, expectNothing, answerOfClue, forbiddenKeys, sleep,
+  startServer, createPlayer, waitFor, expectNothing, answerOfClue, forbiddenKeys, sleep, pick,
 } = require('./helpers');
 
 async function matchWith(server, avatar1, avatar2) {
@@ -19,14 +19,14 @@ async function matchWith(server, avatar1, avatar2) {
   return { p1, p2, g1, g2 };
 }
 
-test('Game : 2 pouvoirs par partie, pas en solo', () => {
+test('Game : une seule super attaque par partie, pas en solo', () => {
   const game = new Game(undefined, ['perche', 'verlan']);
   const first = game.usePower(0);
   assert.strictEqual(first.type, 'used');
   assert.strictEqual(first.power, 'trip');
   assert.strictEqual(first.target, 1);
   assert.strictEqual(first.duration, POWER_DURATION_MS);
-  assert.strictEqual(game.usePower(0).remaining, 0);
+  assert.strictEqual(first.remaining, 0);
   assert.strictEqual(game.usePower(0).type, 'refused');
   assert.strictEqual(game.usePower(1).power, 'verlan');
 
@@ -46,9 +46,9 @@ test('Game : Freeze bloque tout, le raclage dégivre (pas avant le temps minimum
   assert.deepStrictEqual(game.submitWord(1, w.id, w.answer, t0 + 10), { type: 'ignored' });
   assert.deepStrictEqual(game.buyLetter(1, w.id), { type: 'ignored' });
   assert.strictEqual(game.usePower(1, t0 + 10).type, 'refused');
-  // On ne gèle pas deux fois, et le pouvoir n'est pas consommé.
+  // Une seule super attaque par partie : la deuxième est refusée.
   assert.strictEqual(game.usePower(0, t0 + 10).type, 'refused');
-  assert.strictEqual(game.powersLeft[0], 1);
+  assert.strictEqual(game.powersLeft[0], 0);
 
   // Coups trop rapprochés : ignorés.
   assert.strictEqual(game.scrape(1, t0 + 100).layers, FREEZE.layers - 1);
@@ -82,28 +82,33 @@ test('Game : le givre repousse s\'il arrête de racler', () => {
   assert.strictEqual(game.frozen[1], null);
 });
 
-test('en vrai : le pouvoir touche la cible seule, 3e utilisation refusée', async () => {
+test('en vrai : la super attaque touche la cible seule, vidéo synchronisée, 2e refusée', async () => {
   const server = await startServer();
   const { p1, p2, g1, g2 } = await matchWith(server, 'verlan', 'givre');
   try {
     assert.strictEqual(g1.you.avatar, 'verlan');
     assert.strictEqual(g1.opponent.avatar, 'givre');
-    assert.strictEqual(g1.you.powersLeft, 2);
+    assert.strictEqual(g1.you.powersLeft, 1);
 
     const hit = waitFor(p2, 'power-hit');
     const used = waitFor(p1, 'power-used');
     p1.emit('use-power', { roomId: g1.roomId });
-    assert.deepStrictEqual(await hit, { power: 'verlan', duration: POWER_DURATION_MS, payload: {}, from: 'Un' });
-    assert.deepStrictEqual(await used, { power: 'verlan', remaining: 1 });
+    const [h, u] = await Promise.all([hit, used]);
+    assert.deepStrictEqual(pick(h, ['power', 'duration', 'payload', 'from']), {
+      power: 'verlan', duration: POWER_DURATION_MS, payload: {}, from: 'Un',
+    });
+    assert.deepStrictEqual(pick(u, ['power', 'remaining']), { power: 'verlan', remaining: 0 });
+    // La vidéo : même heure de départ chez les deux, un peu après l'envoi.
+    assert.deepStrictEqual(h.cine, u.cine);
+    assert.strictEqual(h.cine.avatar, 'verlan');
+    assert.ok(h.cine.at > h.cine.serverNow && h.cine.at - h.cine.serverNow <= 1000);
 
-    p1.emit('use-power', { roomId: g1.roomId });
-    await waitFor(p1, 'power-used');
     const refused = waitFor(p1, 'power-refused');
     p1.emit('use-power', { roomId: g1.roomId });
     assert.ok((await refused).reason);
     await expectNothing(p2, 'power-hit');
     assert.strictEqual(p1.received.filter((m) => m.event === 'power-hit').length, 0);
-    assert.strictEqual(p2.received.filter((m) => m.event === 'power-hit').length, 2);
+    assert.strictEqual(p2.received.filter((m) => m.event === 'power-hit').length, 1);
 
     // Le Givré gèle l'adversaire : il ne peut plus rien valider.
     const frozenHit = waitFor(p1, 'power-hit');
@@ -173,4 +178,12 @@ test('en vrai : dégivrage automatique au bout du temps maximum', async () => {
   } finally {
     p1.close(); p2.close(); server.stop();
   }
+});
+
+test('Game : on ne gèle pas quelqu\'un qui l\'est déjà (le pouvoir n\'est pas consommé)', () => {
+  const game = new Game(undefined, ['givre', 'givre']);
+  assert.strictEqual(game.usePower(0).type, 'used');
+  const second = game.usePower(1); // le joueur 1 est gelé : il ne peut pas lancer
+  assert.strictEqual(second.type, 'refused');
+  assert.strictEqual(game.powersLeft[1], 1);
 });
