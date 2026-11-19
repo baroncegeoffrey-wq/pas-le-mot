@@ -20,7 +20,7 @@
           <input type="radio" name="avatar" value="givre" checked>
           <span class="badge givre" aria-hidden="true"></span>
           <span class="avatar-name">Le Givré</span>
-          <span class="avatar-power">Freeze : gèle 3 cases de l'adversaire pendant 10 s</span>
+          <span class="avatar-power">Freeze : l'adversaire est gelé, il doit racler son givre à la souris pour rejouer</span>
         </label>
         <label class="avatar-card">
           <input type="radio" name="avatar" value="perche">
@@ -63,6 +63,17 @@
       </div>
     </div>
   </section>
+
+  <!-- Effet du pouvoir Freeze : on est bloqué tant qu'on n'a pas raclé le givre -->
+  <div id="freeze" hidden>
+    <p class="freeze-title">GELÉ !</p>
+    <div id="ice-avatar" class="ice-avatar">
+      <span id="ice-badge" class="badge" aria-hidden="true"></span>
+      <div id="frost" aria-hidden="true"></div>
+    </div>
+    <p class="freeze-help">Racle le givre : passe ta souris vite, d'un bord à l'autre de ton avatar !</p>
+    <p id="frost-left" class="freeze-count" aria-live="polite"></p>
+  </div>
 
   <!-- Effet du pouvoir Trip : tout est flou sauf un cercle autour de la souris -->
   <div id="trip" aria-hidden="true" hidden></div>

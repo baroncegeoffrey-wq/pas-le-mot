@@ -16,6 +16,9 @@
   --trip-1: rgba(255, 0, 170, .16);
   --trip-2: rgba(0, 255, 200, .16);
   --trip-3: rgba(255, 230, 0, .16);
+  --ice-bg: rgba(20, 60, 90, .82);
+  --ice-1: rgba(235, 248, 255, .55);
+  --ice-2: rgba(160, 220, 245, .45);
   --card: rgba(242, 238, 227, .06);
   --card-on: rgba(242, 238, 227, .14);
 }
@@ -166,17 +169,6 @@ button:disabled { opacity: .5; cursor: default; }
 .board .cell.p1 { background: var(--p1); }
 .board .cell.p0 input, .board .cell.p1 input, .board .cell.p0 .num, .board .cell.p1 .num { color: white; }
 .board .cell.bought { box-shadow: inset 0 0 0 3px var(--focus); }
-.board .cell.frozen { background: var(--givre); }
-.board .cell.frozen::after {
-  content: "\2744\FE0E";
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: white;
-  font-size: 1.3rem;
-  pointer-events: none;
-}
 .board .cell.wrong { animation: shake .4s; background: var(--wrong); }
 @keyframes shake {
   25% { transform: translateX(-3px); }
@@ -199,6 +191,59 @@ button:disabled { opacity: .5; cursor: default; }
 /* Verlan : tout l'écran de jeu est retourné comme dans un miroir */
 #game { transition: transform .4s ease; }
 #game.verlan { transform: scaleX(-1); }
+
+/* Freeze : écran bloqué, avatar géant couvert de givre à racler */
+#freeze {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: var(--ice-bg);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  text-align: center;
+  touch-action: none;
+  cursor: grab;
+}
+.freeze-title { font-size: 2.5rem; font-weight: 800; letter-spacing: .1em; margin: 0; color: var(--givre); }
+.freeze-help { max-width: 22rem; margin: 0; }
+.freeze-count { margin: 0; font-weight: 700; color: var(--givre); }
+.ice-avatar { position: relative; width: 14rem; height: 14rem; }
+.ice-avatar .badge { width: 100%; height: 100%; font-size: 7rem; }
+#frost { position: absolute; inset: -6%; border-radius: 50%; pointer-events: none; }
+.frost-layer {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at calc(20% + var(--i) * 7%) calc(30% + var(--i) * 5%), var(--ice-1) 0 12%, transparent 13%),
+    radial-gradient(circle at calc(75% - var(--i) * 6%) calc(65% - var(--i) * 4%), var(--ice-2) 0 16%, transparent 17%),
+    repeating-linear-gradient(calc(var(--i) * 45deg), var(--ice-1) 0 3px, transparent 3px 14px),
+    radial-gradient(circle, var(--ice-2), var(--ice-1));
+  opacity: .5;
+  transform: rotate(calc(var(--i) * 40deg));
+  transition: opacity .25s, transform .25s;
+}
+.frost-layer.gone { opacity: 0; transform: rotate(calc(var(--i) * 40deg)) scale(1.3); }
+.ice-avatar.scraped { animation: ice-hit .2s; }
+#freeze.thawing .ice-avatar { animation: ice-shake .6s; }
+#freeze.thawing { background: transparent; transition: background .6s; }
+@keyframes ice-hit {
+  50% { transform: scale(.94) rotate(-3deg); }
+}
+@keyframes ice-shake {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-12deg) scale(1.05); }
+  40% { transform: rotate(10deg); }
+  60% { transform: rotate(-8deg); }
+  80% { transform: rotate(5deg); }
+}
+/* Côté lanceur : le badge de l'adversaire gelé */
+.player .badge.iced { box-shadow: 0 0 0 3px var(--givre), 0 0 12px var(--givre); filter: saturate(.3) brightness(1.3); }
 
 /* Trip : un calque flou et coloré par-dessus l'écran, troué autour de la souris */
 #trip {
@@ -231,6 +276,7 @@ button:disabled { opacity: .5; cursor: default; }
 
 /* Animations coupées si le système le demande (le flou reste) */
 @media (prefers-reduced-motion: reduce) {
-  #trip, #game.tripping .board-area, .board .cell.wrong { animation: none; }
+  #trip, #game.tripping .board-area, .board .cell.wrong, .ice-avatar.scraped, #freeze.thawing .ice-avatar { animation: none; }
+  .frost-layer { transition: none; }
   #game { transition: none; }
 }

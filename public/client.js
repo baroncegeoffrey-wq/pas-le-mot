@@ -17,6 +17,8 @@ const resultScreen = $('result');
 const buyBtn = $('buy-btn');
 const powerBtn = $('power-btn');
 const tripLayer = $('trip');
+const freezeLayer = $('freeze');
+const iceAvatar = $('ice-avatar');
 
 // Nom du pouvoir de chaque avatar (affiché sur le bouton).
 const POWER_NAMES = { givre: 'Freeze', perche: 'Trip', verlan: 'Verlan' };
@@ -33,6 +35,7 @@ let timerInterval = null;
 let clockOffset = 0; // heure du serveur - heure locale
 let myAvatar = null;
 let verlanActive = false; // pendant le Verlan, on écrit les mots par la fin
+let frozenActive = false; // pendant le Freeze, on ne peut plus jouer
 const effectTimers = {}; // pouvoir reçu -> minuterie de fin de l'effet
 
 // Sens d'écriture : 1 = du début vers la fin du mot, -1 = par la fin (Verlan).
@@ -269,19 +272,19 @@ function selectWord(wordId, focusFirstEmpty) {
   if (focusFirstEmpty) {
     // En Verlan, on commence par la dernière case du mot.
     const order = verlanActive ? [...w.cells].reverse() : w.cells;
-    const target = order.find((k) => !cells.get(k).input.value && !cells.get(k).frozen) || order[0];
+    const target = order.find((k) => !cells.get(k).input.value) || order[0];
     cells.get(target).input.focus();
   }
 }
 
 // Avance (step = 1) ou recule (step = -1) dans le mot courant, en sautant les
-// cases déjà verrouillées ou gelées.
+// cases déjà verrouillées.
 function moveInWord(fromKey, step) {
   const w = words.get(currentWord);
   let i = w.cells.indexOf(fromKey) + step;
   while (i >= 0 && i < w.cells.length) {
     const cell = cells.get(w.cells[i]);
-    if (!cell.locked && !cell.frozen) return cell;
+    if (!cell.locked) return cell;
     i += step;
   }
   return null;
@@ -311,6 +314,7 @@ board.addEventListener('mousedown', (event) => {
 board.addEventListener('keydown', (event) => {
   const k = event.target.dataset.key;
   if (!k || !currentWord) return;
+  if (frozenActive) { event.preventDefault(); return; } // gelé : le clavier ne répond plus
   const cell = cells.get(k);
   const [r, c] = k.split(',').map(Number);
 
@@ -322,7 +326,7 @@ board.addEventListener('keydown', (event) => {
 
   if (event.key === 'Backspace') {
     event.preventDefault();
-    if (!cell.locked && !cell.frozen && cell.input.value) {
+    if (!cell.locked && cell.input.value) {
       cell.input.value = '';
       return;
     }
@@ -346,7 +350,7 @@ board.addEventListener('keydown', (event) => {
   if (event.key.length === 1 && !event.ctrlKey && !event.metaKey) {
     event.preventDefault();
     const letter = cleanLetter(event.key);
-    if (!letter || cell.locked || cell.frozen) return;
+    if (!letter || cell.locked) return;
     cell.input.value = letter;
     const next = moveInWord(k, writeStep());
     if (next) next.input.focus();
@@ -360,10 +364,8 @@ board.addEventListener('input', (event) => {
   const k = event.target.dataset.key;
   if (!k) return;
   let cell = cells.get(k);
-  if (cell.locked || cell.frozen) {
-    cell.input.value = cell.locked ? cell.input.value : '';
-    return;
-  }
+  if (cell.locked) return;
+  if (frozenActive) { cell.input.value = ''; return; }
   // event.data = le texte qui vient d'être tapé ou collé (sans l'ancienne lettre).
   const raw = typeof event.data === 'string' ? event.data : cell.input.value;
   const letters = [...raw].map(cleanLetter).filter(Boolean);
@@ -409,8 +411,6 @@ socket.on('word-claimed', ({ wordId, letters, by, scores }) => {
     cell.input.value = letters[i];
     cell.input.readOnly = true;
     cell.locked = true;
-    cell.frozen = false;
-    cell.el.classList.remove('frozen');
     // Une case croisée garde la couleur du premier mot trouvé.
     if (!cell.el.classList.contains('p0') && !cell.el.classList.contains('p1')) {
       cell.el.classList.add(`p${by}`);
@@ -447,11 +447,8 @@ socket.on('word-wrong', ({ wordId, scores, lockedUntil, serverNow }) => {
   });
 });
 
-socket.on('word-locked', ({ lockedUntil, serverNow, reason }) => {
-  const seconds = secondsUntil(lockedUntil, serverNow);
-  gameStatus.textContent = reason === 'freeze'
-    ? `Ce mot passe par une case gelée : attends ${seconds} s.`
-    : `Encore bloqué ${seconds} s : essaie un autre mot en attendant.`;
+socket.on('word-locked', ({ lockedUntil, serverNow }) => {
+  gameStatus.textContent = `Encore bloqué ${secondsUntil(lockedUntil, serverNow)} s : essaie un autre mot en attendant.`;
 });
 
 /* ---------- Acheter une lettre ---------- */
@@ -497,9 +494,11 @@ powerBtn.addEventListener('click', () => {
   if (w) selectWord(w.id, true); // on rend la main à la grille
 });
 
-socket.on('power-used', ({ remaining }) => {
+socket.on('power-used', ({ power, remaining }) => {
   setPowerButton(remaining);
   gameStatus.textContent = `${POWER_NAMES[myAvatar]} lancé sur l'adversaire !`;
+  // Freeze : le badge de l'adversaire est givré jusqu'à ce qu'il se dégivre.
+  if (power === 'freeze') $(`player-${1 - mySlot}`).querySelector('.badge').classList.add('iced');
 });
 
 socket.on('power-refused', ({ reason }) => {
@@ -519,28 +518,104 @@ function endEffectLater(power, duration, stop) {
   effectTimers[power] = { timer: setTimeout(() => { stop(); delete effectTimers[power]; }, duration), stop };
 }
 
-function unfreezeAll() {
-  for (const cell of cells.values()) {
-    if (!cell.frozen) continue;
-    cell.frozen = false;
-    cell.el.classList.remove('frozen');
-    cell.input.readOnly = cell.locked;
+/* Freeze : avatar géant givré, à racler avec la souris (ou le doigt) */
+
+const SCRAPE_MAX_MS = 400; // un coup de raclette doit traverser l'avatar en moins de 0,4 s
+const SCRAPE_MIN_SPAN = 0.6; // ... et sur au moins 60 % de sa largeur
+let lastPointer = null;
+let stroke = null; // coup de raclette en cours : { start, last }
+
+function setFrost(layers) {
+  const frost = $('frost');
+  [...frost.children].forEach((layer, i) => layer.classList.toggle('gone', i >= layers));
+  $('frost-left').textContent = layers > 0 ? `Encore ${layers} couche${layers > 1 ? 's' : ''} de givre` : '';
+}
+
+// Points intermédiaires entre deux positions de la souris : un geste très
+// rapide peut sauter l'avatar d'un coup, on vérifie donc tout le trajet.
+function samplePath(a, b, steps = 8) {
+  return Array.from({ length: steps }, (_, i) => {
+    const f = (i + 1) / steps;
+    return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, t: a.t + (b.t - a.t) * f };
+  });
+}
+
+function onScrapeMove(event) {
+  const point = { x: event.clientX, y: event.clientY, t: performance.now() };
+  const box = iceAvatar.getBoundingClientRect();
+  const points = lastPointer ? samplePath(lastPointer, point) : [point];
+  lastPointer = point;
+  for (const q of points) {
+    const inside = q.x >= box.left && q.x <= box.right && q.y >= box.top && q.y <= box.bottom;
+    if (inside) {
+      if (!stroke) stroke = { start: q, last: q };
+      else stroke.last = q;
+    } else if (stroke) {
+      // On vient de ressortir de l'avatar : le coup compte s'il a été long et rapide.
+      const span = Math.hypot(stroke.last.x - stroke.start.x, stroke.last.y - stroke.start.y);
+      const time = stroke.last.t - stroke.start.t;
+      if (span >= box.width * SCRAPE_MIN_SPAN && time <= SCRAPE_MAX_MS) scrapeHit();
+      stroke = null;
+    }
   }
 }
 
-// Freeze : ces cases deviennent impossibles à remplir.
-function startFreeze({ cells: frozenCells }, duration) {
-  unfreezeAll();
-  for (const { row, col } of frozenCells || []) {
-    const cell = cells.get(key(row, col));
-    if (!cell || cell.locked) continue;
-    cell.frozen = true;
-    cell.input.value = '';
-    cell.input.readOnly = true;
-    cell.el.classList.add('frozen');
-  }
-  endEffectLater('freeze', duration, unfreezeAll);
+function scrapeHit() {
+  if (!roomId) return;
+  socket.emit('scrape', { roomId });
+  iceAvatar.classList.remove('scraped');
+  void iceAvatar.offsetWidth; // relance l'animation
+  iceAvatar.classList.add('scraped');
 }
+
+function stopFreeze() {
+  frozenActive = false;
+  freezeLayer.hidden = true;
+  freezeLayer.classList.remove('thawing');
+  document.removeEventListener('pointermove', onScrapeMove);
+  lastPointer = null;
+  stroke = null;
+}
+
+function startFreeze({ layers }) {
+  frozenActive = true;
+  $('ice-badge').className = `badge ${myAvatar}`;
+  const frost = $('frost');
+  frost.innerHTML = '';
+  for (let i = 0; i < layers; i++) {
+    const layer = document.createElement('div');
+    layer.className = 'frost-layer';
+    layer.style.setProperty('--i', i);
+    frost.appendChild(layer);
+  }
+  setFrost(layers);
+  freezeLayer.classList.remove('thawing');
+  freezeLayer.hidden = false;
+  document.addEventListener('pointermove', onScrapeMove);
+  if (document.activeElement) document.activeElement.blur();
+  // Pas de minuterie ici : c'est le serveur qui annonce le dégivrage ('unfrozen').
+  effectTimers.freeze = { timer: null, stop: stopFreeze };
+}
+
+socket.on('frost', ({ layers }) => setFrost(layers));
+
+socket.on('unfrozen', ({ slot }) => {
+  if (slot === mySlot) {
+    delete effectTimers.freeze;
+    setFrost(0);
+    freezeLayer.classList.add('thawing');
+    gameStatus.classList.remove('hit');
+    gameStatus.textContent = 'Dégivré ! À toi de jouer.';
+    setTimeout(() => {
+      stopFreeze();
+      if (currentWord) selectWord(currentWord, true);
+    }, 600);
+  } else {
+    $(`player-${slot}`).querySelector('.badge').classList.remove('iced');
+    const p = players.find((x) => x.slot === slot);
+    gameStatus.textContent = `${p ? p.pseudo : 'L\'adversaire'} s'est dégivré !`;
+  }
+});
 
 // Trip : le cercle net suit la souris, et la case où l'on tape.
 function moveTripHole(x, y) {
@@ -584,7 +659,7 @@ function startVerlan(duration) {
 
 function clearEffects() {
   for (const power of Object.keys(effectTimers)) {
-    clearTimeout(effectTimers[power].timer);
+    if (effectTimers[power].timer) clearTimeout(effectTimers[power].timer);
     effectTimers[power].stop();
     delete effectTimers[power];
   }
@@ -593,8 +668,8 @@ function clearEffects() {
 
 socket.on('power-hit', ({ power, duration, payload, from }) => {
   if (power === 'freeze') {
-    startFreeze(payload, duration);
-    announce(`${from} t'a lancé un Freeze : 3 cases gelées !`);
+    startFreeze(payload);
+    announce(`${from} t'a gelé ! Racle ton givre pour rejouer.`);
   } else if (power === 'trip') {
     startTrip(duration);
     announce(`${from} t'a lancé un Trip : promène ta souris pour voir net !`);
@@ -602,7 +677,7 @@ socket.on('power-hit', ({ power, duration, payload, from }) => {
     startVerlan(duration);
     announce(`${from} t'a lancé un Verlan : tout est à l'envers, écris par la fin !`);
   }
-  setTimeout(() => gameStatus.classList.remove('hit'), duration);
+  if (power !== 'freeze') setTimeout(() => gameStatus.classList.remove('hit'), duration);
 });
 
 socket.on('scores', ({ scores }) => setScores(scores));
