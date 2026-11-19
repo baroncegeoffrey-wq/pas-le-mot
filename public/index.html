@@ -84,9 +84,11 @@
   <section id="game" class="screen" hidden>
     <!-- L'arène : la ville de nuit, les deux personnages sur leur plateforme -->
     <div class="arena" id="arena">
-      <!-- Fond d'arène : assets/arena/arene.webm en boucle, sinon arene.png, sinon la ville en CSS -->
-      <video class="arena-bg" id="arena-bg" muted loop playsinline preload="auto" aria-hidden="true"></video>
-      <div class="skyline" aria-hidden="true">
+      <!-- Le décor (seul lui pivote pendant le Verlan) : assets/arena/arene.webm en
+           boucle, sinon arene.jpg, sinon la ville en CSS -->
+      <div class="arena-decor" id="arena-decor" aria-hidden="true">
+      <video class="arena-bg" id="arena-bg" muted loop playsinline preload="auto"></video>
+      <div class="skyline">
         <div class="building b1"></div>
         <div class="building b2"><span class="sign pink">ARGOT</span></div>
         <div class="building b3"></div>
@@ -95,6 +97,21 @@
         <div class="building b5"></div>
         <div class="building b6"><span class="sign cyan">MOTS 24/7</span></div>
         <div class="building b7"></div>
+      </div>
+      </div>
+      <!-- Verlan : fissures et débris par-dessus le décor retourné -->
+      <div class="arena-cracks" aria-hidden="true">
+        <svg viewBox="0 0 1000 300" preserveAspectRatio="none">
+          <polyline points="500,0 470,60 520,110 480,170 530,230 500,300" />
+          <polyline points="470,60 380,90 330,70 250,120" />
+          <polyline points="520,110 610,130 680,100 760,150 840,130" />
+          <polyline points="480,170 400,200 360,260" />
+          <polyline points="530,230 620,250 700,290" />
+          <polyline points="200,0 230,50 190,90" />
+          <polyline points="820,0 790,40 850,80 830,120" />
+        </svg>
+        <span class="debris d1"></span><span class="debris d2"></span><span class="debris d3"></span>
+        <span class="debris d4"></span><span class="debris d5"></span><span class="debris d6"></span>
       </div>
 
       <div class="player-box me" id="box-me">
@@ -173,6 +190,7 @@
   <!-- Super attaque : vidéo plein écran, lancée à la même heure chez les deux joueurs -->
   <div id="cine" aria-hidden="true" hidden>
     <video id="cine-video" playsinline preload="auto"></video>
+    <div class="cine-flash" id="cine-flash"></div>
   </div>
 
   <!-- K.O. : ralenti, zoom et grand texte -->

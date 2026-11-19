@@ -101,7 +101,8 @@ test('en vrai : la super attaque touche la cible seule, vidéo synchronisée, 2e
     // La vidéo : même heure de départ chez les deux, un peu après l'envoi.
     assert.deepStrictEqual(h.cine, u.cine);
     assert.strictEqual(h.cine.avatar, 'verlan');
-    assert.ok(h.cine.at > h.cine.serverNow && h.cine.at - h.cine.serverNow <= 1000);
+    assert.ok(h.cine.at >= h.cine.serverNow && h.cine.at - h.cine.serverNow <= 1000);
+    assert.ok(h.cine.resumeAt >= h.cine.at);
 
     const refused = waitFor(p1, 'power-refused');
     p1.emit('use-power', { roomId: g1.roomId });
@@ -186,4 +187,64 @@ test('Game : on ne gèle pas quelqu\'un qui l\'est déjà (le pouvoir n\'est pas
   const second = game.usePower(1); // le joueur 1 est gelé : il ne peut pas lancer
   assert.strictEqual(second.type, 'refused');
   assert.strictEqual(game.powersLeft[1], 1);
+});
+
+test('cinématique : chrono en pause et saisies bloquées chez les deux, puis reprise', async () => {
+  // Vidéo de 1,5 s + délai 0,3 s + flash 0,2 s : 2 s de pause.
+  const server = await startServer({
+    CINE_DELAY_MS: '300', CINE_DURATION_MS: '1500', CINE_FLASH_MS: '200', GAME_DURATION_MS: '60000',
+  });
+  const { p1, p2, g1, g2 } = await matchWith(server, 'perche', 'verlan');
+  try {
+    const hit = waitFor(p2, 'power-hit');
+    const used = waitFor(p1, 'power-used');
+    p1.emit('use-power', { roomId: g1.roomId });
+    const [h, u] = await Promise.all([hit, used]);
+    // Même cinématique, même reprise, même nouvelle fin de partie chez les deux.
+    assert.deepStrictEqual(h.cine, u.cine);
+    const { cine } = h;
+    assert.strictEqual(cine.at - cine.serverNow, 300);
+    assert.strictEqual(cine.resumeAt - cine.at, 1500 + 200);
+    // La fin de partie est repoussée exactement de la durée de la pause.
+    assert.strictEqual(cine.endsAt - g1.endsAt, cine.resumeAt - cine.serverNow);
+
+    // Pendant la pause : mots ignorés (des deux côtés), achats ignorés, pouvoir refusé.
+    const c1 = g1.clues[0];
+    const c2 = g2.clues[1];
+    p1.emit('submit-word', { roomId: g1.roomId, wordId: c1.wordId, letters: answerOfClue(c1.clue) });
+    p2.emit('submit-word', { roomId: g2.roomId, wordId: c2.wordId, letters: answerOfClue(c2.clue) });
+    p2.emit('buy-letter', { roomId: g2.roomId, wordId: c2.wordId });
+    const refused = waitFor(p2, 'power-refused');
+    p2.emit('use-power', { roomId: g2.roomId });
+    assert.strictEqual((await refused).reason, 'Attends la fin de la cinématique !');
+    await expectNothing(p1, 'word-claimed', 400);
+    assert.ok(!p2.received.some((m) => m.event === 'letter-revealed'));
+
+    // Après la reprise : tout remarche.
+    await sleep(cine.resumeAt - Date.now() + 1200);
+    const ok = waitFor(p2, 'word-claimed');
+    p1.emit('submit-word', { roomId: g1.roomId, wordId: c1.wordId, letters: answerOfClue(c1.clue) });
+    await ok;
+  } finally {
+    p1.close(); p2.close(); server.stop();
+  }
+});
+
+test('cinématique : la fin de partie est bien repoussée de la pause', async () => {
+  // Partie de 1 s, pause de 1,5 s lancée tout de suite : la fin arrive après ~2,5 s, pas 1 s.
+  const server = await startServer({
+    CINE_DELAY_MS: '0', CINE_DURATION_MS: '1500', CINE_FLASH_MS: '0', GAME_DURATION_MS: '1000',
+  });
+  const { p1, p2, g1 } = await matchWith(server, 'givre', 'perche');
+  try {
+    const t0 = Date.now();
+    p1.emit('use-power', { roomId: g1.roomId });
+    await waitFor(p1, 'power-used');
+    const over = await waitFor(p1, 'game-over', 5000);
+    const elapsed = Date.now() - t0;
+    assert.ok(elapsed >= 2300, `fin trop tôt : ${elapsed} ms`);
+    assert.ok(over);
+  } finally {
+    p1.close(); p2.close(); server.stop();
+  }
 });

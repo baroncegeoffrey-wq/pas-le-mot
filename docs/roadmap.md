@@ -38,13 +38,17 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 - [x] 100 PV par joueur, dégâts = lettres × 3, recul de 5 PV sur erreur, lettre achetée = 3 PV, calculés par le serveur
 - [x] Fin au K.O. ou au chrono (le plus de PV gagne)
 - [x] Arène : avatars face à face, barres de PV animées, fond d'arène
-- [x] Images provisoires (silhouettes colorées), un seul visuel par avatar
+- [x] Un seul visuel par avatar (silhouettes provisoires, puis les vrais sprites)
 - [x] Impacts : hit-stop 80 ms, tremblement proportionnel, flash blanc, recul, chiffres de dégâts, étincelles et sang stylisé
 - [x] K.O. au ralenti avec zoom
 - [x] Une super attaque par partie, vidéo plein écran synchronisée par le serveur (flash blanc si la vidéo manque)
-- [x] `scripts/prepare-assets.js` (`npm run assets`) : sources .jpeg, fond retiré depuis les bords (garde la fumée verte du Perché), recadrage, sprites 160 px nets, arène GIF → .webm en boucle (+ image de secours), vidéos .webm < 2 Mo
+- [x] `scripts/prepare-assets.js` (`npm run assets`) : sources .jpeg, fond retiré depuis les bords (garde la fumée verte du Perché), recadrage, sprites 160 px nets, arène GIF → .webm en boucle (+ image de secours), vidéos gardées entières en .webm 720p < 4 Mo (seuls les bords noirs ou figés coupés, 0,5 s max)
 - [x] Fond d'arène : vidéo en boucle, sinon image de secours, sinon la ville CSS ; perso de droite en miroir
-- [ ] Vraies images des avatars et vraies vidéos (à fournir dans assets-src/)
+- [x] Vrais sprites des avatars, vrai fond d'arène, vraies vidéos de super attaque
+- [x] Pendant une vidéo : chrono en pause et saisies bloquées chez les deux joueurs, reprise à la fin (flash blanc)
+- [x] Les 3 vidéos sont préchargées au début de la partie
+- [x] Verlan : après sa vidéo, le décor de l'arène se retourne (fissures et débris) pendant l'effet
+- [ ] Remplacer la vidéo provisoire du Perché (même nom de fichier, puis `npm run assets`)
 - [ ] Tester le rendu animé (ralenti, impacts) sur un écran visible, à deux
 - [ ] Fusionner dans main et mettre en ligne
 

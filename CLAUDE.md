@@ -12,7 +12,7 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 - `matchmaking.js` : la file d'attente et les salons (repris du morpion)
 - `powers.js` : les avatars, leurs pouvoirs et leurs durées
 - `public/` : index.html, style.css, client.js, sounds.js (les sons, fabriqués avec Web Audio)
-- `public/assets/` : `avatars/<avatar>.png` (un visuel par avatar, tourné vers la droite), `cine/<avatar>.webm` (vidéos de super attaque), `arena/arene.webm` (fond en boucle) et `arena/arene.png` (secours)
+- `public/assets/` : `avatars/<avatar>.png` (un visuel par avatar, tourné vers la droite), `cine/<avatar>.webm` (vidéos de super attaque) + `cine/<avatar>.jpg` (image d'attente) + `cine/durations.json` (durées en secondes, lues par powers.js), `arena/arene.webm` (fond en boucle) et `arena/arene.jpg` (secours)
 - `scripts/prepare-assets.js` : prépare images et vidéos depuis `assets-src/` (`npm run assets`, nécessite ffmpeg)
 
 ## Stack
@@ -50,8 +50,8 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 | `buy-letter` | client → serveur | `{ roomId, wordId }` |
 | `letter-revealed` | serveur → acheteur | `{ wordId, index, letter, target, damage, hp }` |
 | `use-power` | client → serveur | `{ roomId }` |
-| `power-hit` | serveur → cible | `{ power, duration, payload, from, cine }` (`cine` = `{ avatar, at, serverNow }` : la vidéo démarre à l'heure `at` du serveur chez les deux joueurs) (`power` : `freeze`, `trip` ou `verlan` ; `payload.layers` = couches de givre pour le Freeze) |
-| `power-used` | serveur → lanceur | `{ power, remaining, cine }` |
+| `power-hit` | serveur → cible | `{ power, duration, payload, from, cine }` (`cine` = `{ avatar, at, durationMs, resumeAt, endsAt, serverNow }` : la vidéo démarre à l'heure `at` du serveur chez les deux joueurs ; chrono en pause et saisies ignorées jusqu'à `resumeAt` ; `endsAt` = nouvelle fin de partie) (`power` : `freeze`, `trip` ou `verlan` ; `payload.layers` = couches de givre pour le Freeze) |
+| `power-used` | serveur → lanceur | `{ power, remaining, duration, cine }` |
 | `power-refused` | serveur → lanceur | `{ reason }` (solo, plus d'utilisation, déjà gelé, partie finie) |
 | `scrape` | client gelé → serveur | `{ roomId }` (un coup de raclette sur son avatar) |
 | `frost` | serveur → client gelé | `{ layers }` (couches de givre restantes, après un coup ou quand ça repousse) |

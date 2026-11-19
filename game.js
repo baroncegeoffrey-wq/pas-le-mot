@@ -51,12 +51,22 @@ class Game {
     // Par joueur : null, ou { layers, since, lastScrapeAt } tant qu'il est gelé.
     this.frozen = [null, null];
     this.startsAt = startsAt;
+    this.pausedUntil = 0; // pendant une cinématique : rien n'est accepté jusqu'à cette heure
     // Statistiques de fin de partie, par joueur.
     this.stats = [0, 1].map(() => ({ found: 0, wrong: 0, bought: 0, powers: 0, damage: 0 }));
   }
 
   hasStarted(now = Date.now()) {
     return now >= this.startsAt;
+  }
+
+  // Pendant la cinématique d'une super attaque, la partie est en pause.
+  isPaused(now = Date.now()) {
+    return now < this.pausedUntil;
+  }
+
+  pauseUntil(until) {
+    this.pausedUntil = Math.max(this.pausedUntil, until);
   }
 
   // Ce que le navigateur a le droit de voir : positions, longueurs, numéros et
@@ -88,7 +98,7 @@ class Game {
   // - { type: 'locked', ... } : le mot est encore bloqué pour lui (pas de pénalité)
   submitWord(slot, wordId, letters, now = Date.now()) {
     // Partie finie, pas encore commencée, ou joueur gelé : rien ne compte.
-    if (this.over || this.frozen[slot] || !this.hasStarted(now)) return { type: 'ignored' };
+    if (this.over || this.frozen[slot] || !this.hasStarted(now) || this.isPaused(now)) return { type: 'ignored' };
     const word = this.getWord(wordId);
     if (!word || this.claimedBy.has(wordId)) return { type: 'ignored' };
 
@@ -138,7 +148,7 @@ class Game {
   // Le joueur achète une lettre du mot (3 PV). On lui révèle, à lui seul, une case
   // qu'il ne connaît pas encore : ni achetée, ni venue d'un mot déjà trouvé.
   buyLetter(slot, wordId, now = Date.now()) {
-    if (this.over || this.frozen[slot] || !this.hasStarted(now)) return { type: 'ignored' };
+    if (this.over || this.frozen[slot] || !this.hasStarted(now) || this.isPaused(now)) return { type: 'ignored' };
     const word = this.getWord(wordId);
     if (!word || this.claimedBy.has(wordId)) return { type: 'ignored' };
 
@@ -164,6 +174,7 @@ class Game {
   usePower(slot, now = Date.now()) {
     if (this.over) return { type: 'refused', reason: 'La partie est finie' };
     if (!this.hasStarted(now)) return { type: 'refused', reason: 'Attends le GO !' };
+    if (this.isPaused(now)) return { type: 'refused', reason: 'Attends la fin de la cinématique !' };
     if (this.avatars.length < 2) return { type: 'refused', reason: 'Pas de pouvoir en solo' };
     if (this.frozen[slot]) return { type: 'refused', reason: 'Tu es gelé : racle d\'abord ton givre !' };
     if (this.powersLeft[slot] <= 0) return { type: 'refused', reason: 'Plus de pouvoir pour cette partie' };
@@ -194,6 +205,7 @@ class Game {
   // - { type: 'thawed' } : plus de givre, il peut rejouer
   scrape(slot, now = Date.now()) {
     const frozen = this.frozen[slot];
+    if (this.isPaused(now)) return { type: 'ignored' };
     if (!frozen || this.over) return { type: 'ignored' };
     if (now - frozen.lastScrapeAt < FREEZE.minScrapeGapMs) return { type: 'ignored' };
     frozen.lastScrapeAt = now;

@@ -58,13 +58,15 @@
 
 Avant la partie, chaque joueur choisit un avatar. Chaque avatar a une **super attaque, une seule fois par partie**. Pas de super attaque en mode solo.
 
-Quand elle est lancée, une **vidéo plein écran** se joue chez les deux joueurs en même temps (le serveur fixe l'heure de départ, 0,6 s après le clic), puis l'effet du pouvoir s'applique. Les vidéos : `public/assets/cine/givre.webm`, `perche.webm`, `verlan.webm`. Tant qu'une vidéo n'existe pas, un flash blanc la remplace.
+Quand elle est lancée, une **vidéo plein écran** se joue chez les deux joueurs en même temps (le serveur fixe l'heure de départ, 0,6 s après le clic), se termine par un flash blanc, puis l'effet du pouvoir s'applique. Les vidéos : `public/assets/cine/givre.webm`, `perche.webm`, `verlan.webm` (environ 10 s chacune, préchargées au début de la partie). Tant qu'une vidéo n'existe pas, un flash blanc la remplace.
+
+Pendant la vidéo, **le chrono est en pause pour les deux joueurs** et plus rien ne passe (mots, lettres achetées, super attaque adverse) : le serveur repousse la fin de partie de la durée exacte de la vidéo (lue dans `cine/durations.json`) et tout reprend au flash final. Le gel du Givré commence lui aussi à ce moment-là.
 
 | Avatar | Pouvoir | Effet chez l'adversaire |
 |---|---|---|
 | Le Givré | Freeze | Il est gelé : il ne peut plus rien faire (ni taper, ni valider, ni acheter, ni lancer son pouvoir). Son avatar apparaît en grand, couvert de 30 couches de givre. Il doit le racler avec la souris : chaque passage rapide d'un bord à l'autre enlève une couche. S'il arrête de racler, une couche repousse chaque seconde. Pas de dégivrage avant 2 s, et dégivrage automatique au bout de 45 s. On ne peut pas geler quelqu'un qui l'est déjà |
 | Le Perché | Trip | Pendant 20 s, tout son écran devient flou et psychédélique (couleurs qui ondulent). Seul un petit cercle net suit sa souris (et la case où il tape) : il doit se promener pour lire |
-| Le Verlan | Verlan | Pendant 20 s, tout son écran est retourné comme dans un miroir (grille et définitions à lire à l'envers) et il doit remplir les mots en partant de la fin |
+| Le Verlan | Verlan | Pendant 20 s, tout son écran est retourné comme dans un miroir (grille et définitions à lire à l'envers) et il doit remplir les mots en partant de la fin. Chez les deux joueurs, le décor de l'arène se retourne la tête en bas (les persos restent debout), avec des fissures et des débris, puis revient à la fin |
 
 - Si un Trip ou un Verlan touche alors que le même effet est déjà en cours, l'effet repart pour 20 s.
 - Pour l'instant, les avatars sont de simples badges de couleur. Plus tard : des petits personnages 8 bits originaux (voir « Après le rendu » dans la roadmap).
@@ -80,10 +82,10 @@ Quand elle est lancée, une **vidéo plein écran** se joue chez les deux joueur
 - Direction « Néon acide » : maquette https://claude.ai/artifact/PYEdxibqoKmARi29Gpj1wJ (direction D ; privée, à partager depuis la page si besoin).
 - Une arène en haut de l'écran : moi à gauche sur une plateforme verte, l'adversaire à droite sur une plateforme rose, devant une ville de nuit.
 - Arène : les deux avatars face à face au-dessus de la grille, sur leurs plateformes, devant la ville de nuit, avec leurs barres de PV animées (la partie perdue reste blanche un instant).
-- Un seul visuel par avatar : `public/assets/avatars/<avatar>.png` (160 px de haut, pixels nets). Pour l'instant, des silhouettes colorées provisoires.
+- Un seul visuel par avatar : `public/assets/avatars/<avatar>.png` (160 px de haut, pixels nets).
 - Les avatars sont dessinés tournés vers la droite ; celui de droite est affiché en miroir pour que les deux se fassent face.
-- Fond d'arène : `arene.webm` en boucle (pixels nets), sinon l'image de secours `arene.png`, sinon la ville de nuit en CSS.
-- Les images et vidéos se préparent avec `npm run assets` (voir `scripts/prepare-assets.js`) à partir de `~/Documents/01-Projets/pas-le-mot/assets-src/` (sources en .jpeg) : fond retiré par remplissage depuis les bords (une couleur proche du fond à l'intérieur du perso, comme la fumée verte du Perché, est gardée), recadrage au plus près, sprites réduits à 160 px sans lissage ; `arene.gif` converti en .webm en boucle ; vidéos de super attaque en .webm de moins de 2 Mo.
+- Fond d'arène : `arene.webm` en boucle (pixels nets), sinon l'image de secours `arene.jpg`, sinon la ville de nuit en CSS.
+- Les images et vidéos se préparent avec `npm run assets` (voir `scripts/prepare-assets.js`) à partir de `~/Documents/01-Projets/pas-le-mot/assets-src/` (sources en .jpeg) : fond retiré par remplissage depuis les bords (une couleur proche du fond à l'intérieur du perso, comme la fumée verte du Perché, est gardée), recadrage au plus près, sprites réduits à 160 px sans lissage ; `arene.gif` converti en .webm en boucle ; vidéos de super attaque (`<avatar>-cine.mp4`) gardées entières, seules les images noires ou figées tout au début et à la fin sont coupées (0,5 s maximum de chaque côté), en .webm 720p de moins de 4 Mo.
 
 ## Salons privés et attente
 

@@ -9,7 +9,10 @@ function startServer(env = {}) {
   const child = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], {
     // PORT=0 : le système choisit un port libre (pas de collision entre fichiers de test).
     // START_DELAY_MS=0 : pas de compte à rebours dans les tests (sauf s'ils le demandent).
-    env: { ...process.env, PORT: '0', START_DELAY_MS: '0', ...env },
+    // CINE_* = 0 : pas de pause de cinématique (sauf si un test la demande).
+    env: {
+      ...process.env, PORT: '0', START_DELAY_MS: '0', CINE_DELAY_MS: '0', CINE_DURATION_MS: '0', CINE_FLASH_MS: '0', ...env,
+    },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   return new Promise((resolve, reject) => {

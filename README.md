@@ -51,7 +51,7 @@ Règles du jeu : `docs/brief.md`. Avancement : `docs/roadmap.md`.
 ## Préparer les images et vidéos
 1. Dépose les fichiers bruts dans `~/Documents/01-Projets/pas-le-mot/assets-src/` :
    - `givre.jpeg`, `perche.jpeg`, `verlan.jpeg` : les avatars, tournés vers la droite, sur un fond uni ;
-   - `givre.mp4`, `perche.mp4`, `verlan.mp4` : les vidéos de super attaque ;
+   - `givre-cine.mp4`, `perche-cine.mp4`, `verlan-cine.mp4` : les vidéos de super attaque (une dizaine de secondes), et si tu veux `givre-cine.jpeg`... : l'image affichée le temps que la vidéo démarre ;
    - `arene.gif` : le fond d'arène animé, et `arene.jpeg` : son image de secours.
 2. Lance (ffmpeg doit être installé) :
 ```bash
@@ -59,9 +59,11 @@ npm run assets
 ```
 3. Les fichiers prêts arrivent dans `public/assets/` :
    - avatars : le fond est retiré par un remplissage qui part des bords de l'image (la fumée verte du Perché, au milieu, est gardée), puis recadrés au plus près du perso et réduits à 160 px de haut, pixels nets ;
-   - arène : `arene.webm` (boucle vidéo agrandie sans lissage) et `arene.png` (secours) ;
-   - vidéos de super attaque : .webm de moins de 2 Mo.
+   - arène : `arene.webm` (boucle vidéo agrandie sans lissage) et `arene.jpg` (secours) ;
+   - vidéos de super attaque : gardées entières (on ne coupe que les images noires ou figées tout au début et à la fin, 0,5 s maximum de chaque côté), en .webm 720p de moins de 4 Mo, plus `cine/durations.json` (la durée de chaque vidéo, lue par le serveur pour mettre le chrono en pause juste le temps qu'il faut).
 
-Trop ou pas assez de fond retiré ? Règle la tolérance : `BG_TOLERANCE=50 npm run assets` (défaut 70).
+Remplacer une vidéo (par exemple celle du Perché) : dépose le nouveau fichier sous le même nom dans `assets-src/` et relance `npm run assets`. Les navigateurs la rechargent d'eux-mêmes.
+
+Trop ou pas assez de fond retiré ? Règle la tolérance : `BG_TOLERANCE=50 npm run assets` (défaut 70, 34 pour le Perché pour garder sa fumée verte).
 
 Dans l'arène, le perso de droite est affiché en miroir pour que les deux se fassent face : dessine-les tous les deux tournés vers la droite.

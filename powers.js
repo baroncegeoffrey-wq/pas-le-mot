@@ -11,7 +11,25 @@ const USES_PER_GAME = 1; // une seule super attaque par partie
 const POWER_DURATION_MS = 20000; // Trip et Verlan : 20 s
 // La vidéo de super attaque démarre chez les deux joueurs à la même heure
 // (heure du serveur + ce délai, le temps que le message arrive partout).
-const CINE_DELAY_MS = 600;
+// Pendant toute la vidéo, plus le flash blanc de fin, le chrono est en pause et
+// rien n'est accepté. Les durées viennent de public/assets/cine/durations.json
+// (écrit par scripts/prepare-assets.js). Réglables pour les tests automatiques.
+const envMs = (name, fallback) => (process.env[name] !== undefined ? Number(process.env[name]) : fallback);
+const CINE_DELAY_MS = envMs('CINE_DELAY_MS', 600);
+const CINE_FLASH_MS = envMs('CINE_FLASH_MS', 500); // flash blanc à la fin de la vidéo
+const CINE_MISSING_MS = 700; // pas de vidéo : un flash blanc la remplace
+
+let cineDurations = {};
+try {
+  cineDurations = require('./public/assets/cine/durations.json');
+} catch (e) { /* pas encore de vidéos préparées */ }
+
+// Durée de la cinématique d'un avatar, en ms (hors flash de fin).
+function cineDurationMs(avatar) {
+  if (process.env.CINE_DURATION_MS !== undefined) return Number(process.env.CINE_DURATION_MS);
+  const seconds = cineDurations[avatar];
+  return seconds ? Math.round(seconds * 1000) : CINE_MISSING_MS;
+}
 
 // Freeze : le joueur gelé ne peut plus jouer. Il racle le givre de son avatar
 // avec la souris : un coup de raclette rapide enlève une couche.
@@ -30,5 +48,5 @@ function cleanAvatar(raw) {
 }
 
 module.exports = {
-  AVATARS, USES_PER_GAME, POWER_DURATION_MS, CINE_DELAY_MS, FREEZE, cleanAvatar,
+  AVATARS, USES_PER_GAME, POWER_DURATION_MS, CINE_DELAY_MS, CINE_FLASH_MS, cineDurationMs, FREEZE, cleanAvatar,
 };

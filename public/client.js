@@ -34,7 +34,8 @@ const fighterOpp = $('fighter-opp');
 const USES_PER_GAME = 1; // une seule super attaque par partie
 const HITSTOP_MS = 80; // arrêt sur image à chaque coup
 const KO_MS = 2600; // durée du ralenti de K.O. avant l'écran de fin
-const CINE_MAX_MS = 20000; // sécurité : une vidéo ne bloque jamais plus de 20 s
+const CINE_MAX_MS = 20000; // sécurité : une vidéo ne bloque jamais plus de 20 s de trop
+const CINE_END_FLASH_MS = 500; // flash blanc de fin de cinématique (le serveur compte la même durée)
 
 // Nom affiché de chaque avatar. Les images sont dans public/assets/avatars/
 // (silhouettes provisoires, à remplacer avec scripts/prepare-assets.js).
@@ -63,6 +64,7 @@ let oppPowersLeft = 0; // compté à chaque pouvoir reçu
 let cineTimers = []; // minuteries de la vidéo de super attaque
 let maxHp = 100;
 let koPlaying = false; // pendant le ralenti de K.O.
+let cinePlaying = false; // pendant une cinématique : chrono en pause, saisies bloquées
 let frostMax = 1; // couches de givre au départ (pour la barre)
 let lastMode = 'duo'; // 'duo' ou 'solo' : ce que relance le bouton Rejouer
 let timerInterval = null;
@@ -98,7 +100,7 @@ function cleanLetter(text) {
       arena.style.setProperty('--arena-image', `url("${img.src}")`);
       arena.classList.add('bg-image');
     };
-    img.src = 'assets/arena/arene.png'; // si elle n'existe pas non plus : on garde la ville en CSS
+    img.src = 'assets/arena/arene.jpg'; // si elle n'existe pas non plus : on garde la ville en CSS
   };
   video.addEventListener('error', () => { arena.classList.remove('bg-video'); useImage(); }, { once: true });
   video.addEventListener('playing', () => arena.classList.add('bg-video'), { once: true });
@@ -332,6 +334,7 @@ socket.on('game-start', (data) => {
   avatarImg(fighterOpp.querySelector('img'), foe.avatar);
   resetFighters();
   setHp([maxHp, maxHp], true);
+  preloadCinematics(); // les 3 vidéos, pour qu'elles se lancent sans délai
   setPowerButton(data.opponent ? data.you.powersLeft : 0);
   powerBtn.hidden = !data.opponent; // pas de pouvoir en solo
 
@@ -421,7 +424,7 @@ function setHp(hp, instant) {
 
 function resetFighters() {
   [fighterMe, fighterOpp].forEach((f) => f.classList.remove('iced', 'flash', 'recoil', 'lunge', 'ko-fall'));
-  arena.classList.remove('ko-zoom', 'ko-left', 'ko-right');
+  arena.classList.remove('ko-zoom', 'ko-left', 'ko-right', 'upside-down');
   $('ko-text').hidden = true;
 }
 
@@ -549,6 +552,11 @@ function clearStress() {
 }
 
 /* ---------- Chrono (affichage seulement : c'est le serveur qui arrête la partie) ---------- */
+
+// Fige le chrono (pendant une cinématique) : il garde la valeur affichée.
+function pauseTimer() {
+  clearInterval(timerInterval);
+}
 
 // duration : durée de la partie (le chrono ne dépasse jamais cette valeur,
 // même pendant le compte à rebours de départ).
@@ -904,7 +912,7 @@ board.addEventListener('keydown', (event) => {
   const k = event.target.dataset.key;
   if (!k || !currentWord) return;
   // Gelé, ou avant le GO : le clavier ne répond pas.
-  if (frozenActive || startLocked) { event.preventDefault(); return; }
+  if (frozenActive || startLocked || cinePlaying) { event.preventDefault(); return; }
   const cell = cells.get(k);
   const [r, c] = k.split(',').map(Number);
 
@@ -955,7 +963,7 @@ board.addEventListener('input', (event) => {
   if (!k) return;
   let cell = cells.get(k);
   if (cell.locked) return;
-  if (frozenActive || startLocked) { cell.input.value = ''; return; }
+  if (frozenActive || startLocked || cinePlaying) { cell.input.value = ''; return; }
   // event.data = le texte qui vient d'être tapé ou collé (sans l'ancienne lettre).
   const raw = typeof event.data === 'string' ? event.data : cell.input.value;
   const letters = [...raw].map(cleanLetter).filter(Boolean);
@@ -1052,7 +1060,7 @@ socket.on('word-locked', ({ lockedUntil, serverNow }) => {
 
 buyBtn.addEventListener('click', () => {
   const w = words.get(currentWord);
-  if (!w || w.claimed || !roomId || startLocked) return;
+  if (!w || w.claimed || !roomId || startLocked || cinePlaying) return;
   socket.emit('buy-letter', { roomId, wordId: w.id });
   // On rend la main à la grille pour continuer à taper.
   const target = w.cells.find((k) => !cells.get(k).input.value) || w.cells[0];
@@ -1089,18 +1097,21 @@ function setPowerButton(left) {
 }
 
 powerBtn.addEventListener('click', () => {
-  if (!roomId || startLocked) return;
+  if (!roomId || startLocked || cinePlaying) return;
   socket.emit('use-power', { roomId });
   const w = words.get(currentWord);
   if (w) selectWord(w.id, true); // on rend la main à la grille
 });
 
-socket.on('power-used', ({ power, remaining, cine }) => {
+socket.on('power-used', ({
+  power, remaining, cine, duration,
+}) => {
   setPowerButton(remaining);
   gameStatus.textContent = `${POWER_NAMES[myAvatar]} lancé sur ${opponent ? opponent.pseudo : 'l\'adversaire'} !`;
   playCine(cine, () => {
     // Freeze : l'adversaire reste givré jusqu'à ce qu'il se dégivre.
     if (power === 'freeze') fighterOpp.classList.add('iced');
+    if (power === 'verlan') startArenaFlip(duration || 20000);
   });
 });
 
@@ -1110,15 +1121,31 @@ socket.on('power-refused', ({ reason }) => {
 
 /* ---------- Super attaque : vidéo plein écran, synchronisée par le serveur ---------- */
 
+// Les 3 vidéos sont téléchargées en entier dès le début de la partie, pour se
+// lancer sans délai. cineFiles[avatar] = adresse locale (blob) de la vidéo, ou
+// 'missing' si elle n'existe pas (le flash blanc la remplacera).
+const CINE_AVATARS = ['givre', 'perche', 'verlan'];
+const cineFiles = {};
+function preloadCinematics() {
+  CINE_AVATARS.forEach((avatar) => {
+    if (cineFiles[avatar]) return; // déjà en mémoire
+    cineFiles[avatar] = 'loading';
+    fetch(`assets/cine/${avatar}.webm`, { cache: 'no-cache' })
+      .then((res) => (res.ok ? res.blob() : Promise.reject(new Error('absente'))))
+      .then((blob) => { cineFiles[avatar] = URL.createObjectURL(blob); })
+      .catch(() => { cineFiles[avatar] = 'missing'; });
+  });
+}
+
 function stopCine() {
   cineTimers.forEach(clearTimeout);
   cineTimers = [];
-  cineVideo.onended = null;
-  cineVideo.onerror = null;
   cineVideo.pause();
   cineVideo.removeAttribute('src');
+  cineVideo.removeAttribute('poster');
   cineLayer.hidden = true;
-  cineLayer.classList.remove('flash');
+  cineLayer.classList.remove('flash', 'ending');
+  cinePlaying = false;
 }
 
 // Centre d'un élément à l'écran.
@@ -1130,44 +1157,63 @@ function centerOf(el) {
 // cine = { avatar, at, serverNow } : la vidéo public/assets/cine/<avatar>.webm
 // démarre à l'heure `at` du serveur, chez les deux joueurs. Si le fichier
 // n'existe pas (encore), un flash blanc la remplace. done() est appelé à la fin.
+// cine = { avatar, at, durationMs, resumeAt, endsAt, serverNow } (heures du serveur).
+// La vidéo démarre à `at` chez les deux joueurs ; un flash blanc la termine ; à
+// `resumeAt`, le serveur relance le chrono et la partie reprend. done() est
+// appelé à ce moment-là.
 function playCine(cine, done) {
   stopCine();
   if (!cine) { done(); return; }
+  cinePlaying = true;
+  // Écart d'horloge, mesuré à la réception : heure du serveur → heure locale.
+  const offset = cine.serverNow - Date.now();
+  const local = (serverTime) => Math.max(0, serverTime - offset - Date.now());
+  pauseTimer();
+
   let finished = false;
   const finish = () => {
     if (finished) return;
     finished = true;
     stopCine();
+    cinePlaying = false;
+    // Le chrono repart avec la fin de partie repoussée par le serveur.
+    startTimer(cine.endsAt, Date.now() + offset, cine.endsAt - cine.resumeAt);
     done();
   };
-  const flash = () => {
+  const endFlash = () => {
     cineLayer.hidden = false;
-    cineLayer.classList.add('flash');
-    Sound.play('impact');
-    cineTimers.push(setTimeout(finish, 700));
+    cineLayer.classList.add('ending');
+    cineVideo.pause();
   };
 
-  // Heure de départ, ramenée à l'horloge locale.
-  const delay = Math.max(0, cine.at - (cine.serverNow - Date.now()) - Date.now());
-  let missing = false;
-  cineVideo.muted = Sound.isMuted();
-  cineVideo.onerror = () => { missing = true; };
-  cineVideo.onended = finish;
-  cineVideo.src = `assets/cine/${cine.avatar}.webm`;
-  cineVideo.load();
+  const file = cineFiles[cine.avatar];
+  const missing = !file || file === 'missing' || reducedMotion();
+  if (!missing) {
+    cineVideo.muted = Sound.isMuted();
+    cineVideo.poster = `assets/cine/${cine.avatar}.jpg`;
+    cineVideo.src = file === 'loading' ? `assets/cine/${cine.avatar}.webm` : file;
+    cineVideo.load();
+  }
 
   cineTimers.push(setTimeout(() => {
-    if (missing || reducedMotion()) { flash(); return; }
     cineLayer.hidden = false;
+    if (missing) {
+      cineLayer.classList.add('flash');
+      Sound.play('impact');
+      return;
+    }
     cineVideo.currentTime = 0;
     cineVideo.play().catch(() => {
       // Lecture refusée (son bloqué par le navigateur) : on réessaie en muet.
       cineVideo.muted = true;
-      cineVideo.play().catch(flash);
+      cineVideo.play().catch(() => cineLayer.classList.add('flash'));
     });
-  }, delay));
-  // Sécurité : une vidéo trop longue ou bloquée ne gêne jamais la partie.
-  cineTimers.push(setTimeout(finish, delay + CINE_MAX_MS));
+  }, local(cine.at)));
+  // Flash blanc de fin : à la fin de la vidéo, calée sur l'heure du serveur.
+  if (!missing) cineTimers.push(setTimeout(endFlash, local(cine.resumeAt - CINE_END_FLASH_MS)));
+  cineTimers.push(setTimeout(finish, local(cine.resumeAt)));
+  // Sécurité : jamais bloqué plus de 20 s de plus que prévu.
+  cineTimers.push(setTimeout(finish, local(cine.resumeAt) + CINE_MAX_MS));
 }
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1320,12 +1366,20 @@ function startTrip(duration) {
 function stopVerlan() {
   verlanActive = false;
   gameScreen.classList.remove('verlan');
+  arena.classList.remove('upside-down');
 }
 function startVerlan(duration) {
   verlanActive = true;
   gameScreen.classList.add('verlan');
+  arena.classList.add('upside-down');
   if (currentWord) selectWord(currentWord, true);
   endEffectLater('verlan', duration, stopVerlan);
+}
+
+// Chez celui qui lance le Verlan : seul le décor de l'arène se retourne.
+function startArenaFlip(duration) {
+  arena.classList.add('upside-down');
+  endEffectLater('arena-flip', duration, () => arena.classList.remove('upside-down'));
 }
 
 function clearEffects() {

@@ -9,7 +9,9 @@ const {
 } = require('./matchmaking');
 const { Game } = require('./game');
 const { generateGrid } = require('./grid');
-const { FREEZE, CINE_DELAY_MS } = require('./powers');
+const {
+  FREEZE, CINE_DELAY_MS, CINE_FLASH_MS, cineDurationMs,
+} = require('./powers');
 const { COMBAT } = require('./game');
 
 const app = express();
@@ -67,9 +69,13 @@ function startGame(roomId, room) {
   room.game = new Game(fullGrid, room.players.map((p) => p.avatar), startsAt);
   // Minuteries du Freeze, par joueur gelé : { regrow, safety }
   room.freezeTimers = [null, null];
-  room.onClose = () => room.freezeTimers.forEach((_, slot) => clearFreezeTimers(room, slot));
+  room.onClose = () => {
+    clearTimeout(room.freezeStart);
+    room.freezeTimers.forEach((_, slot) => clearFreezeTimers(room, slot));
+  };
   const { grid, clues } = room.game.getPublicGrid();
   const endsAt = startsAt + GAME_DURATION_MS;
+  room.endsAt = endsAt; // repoussée à chaque pause de cinématique
   room.timer = setTimeout(safe('fin du chrono', () => finishGame(roomId, room)), START_DELAY_MS + GAME_DURATION_MS);
 
   room.players.forEach((player, index) => {
@@ -247,8 +253,24 @@ function handleUsePower(socket, data) {
   }
   const attacker = room.players[slot];
   // La vidéo de super attaque démarre à la même heure chez les deux joueurs.
-  const cineAt = Date.now() + CINE_DELAY_MS;
-  const cine = { avatar: attacker.avatar, at: cineAt, serverNow: Date.now() };
+  // Pendant la vidéo (et son flash de fin), le chrono est en pause et plus
+  // rien n'est accepté : on repousse la fin de partie d'autant.
+  const now = Date.now();
+  const cineAt = now + CINE_DELAY_MS;
+  const durationMs = cineDurationMs(attacker.avatar);
+  const resumeAt = cineAt + durationMs + CINE_FLASH_MS;
+  room.game.pauseUntil(resumeAt);
+  room.endsAt += resumeAt - now;
+  clearTimeout(room.timer);
+  room.timer = setTimeout(safe('fin du chrono', () => finishGame(roomId, room)), room.endsAt - now);
+  if (result.power === 'freeze') {
+    // Le gel (et son dégivrage automatique) ne compte qu'à la fin de la vidéo.
+    const frozen = room.game.frozen[result.target];
+    if (frozen) { frozen.since = resumeAt; frozen.lastScrapeAt = resumeAt; }
+  }
+  const cine = {
+    avatar: attacker.avatar, at: cineAt, durationMs, resumeAt, endsAt: room.endsAt, serverNow: now,
+  };
   // L'effet part chez la cible seulement ; le lanceur voit son compteur baisser.
   io.to(room.players[result.target].id).emit('power-hit', {
     power: result.power,
@@ -257,8 +279,14 @@ function handleUsePower(socket, data) {
     from: attacker.pseudo,
     cine,
   });
-  socket.emit('power-used', { power: result.power, remaining: result.remaining, cine });
-  if (result.power === 'freeze') startFreezeTimers(roomId, room, result.target);
+  socket.emit('power-used', {
+    power: result.power, remaining: result.remaining, duration: result.duration, cine,
+  });
+  if (result.power === 'freeze') {
+    room.freezeStart = setTimeout(safe('début du gel', () => {
+      if (!room.game.over) startFreezeTimers(roomId, room, result.target);
+    }), resumeAt - now);
+  }
 }
 
 io.on('connection', (socket) => {
