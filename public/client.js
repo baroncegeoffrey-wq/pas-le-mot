@@ -10,6 +10,10 @@ const gameStatus = $('game-status');
 const findForm = $('find-form');
 const findBtn = $('find-btn');
 const soloBtn = $('solo-btn');
+const createRoomBtn = $('create-room-btn');
+const joinRoomBtn = $('join-room-btn');
+const roomCodeInput = $('room-code');
+const waitingBox = $('waiting');
 const pseudoInput = $('pseudo');
 const board = $('board');
 const timerEl = $('timer');
@@ -95,22 +99,31 @@ findForm.addEventListener('change', (event) => {
   try { localStorage.setItem('avatar', event.target.value); } catch (e) { /* tant pis */ }
 });
 
+// Active ou bloque les boutons de l'accueil.
+function setLobbyButtons(enabled) {
+  [findBtn, soloBtn, createRoomBtn, joinRoomBtn].forEach((btn) => { btn.disabled = !enabled; });
+}
+
+// Lien d'invitation reçu (?salon=ABCD) : on prépare le bouton Rejoindre.
+const invitedCode = new URLSearchParams(location.search).get('salon');
+if (invitedCode) roomCodeInput.value = invitedCode.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+
 socket.on('connect', () => {
-  statusText.textContent = 'Connecté. Choisis un pseudo et ton avatar.';
-  findBtn.disabled = false;
-  soloBtn.disabled = false;
+  statusText.textContent = roomCodeInput.value
+    ? `Tu es invité dans le salon ${roomCodeInput.value} : choisis ton pseudo et ton avatar, puis REJOINDRE.`
+    : 'Connecté. Choisis un pseudo et ton avatar.';
+  setLobbyButtons(true);
 });
 socket.on('disconnect', () => {
   statusText.textContent = 'Connexion au serveur perdue, reconnexion...';
-  findBtn.disabled = true;
-  soloBtn.disabled = true;
+  setLobbyButtons(false);
+  hideWaiting();
   // En pleine partie, la partie est perdue côté serveur : on le dit clairement
   // au lieu de laisser un écran qui ne répond plus.
   if (roomId) {
     showResult('CONNEXION PERDUE', 'La connexion au serveur a coupé, la partie est annulée. Relance-en une.', 'neutral', null, null);
     $('podium-opp').hidden = true;
-    findBtn.disabled = true;
-    soloBtn.disabled = true;
+    setLobbyButtons(false);
   }
 });
 
@@ -130,9 +143,104 @@ function chosenAvatar() {
 function findGame() {
   lastMode = 'duo';
   socket.emit('find-game', { pseudo: pseudoInput.value.trim(), avatar: chosenAvatar() });
-  findBtn.disabled = true;
+  setLobbyButtons(false);
   statusText.textContent = 'Recherche d\'un adversaire...';
 }
+
+// Le pseudo est obligatoire avant toute partie ; on le retient pour la prochaine fois.
+function checkPseudo() {
+  const pseudo = pseudoInput.value.trim();
+  if (!pseudo) { pseudoInput.reportValidity(); return false; }
+  try { localStorage.setItem('pseudo', pseudo); } catch (e) { /* tant pis */ }
+  return true;
+}
+
+createRoomBtn.addEventListener('click', () => {
+  if (!checkPseudo()) return;
+  lastMode = 'private';
+  socket.emit('create-room', { pseudo: pseudoInput.value.trim(), avatar: chosenAvatar() });
+  setLobbyButtons(false);
+});
+
+function joinRoom() {
+  if (!checkPseudo()) return;
+  const code = roomCodeInput.value.toUpperCase().replace(/[^A-Z]/g, '');
+  if (code.length !== 4) {
+    statusText.textContent = 'Le code d\'un salon fait 4 lettres.';
+    roomCodeInput.focus();
+    return;
+  }
+  lastMode = 'private';
+  socket.emit('join-room', { code, pseudo: pseudoInput.value.trim(), avatar: chosenAvatar() });
+  setLobbyButtons(false);
+  statusText.textContent = `Connexion au salon ${code}...`;
+}
+joinRoomBtn.addEventListener('click', joinRoom);
+roomCodeInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') { event.preventDefault(); joinRoom(); }
+});
+
+/* ---------- Écran d'attente ---------- */
+
+let waitingTimer = null;
+let inviteLink = '';
+
+// mode : 'public' (file d'attente) ou 'private' (salon avec un code).
+function showWaiting(mode, code) {
+  findForm.hidden = true;
+  waitingBox.hidden = false;
+  drawSprite($('waiting-sprite'), chosenAvatar(), 7);
+  const base = `${location.origin}${location.pathname}`;
+  inviteLink = mode === 'private' ? `${base}?salon=${code}` : base;
+  $('waiting-title').textContent = mode === 'private' ? 'SALON PRIVÉ CRÉÉ' : 'EN ATTENTE D\'UN ADVERSAIRE';
+  $('waiting-code').hidden = mode !== 'private';
+  $('waiting-code').textContent = code || '';
+  $('waiting-help').textContent = mode === 'private'
+    ? 'Envoie ce code ou le lien à ton pote : la partie démarre dès qu\'il rejoint.'
+    : 'Personne en ligne ? Envoie le lien du jeu à un pote pour qu\'il te rejoigne.';
+  $('copy-status').textContent = '';
+  statusText.textContent = '';
+  const startedAt = Date.now();
+  clearInterval(waitingTimer);
+  const tick = () => {
+    const s = Math.floor((Date.now() - startedAt) / 1000);
+    $('waiting-time').textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  };
+  tick();
+  waitingTimer = setInterval(tick, 1000);
+}
+
+function hideWaiting() {
+  clearInterval(waitingTimer);
+  waitingBox.hidden = true;
+  findForm.hidden = false;
+}
+
+$('copy-link-btn').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(inviteLink);
+    $('copy-status').textContent = 'Lien copié ! Colle-le à ton pote.';
+  } catch (e) {
+    // Presse-papiers indisponible : on affiche le lien pour qu'il soit copié à la main.
+    $('copy-status').textContent = inviteLink;
+  }
+});
+
+$('cancel-btn').addEventListener('click', () => socket.emit('cancel-search'));
+
+socket.on('search-cancelled', () => {
+  hideWaiting();
+  setLobbyButtons(true);
+  statusText.textContent = 'Recherche annulée.';
+});
+
+socket.on('room-created', ({ code }) => showWaiting('private', code));
+
+socket.on('room-error', ({ reason }) => {
+  hideWaiting();
+  setLobbyButtons(true);
+  statusText.textContent = reason;
+});
 
 function playSolo() {
   lastMode = 'solo';
@@ -140,9 +248,7 @@ function playSolo() {
 }
 
 soloBtn.addEventListener('click', () => {
-  const pseudo = pseudoInput.value.trim();
-  if (!pseudo) { pseudoInput.reportValidity(); return; }
-  try { localStorage.setItem('pseudo', pseudo); } catch (e) { /* tant pis */ }
+  if (!checkPseudo()) return;
   playSolo();
 });
 
@@ -152,7 +258,11 @@ $('replay-btn').addEventListener('click', () => {
   gameScreen.hidden = true;
   lobby.hidden = false;
   if (lastMode === 'solo') playSolo();
-  else findGame();
+  else if (lastMode === 'private') {
+    // Un salon privé ne se relance pas tout seul : on revient à l'accueil.
+    setLobbyButtons(true);
+    statusText.textContent = 'Crée un nouveau salon, ou rejoins celui de ton pote avec son code.';
+  } else findGame();
 });
 
 // Revient à l'accueil sans relancer de partie.
@@ -163,13 +273,14 @@ $('home-btn').addEventListener('click', () => {
   statusText.textContent = 'Choisis ton avatar et relance une partie.';
 });
 
-socket.on('waiting', () => {
-  statusText.textContent = 'En attente d\'un adversaire...';
-});
+socket.on('waiting', () => showWaiting('public'));
 
 /* ---------- Début de partie : construction de la grille ---------- */
 
 socket.on('game-start', (data) => {
+  hideWaiting();
+  // Le lien d'invitation a servi : on le retire de l'adresse.
+  if (invitedCode) history.replaceState(null, '', location.pathname);
   roomId = data.roomId;
   mySlot = data.you.slot;
   players = [data.you, data.opponent].filter(Boolean).sort((a, b) => a.slot - b.slot);
@@ -353,8 +464,7 @@ function showResult(title, detail, tone, scores, winner, extra = {}) {
   gameScreen.hidden = true;
   lobby.hidden = true;
   resultScreen.hidden = false;
-  findBtn.disabled = false;
-  soloBtn.disabled = false;
+  setLobbyButtons(socket.connected);
   $('replay-btn').focus();
 }
 

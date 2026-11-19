@@ -155,6 +155,56 @@ body {
 .avatar-card.perche .avatar-name { color: var(--perche); }
 .avatar-card.verlan .avatar-name { color: var(--verlan); }
 .avatar-power { font-size: 20px; line-height: 1.05; color: var(--muted); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Salon privé */
+.private-actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin-top: 4px; }
+.private-actions .or { color: var(--muted); }
+#room-code {
+  width: 7.5rem;
+  font-family: var(--title);
+  font-size: 18px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 8px;
+  background: var(--panel);
+  color: #ffffff;
+  border: 1px solid var(--cyan);
+  outline: none;
+}
+#room-code:focus { box-shadow: 0 0 12px rgba(0, 229, 255, 0.6); }
+
+/* Écran d'attente */
+.waiting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 24px 32px;
+  min-width: min(520px, 92vw);
+  background: var(--panel);
+  border: 1px solid var(--acid);
+  box-shadow: inset 0 0 30px rgba(198, 255, 0, 0.08);
+  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+}
+.waiting canvas { image-rendering: pixelated; animation: pace 2.4s steps(4) infinite; }
+.waiting-title { margin: 0; font-family: var(--title); font-size: 20px; color: #ffffff; }
+.waiting-title::after { content: ''; animation: dots 1.5s steps(4) infinite; }
+.waiting-code {
+  margin: 0;
+  font-family: var(--title);
+  font-weight: 700;
+  font-size: 64px;
+  letter-spacing: 0.2em;
+  color: var(--yellow);
+  text-shadow: 4px 0 var(--pink), -4px 0 var(--cyan);
+}
+.waiting-help { margin: 0; max-width: 30rem; color: var(--muted); }
+.waiting-time { margin: 0; font-family: var(--title); font-size: 16px; color: var(--cyan); }
+.waiting-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+
 .howto { max-width: 640px; margin-top: 10px; text-align: left; }
 .howto summary {
   cursor: pointer;
@@ -710,6 +760,14 @@ body {
   60% { transform: rotate(-8deg); }
   80% { transform: rotate(5deg); }
 }
+@keyframes pace {
+  0% { transform: translateX(-30px); }
+  25% { transform: translateX(0) translateY(-6px); }
+  50% { transform: translateX(30px) scaleX(-1); }
+  75% { transform: translateX(0) translateY(-6px) scaleX(-1); }
+  100% { transform: translateX(-30px); }
+}
+@keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
 @keyframes go-pop {
   0% { opacity: 0; transform: scale(2.2); filter: blur(6px); }
   20% { opacity: 1; transform: scale(0.95); filter: blur(0); }

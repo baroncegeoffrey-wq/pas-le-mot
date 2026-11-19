@@ -45,7 +45,28 @@
         <button type="submit" id="find-btn" class="btn btn-primary" disabled>TROUVER UNE PARTIE</button>
         <button type="button" id="solo-btn" class="btn btn-ghost" disabled>JOUER SEUL</button>
       </div>
+      <div class="private-actions">
+        <button type="button" id="create-room-btn" class="btn btn-ghost" disabled>CRÉER UN SALON PRIVÉ</button>
+        <span class="or">ou</span>
+        <label for="room-code" class="sr-only">Code du salon à rejoindre</label>
+        <input id="room-code" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <button type="button" id="join-room-btn" class="btn btn-ghost" disabled>REJOINDRE</button>
+      </div>
     </form>
+
+    <!-- Écran d'attente : recherche publique ou salon privé -->
+    <div id="waiting" class="waiting" hidden>
+      <canvas id="waiting-sprite" aria-hidden="true"></canvas>
+      <p id="waiting-title" class="waiting-title"></p>
+      <p id="waiting-code" class="waiting-code" hidden></p>
+      <p id="waiting-help" class="waiting-help"></p>
+      <p id="waiting-time" class="waiting-time" aria-hidden="true">0:00</p>
+      <div class="waiting-actions">
+        <button type="button" id="copy-link-btn" class="btn btn-primary">COPIER LE LIEN</button>
+        <button type="button" id="cancel-btn" class="btn btn-ghost">ANNULER</button>
+      </div>
+      <p id="copy-status" class="status" aria-live="polite"></p>
+    </div>
     <p id="status" class="status">Connexion au serveur...</p>
 
     <details class="howto">
