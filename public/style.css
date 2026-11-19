@@ -13,6 +13,9 @@
   --givre: #7FD3F5;
   --perche: #B57BF0;
   --verlan: #F5A442;
+  --trip-1: rgba(255, 0, 170, .16);
+  --trip-2: rgba(0, 255, 200, .16);
+  --trip-3: rgba(255, 230, 0, .16);
   --card: rgba(242, 238, 227, .06);
   --card-on: rgba(242, 238, 227, .14);
 }
@@ -111,7 +114,12 @@ button:disabled { opacity: .5; cursor: default; }
 .timer { font: 700 1.4rem ui-monospace, monospace; min-width: 4.5rem; text-align: center; }
 .timer.low { color: var(--p1); }
 #game-status { text-align: center; }
-.actions { display: flex; justify-content: center; }
+.actions { display: flex; justify-content: center; gap: .6rem; }
+#power-btn { font-size: .9rem; padding: .35rem .8rem; color: var(--ink); }
+#power-btn.givre { background: var(--givre); }
+#power-btn.perche { background: var(--perche); }
+#power-btn.verlan { background: var(--verlan); }
+#game-status.hit { font-weight: 700; color: var(--focus); }
 #buy-btn { background: transparent; border: 1px solid var(--cell); color: var(--cell); font-size: .9rem; padding: .35rem .8rem; }
 
 /* Grille */
@@ -158,6 +166,17 @@ button:disabled { opacity: .5; cursor: default; }
 .board .cell.p1 { background: var(--p1); }
 .board .cell.p0 input, .board .cell.p1 input, .board .cell.p0 .num, .board .cell.p1 .num { color: white; }
 .board .cell.bought { box-shadow: inset 0 0 0 3px var(--focus); }
+.board .cell.frozen { background: var(--givre); }
+.board .cell.frozen::after {
+  content: "\2744\FE0E";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: white;
+  font-size: 1.3rem;
+  pointer-events: none;
+}
 .board .cell.wrong { animation: shake .4s; background: var(--wrong); }
 @keyframes shake {
   25% { transform: translateX(-3px); }
@@ -174,3 +193,44 @@ button:disabled { opacity: .5; cursor: default; }
 .clues li.p0, .clues li.p1 { text-decoration: line-through; opacity: .6; }
 .clues li.p0 .n { color: var(--p0); }
 .clues li.p1 .n { color: var(--p1); }
+
+/* ---------- Pouvoirs reçus ---------- */
+
+/* Verlan : tout l'écran de jeu est retourné comme dans un miroir */
+#game { transition: transform .4s ease; }
+#game.verlan { transform: scaleX(-1); }
+
+/* Trip : un calque flou et coloré par-dessus l'écran, troué autour de la souris */
+#trip {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  background: linear-gradient(120deg, var(--trip-1), var(--trip-2), var(--trip-3), var(--trip-1));
+  background-size: 300% 300%;
+  -webkit-backdrop-filter: blur(8px) saturate(2.5);
+  backdrop-filter: blur(8px) saturate(2.5);
+  -webkit-mask-image: radial-gradient(circle at var(--x, 50%) var(--y, 50%), transparent 0 60px, #000 95px);
+  mask-image: radial-gradient(circle at var(--x, 50%) var(--y, 50%), transparent 0 60px, #000 95px);
+  animation: trip-colors 3s linear infinite, trip-hue 4s linear infinite;
+}
+#game.tripping .board-area { animation: trip-wobble 3s ease-in-out infinite; }
+@keyframes trip-colors {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+@keyframes trip-hue {
+  from { filter: hue-rotate(0deg); }
+  to { filter: hue-rotate(360deg); }
+}
+@keyframes trip-wobble {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(1.2deg) scale(1.02); }
+  75% { transform: rotate(-1.2deg) scale(.99); }
+}
+
+/* Animations coupées si le système le demande (le flou reste) */
+@media (prefers-reduced-motion: reduce) {
+  #trip, #game.tripping .board-area, .board .cell.wrong { animation: none; }
+  #game { transition: none; }
+}

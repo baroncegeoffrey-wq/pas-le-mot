@@ -51,6 +51,7 @@
     <p id="game-status" class="status">Remplis un mot puis appuie sur Entrée.</p>
     <div class="actions">
       <button type="button" id="buy-btn">Acheter une lettre (-1)</button>
+      <button type="button" id="power-btn" hidden></button>
     </div>
     <div class="board-area">
       <div id="board" class="board"></div>
@@ -62,6 +63,9 @@
       </div>
     </div>
   </section>
+
+  <!-- Effet du pouvoir Trip : tout est flou sauf un cercle autour de la souris -->
+  <div id="trip" aria-hidden="true" hidden></div>
 
   <!-- Écran de fin -->
   <section id="result" class="screen" hidden>

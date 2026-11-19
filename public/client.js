@@ -15,6 +15,11 @@ const board = $('board');
 const timerEl = $('timer');
 const resultScreen = $('result');
 const buyBtn = $('buy-btn');
+const powerBtn = $('power-btn');
+const tripLayer = $('trip');
+
+// Nom du pouvoir de chaque avatar (affiché sur le bouton).
+const POWER_NAMES = { givre: 'Freeze', perche: 'Trip', verlan: 'Verlan' };
 
 // État de la partie en cours
 let roomId = null;
@@ -26,6 +31,12 @@ let players = []; // [{ pseudo, slot }] rangés par slot (un seul en solo)
 let lastMode = 'duo'; // 'duo' ou 'solo' : ce que relance le bouton Rejouer
 let timerInterval = null;
 let clockOffset = 0; // heure du serveur - heure locale
+let myAvatar = null;
+let verlanActive = false; // pendant le Verlan, on écrit les mots par la fin
+const effectTimers = {}; // pouvoir reçu -> minuterie de fin de l'effet
+
+// Sens d'écriture : 1 = du début vers la fin du mot, -1 = par la fin (Verlan).
+const writeStep = () => (verlanActive ? -1 : 1);
 
 const key = (r, c) => `${r},${c}`;
 
@@ -120,6 +131,11 @@ socket.on('game-start', (data) => {
     box.classList.toggle('me', p.slot === mySlot);
   }
 
+  clearEffects();
+  myAvatar = data.you.avatar;
+  setPowerButton(data.opponent ? data.you.powersLeft : 0);
+  powerBtn.hidden = !data.opponent; // pas de pouvoir en solo
+
   buildBoard(data.grid);
   buildClues(data.clues);
   gameStatus.textContent = 'Remplis un mot puis appuie sur Entrée.';
@@ -150,6 +166,7 @@ function startTimer(endsAt, serverNow) {
 
 function showResult(title, detail) {
   clearInterval(timerInterval);
+  clearEffects();
   roomId = null;
   $('result-title').textContent = title;
   $('result-detail').textContent = detail;
@@ -250,19 +267,21 @@ function selectWord(wordId, focusFirstEmpty) {
   buyBtn.disabled = Boolean(w.claimed);
 
   if (focusFirstEmpty) {
-    const target = w.cells.find((k) => !cells.get(k).input.value) || w.cells[0];
+    // En Verlan, on commence par la dernière case du mot.
+    const order = verlanActive ? [...w.cells].reverse() : w.cells;
+    const target = order.find((k) => !cells.get(k).input.value && !cells.get(k).frozen) || order[0];
     cells.get(target).input.focus();
   }
 }
 
 // Avance (step = 1) ou recule (step = -1) dans le mot courant, en sautant les
-// cases déjà verrouillées.
+// cases déjà verrouillées ou gelées.
 function moveInWord(fromKey, step) {
   const w = words.get(currentWord);
   let i = w.cells.indexOf(fromKey) + step;
   while (i >= 0 && i < w.cells.length) {
     const cell = cells.get(w.cells[i]);
-    if (!cell.locked) return cell;
+    if (!cell.locked && !cell.frozen) return cell;
     i += step;
   }
   return null;
@@ -303,11 +322,11 @@ board.addEventListener('keydown', (event) => {
 
   if (event.key === 'Backspace') {
     event.preventDefault();
-    if (!cell.locked && cell.input.value) {
+    if (!cell.locked && !cell.frozen && cell.input.value) {
       cell.input.value = '';
       return;
     }
-    const prev = moveInWord(k, -1);
+    const prev = moveInWord(k, -writeStep());
     if (prev) { prev.input.value = ''; prev.input.focus(); }
     return;
   }
@@ -327,9 +346,9 @@ board.addEventListener('keydown', (event) => {
   if (event.key.length === 1 && !event.ctrlKey && !event.metaKey) {
     event.preventDefault();
     const letter = cleanLetter(event.key);
-    if (!letter || cell.locked) return;
+    if (!letter || cell.locked || cell.frozen) return;
     cell.input.value = letter;
-    const next = moveInWord(k, 1);
+    const next = moveInWord(k, writeStep());
     if (next) next.input.focus();
   }
 });
@@ -341,7 +360,10 @@ board.addEventListener('input', (event) => {
   const k = event.target.dataset.key;
   if (!k) return;
   let cell = cells.get(k);
-  if (cell.locked) return;
+  if (cell.locked || cell.frozen) {
+    cell.input.value = cell.locked ? cell.input.value : '';
+    return;
+  }
   // event.data = le texte qui vient d'être tapé ou collé (sans l'ancienne lettre).
   const raw = typeof event.data === 'string' ? event.data : cell.input.value;
   const letters = [...raw].map(cleanLetter).filter(Boolean);
@@ -349,7 +371,7 @@ board.addEventListener('input', (event) => {
   let currentKey = k;
   for (const letter of letters) {
     cell.input.value = letter;
-    const next = moveInWord(currentKey, 1);
+    const next = moveInWord(currentKey, writeStep());
     if (!next) break;
     cell = next;
     currentKey = next.input.dataset.key;
@@ -387,6 +409,8 @@ socket.on('word-claimed', ({ wordId, letters, by, scores }) => {
     cell.input.value = letters[i];
     cell.input.readOnly = true;
     cell.locked = true;
+    cell.frozen = false;
+    cell.el.classList.remove('frozen');
     // Une case croisée garde la couleur du premier mot trouvé.
     if (!cell.el.classList.contains('p0') && !cell.el.classList.contains('p1')) {
       cell.el.classList.add(`p${by}`);
@@ -423,8 +447,11 @@ socket.on('word-wrong', ({ wordId, scores, lockedUntil, serverNow }) => {
   });
 });
 
-socket.on('word-locked', ({ lockedUntil, serverNow }) => {
-  gameStatus.textContent = `Encore bloqué ${secondsUntil(lockedUntil, serverNow)} s : essaie un autre mot en attendant.`;
+socket.on('word-locked', ({ lockedUntil, serverNow, reason }) => {
+  const seconds = secondsUntil(lockedUntil, serverNow);
+  gameStatus.textContent = reason === 'freeze'
+    ? `Ce mot passe par une case gelée : attends ${seconds} s.`
+    : `Encore bloqué ${seconds} s : essaie un autre mot en attendant.`;
 });
 
 /* ---------- Acheter une lettre ---------- */
@@ -450,9 +477,132 @@ socket.on('letter-revealed', ({ wordId, index, letter, scores }) => {
   gameStatus.textContent = `Lettre achetée : ${letter} (-1)`;
   // Si le curseur était sur cette case, on avance.
   if (document.activeElement === cell.input && currentWord === wordId) {
-    const next = moveInWord(w.cells[index], 1);
+    const next = moveInWord(w.cells[index], writeStep());
     if (next) next.input.focus();
   }
+});
+
+/* ---------- Pouvoirs : celui que je lance ---------- */
+
+function setPowerButton(left) {
+  powerBtn.className = myAvatar || '';
+  powerBtn.textContent = `${POWER_NAMES[myAvatar] || 'Pouvoir'} (${left})`;
+  powerBtn.disabled = left <= 0;
+}
+
+powerBtn.addEventListener('click', () => {
+  if (!roomId) return;
+  socket.emit('use-power', { roomId });
+  const w = words.get(currentWord);
+  if (w) selectWord(w.id, true); // on rend la main à la grille
+});
+
+socket.on('power-used', ({ remaining }) => {
+  setPowerButton(remaining);
+  gameStatus.textContent = `${POWER_NAMES[myAvatar]} lancé sur l'adversaire !`;
+});
+
+socket.on('power-refused', ({ reason }) => {
+  gameStatus.textContent = reason;
+});
+
+/* ---------- Pouvoirs : ceux que je reçois ---------- */
+
+function announce(text) {
+  gameStatus.textContent = text;
+  gameStatus.classList.add('hit');
+}
+
+// Programme la fin d'un effet ; un deuxième coup du même pouvoir repart à zéro.
+function endEffectLater(power, duration, stop) {
+  clearTimeout(effectTimers[power] && effectTimers[power].timer);
+  effectTimers[power] = { timer: setTimeout(() => { stop(); delete effectTimers[power]; }, duration), stop };
+}
+
+function unfreezeAll() {
+  for (const cell of cells.values()) {
+    if (!cell.frozen) continue;
+    cell.frozen = false;
+    cell.el.classList.remove('frozen');
+    cell.input.readOnly = cell.locked;
+  }
+}
+
+// Freeze : ces cases deviennent impossibles à remplir.
+function startFreeze({ cells: frozenCells }, duration) {
+  unfreezeAll();
+  for (const { row, col } of frozenCells || []) {
+    const cell = cells.get(key(row, col));
+    if (!cell || cell.locked) continue;
+    cell.frozen = true;
+    cell.input.value = '';
+    cell.input.readOnly = true;
+    cell.el.classList.add('frozen');
+  }
+  endEffectLater('freeze', duration, unfreezeAll);
+}
+
+// Trip : le cercle net suit la souris, et la case où l'on tape.
+function moveTripHole(x, y) {
+  tripLayer.style.setProperty('--x', `${x}px`);
+  tripLayer.style.setProperty('--y', `${y}px`);
+}
+function onTripMouse(event) { moveTripHole(event.clientX, event.clientY); }
+function onTripFocus(event) {
+  if (!event.target.dataset.key) return;
+  const box = event.target.getBoundingClientRect();
+  moveTripHole(box.left + box.width / 2, box.top + box.height / 2);
+}
+function stopTrip() {
+  tripLayer.hidden = true;
+  gameScreen.classList.remove('tripping');
+  document.removeEventListener('mousemove', onTripMouse);
+  board.removeEventListener('focusin', onTripFocus);
+}
+function startTrip(duration) {
+  tripLayer.hidden = false;
+  gameScreen.classList.add('tripping');
+  document.addEventListener('mousemove', onTripMouse);
+  board.addEventListener('focusin', onTripFocus);
+  if (document.activeElement && document.activeElement.dataset.key) {
+    onTripFocus({ target: document.activeElement });
+  }
+  endEffectLater('trip', duration, stopTrip);
+}
+
+// Verlan : écran retourné, et on écrit les mots par la fin.
+function stopVerlan() {
+  verlanActive = false;
+  gameScreen.classList.remove('verlan');
+}
+function startVerlan(duration) {
+  verlanActive = true;
+  gameScreen.classList.add('verlan');
+  if (currentWord) selectWord(currentWord, true);
+  endEffectLater('verlan', duration, stopVerlan);
+}
+
+function clearEffects() {
+  for (const power of Object.keys(effectTimers)) {
+    clearTimeout(effectTimers[power].timer);
+    effectTimers[power].stop();
+    delete effectTimers[power];
+  }
+  gameStatus.classList.remove('hit');
+}
+
+socket.on('power-hit', ({ power, duration, payload, from }) => {
+  if (power === 'freeze') {
+    startFreeze(payload, duration);
+    announce(`${from} t'a lancé un Freeze : 3 cases gelées !`);
+  } else if (power === 'trip') {
+    startTrip(duration);
+    announce(`${from} t'a lancé un Trip : promène ta souris pour voir net !`);
+  } else if (power === 'verlan') {
+    startVerlan(duration);
+    announce(`${from} t'a lancé un Verlan : tout est à l'envers, écris par la fin !`);
+  }
+  setTimeout(() => gameStatus.classList.remove('hit'), duration);
 });
 
 socket.on('scores', ({ scores }) => setScores(scores));
