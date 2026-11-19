@@ -13,13 +13,13 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 - [ ] **En ligne sur Render**, testé à deux onglets
 
 ## L2 · Une vraie partie (jeudi soir) [ ]
-- [ ] Chrono 4 min affiché, fin au chrono ou grille pleine
-- [ ] Écran de fin (gagné / perdu / égalité) + Rejouer
-- [ ] Anti-spam : mot bloqué 3 s après une erreur
-- [ ] Acheter une lettre (-1)
-- [ ] Adversaire déconnecté géré
-- [ ] Tests « casser le jeu » passés
-- [ ] README
+- [x] Chrono 4 min affiché, fin au chrono ou grille pleine
+- [x] Écran de fin (gagné / perdu / égalité) + Rejouer
+- [x] Anti-spam : mot bloqué 3 s après une erreur
+- [x] Acheter une lettre (-1)
+- [x] Adversaire déconnecté géré
+- [x] Tests « casser le jeu » passés
+- [x] README
 
 ## L3 · Avatars et pouvoirs (vendredi matin, si L1 et L2 sont en ligne) [ ]
 - [ ] Choix de l'avatar avant la partie
