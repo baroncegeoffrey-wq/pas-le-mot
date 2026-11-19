@@ -279,11 +279,32 @@ body {
   border-color: var(--acid);
   box-shadow: inset 0 0 22px rgba(198, 255, 0, 0.08);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: 12px;
   clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
 }
 .board { display: grid; gap: 3px; }
+
+/* Définition du mot sélectionné, au-dessus de la grille */
+.current-clue {
+  align-self: stretch;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  max-width: 100%;
+  padding: 6px 12px;
+  background: rgba(245, 225, 0, 0.1);
+  border-left: 4px solid var(--yellow);
+  font-size: 26px;
+  line-height: 1.05;
+  color: #ffffff;
+}
+.cc-num { font-family: var(--title); font-weight: 700; font-size: 20px; color: var(--yellow); }
+.cc-dir { color: var(--yellow); }
+.cc-text { flex: 1; }
+.cc-len { color: var(--muted); white-space: nowrap; }
+.clues li .len { color: var(--muted); margin-left: 6px; }
 .board .empty { width: var(--size); height: var(--size); }
 .board .cell {
   position: relative;
@@ -632,6 +653,21 @@ body {
   60% { transform: rotate(-8deg); }
   80% { transform: rotate(5deg); }
 }
+@keyframes heartbeat { 0%, 100% { opacity: 0.35; } 15% { opacity: 1; } 30% { opacity: 0.5; } 45% { opacity: 0.9; } }
+@keyframes timer-pump { 0% { transform: scale(1.25); } 30% { transform: scale(1); } }
+@keyframes tremble { 0%, 100% { transform: translate(0); } 25% { transform: translate(-2px, 1px); } 50% { transform: translate(2px, -1px); } 75% { transform: translate(-1px, -1px); } }
+@keyframes alert {
+  0% { opacity: 0; transform: scale(2.4) skewX(-10deg); filter: blur(6px); }
+  15% { opacity: 1; transform: scale(0.95) skewX(-10deg); filter: blur(0); }
+  25% { transform: scale(1.05) skewX(-10deg); }
+  75% { opacity: 1; transform: scale(1) skewX(-10deg); }
+  100% { opacity: 0; transform: scale(1.2) skewX(-10deg); }
+}
+@keyframes count {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(1.8); }
+  20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+}
 @keyframes trip-colors { 0% { background-position: 0% 50%; } 100% { background-position: 300% 50%; } }
 @keyframes trip-hue { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
 @keyframes trip-wobble {
@@ -639,6 +675,59 @@ body {
   25% { transform: rotate(1.2deg) scale(1.02); }
   75% { transform: rotate(-1.2deg) scale(0.99); }
 }
+
+/* ---------- Fin de partie qui approche ---------- */
+
+#stress {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: inset 0 0 120px 30px rgba(255, 42, 109, 0.55);
+}
+body.stress-30 #stress { animation: heartbeat 1s ease-in-out infinite; }
+body.stress-20 #stress { box-shadow: inset 0 0 160px 50px rgba(255, 42, 109, 0.7); animation: heartbeat 0.6s ease-in-out infinite; }
+body.stress-10 #stress { box-shadow: inset 0 0 200px 70px rgba(255, 30, 60, 0.85); animation: heartbeat 0.4s ease-in-out infinite; }
+body.stress-20 .timer, body.stress-10 .timer { animation: timer-pump 1s steps(1) infinite, flicker 1s linear infinite; }
+body.stress-10 .arena { animation: tremble 0.15s linear infinite; }
+body.stress-10 .scanline { background: linear-gradient(180deg, transparent, rgba(255, 42, 109, 0.12), transparent); animation-duration: 1.5s; }
+
+/* Grande alerte à 30 s et 20 s */
+#stress-alert {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 38%;
+  z-index: 25;
+  pointer-events: none;
+  text-align: center;
+  font-family: var(--title);
+  font-weight: 700;
+  font-size: clamp(48px, 9vw, 110px);
+  color: var(--pink);
+  text-shadow: 4px 0 var(--cyan), -4px 0 var(--yellow), 0 0 30px var(--pink);
+  opacity: 0;
+}
+#stress-alert.show { animation: alert 1.4s ease-out forwards; }
+
+/* Compte à rebours géant sur les 10 dernières secondes (transparent, ne cache pas la grille) */
+#countdown {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 25;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  font-family: var(--title);
+  font-weight: 700;
+  font-size: clamp(160px, 30vw, 380px);
+  line-height: 1;
+  color: rgba(255, 42, 109, 0.28);
+  text-shadow: 0 0 40px rgba(255, 42, 109, 0.5);
+  opacity: 0;
+}
+#countdown.tick { animation: count 0.9s ease-out forwards; }
 
 /* Écran étroit : arène plus compacte (le vrai confort mobile viendra plus tard) */
 @media (max-width: 760px) {
@@ -663,4 +752,6 @@ body {
 /* Animations coupées si le système le demande (le flou du Trip reste) */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+  body.stress-30 #stress, body.stress-20 #stress, body.stress-10 #stress { opacity: 0.6; }
+  #countdown.tick { opacity: 1; }
 }

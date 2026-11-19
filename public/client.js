@@ -222,16 +222,58 @@ function setPips(box, left) {
 
 const boxOf = (slot) => (slot === mySlot ? boxMe : boxOpp);
 
+/* ---------- Stress de fin de partie (30 s, 20 s, 10 s) ---------- */
+
+let lastStressSecond = null;
+
+function flashAlert(text) {
+  const alert = $('stress-alert');
+  alert.textContent = text;
+  alert.classList.remove('show');
+  void alert.offsetWidth; // relance l'animation
+  alert.classList.add('show');
+}
+
+function showCountdown(n) {
+  const el = $('countdown');
+  el.textContent = n;
+  el.classList.remove('tick');
+  void el.offsetWidth;
+  el.classList.add('tick');
+}
+
+// Appelée à chaque tic du chrono avec les secondes restantes.
+function updateStress(seconds) {
+  const level = seconds <= 10 ? 10 : seconds <= 20 ? 20 : seconds <= 30 ? 30 : 0;
+  document.body.classList.toggle('stress-30', level === 30);
+  document.body.classList.toggle('stress-20', level === 20);
+  document.body.classList.toggle('stress-10', level === 10);
+  if (seconds === lastStressSecond) return;
+  lastStressSecond = seconds;
+  if (seconds === 30) flashAlert('30 SECONDES !');
+  if (seconds === 20) flashAlert('20 SECONDES !');
+  if (seconds <= 10 && seconds > 0) showCountdown(seconds);
+}
+
+function clearStress() {
+  lastStressSecond = null;
+  document.body.classList.remove('stress-30', 'stress-20', 'stress-10');
+  $('stress-alert').classList.remove('show');
+  $('countdown').classList.remove('tick');
+}
+
 /* ---------- Chrono (affichage seulement : c'est le serveur qui arrête la partie) ---------- */
 
 function startTimer(endsAt, serverNow) {
   clearInterval(timerInterval);
+  clearStress();
   clockOffset = serverNow - Date.now(); // écart entre l'horloge du serveur et la nôtre
   const tick = () => {
     const left = Math.max(0, endsAt - (Date.now() + clockOffset));
     const seconds = Math.ceil(left / 1000);
     timerEl.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
     timerEl.classList.toggle('low', seconds <= 30);
+    updateStress(seconds);
     if (left === 0) clearInterval(timerInterval);
   };
   tick();
@@ -244,6 +286,7 @@ function startTimer(endsAt, serverNow) {
 // scores : les scores par slot, ou null quand il n'y a pas de podium à montrer.
 function showResult(title, detail, tone, scores, winner) {
   clearInterval(timerInterval);
+  clearStress();
   clearEffects();
   roomId = null;
   const titleEl = $('result-title');
@@ -356,7 +399,11 @@ function buildClues(clues) {
     dir.className = 'dir';
     dir.setAttribute('aria-hidden', 'true');
     dir.textContent = clue.direction === 'across' ? '→' : '↓';
-    li.append(n, dir, document.createTextNode(clue.clue));
+    const len = document.createElement('span');
+    len.className = 'len';
+    len.textContent = `(${words.get(clue.wordId).length})`;
+    li.append(n, dir, document.createTextNode(clue.clue), len);
+    words.get(clue.wordId).clueText = clue.clue;
     li.addEventListener('click', () => selectWord(clue.wordId, true));
     // Survoler une définition éclaire sa ligne dans la grille.
     li.addEventListener('mouseenter', () => setHover(clue.wordId, true));
@@ -367,6 +414,14 @@ function buildClues(clues) {
 }
 
 /* ---------- Sélection d'un mot et déplacement ---------- */
+
+// Affiche la définition du mot sélectionné juste au-dessus de la grille.
+function showCurrentClue(w) {
+  $('cc-num').textContent = w.number;
+  $('cc-dir').textContent = w.direction === 'across' ? '→' : '↓';
+  $('cc-text').textContent = w.clueText || '';
+  $('cc-len').textContent = `${w.length} lettres`;
+}
 
 // Relie une définition et sa ligne : les deux s'éclairent ensemble.
 function setHover(wordId, on) {
@@ -401,6 +456,7 @@ function selectWord(wordId, focusFirstEmpty) {
   w.cells.forEach((k) => cells.get(k).el.classList.add('current'));
   w.clueEl.classList.add('current');
   buyBtn.disabled = Boolean(w.claimed);
+  showCurrentClue(w);
 
   if (focusFirstEmpty) {
     // En Verlan, on commence par la dernière case du mot.

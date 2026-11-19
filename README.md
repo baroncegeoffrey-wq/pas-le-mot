@@ -2,7 +2,7 @@
 
 **Jouer en ligne : https://pas-le-mot.onrender.com/**
 
-Mots croisés multijoueur en temps réel : deux joueurs font la course sur la même grille de 8 à 10 mots, moitié mots classiques, moitié argot. Mot juste +1, mot faux -1, 4 minutes de chrono.
+Mots croisés multijoueur en temps réel : deux joueurs font la course sur la même grille de 8 à 10 mots, moitié mots classiques, moitié argot. Mot juste +1, mot faux -1, 2 minutes de chrono.
 
 ## Jouer en local
 ```bash
@@ -16,7 +16,7 @@ Puis ouvrir http://localhost:3000 dans deux onglets (un par joueur), choisir un 
 - Tape les lettres (les accents sont ignorés), Retour arrière pour effacer, flèches pour te déplacer.
 - Entrée valide le mot : juste = +1 et le mot prend ta couleur chez les deux joueurs ; faux = -1 et ce mot est bloqué 3 secondes pour toi.
 - « Acheter une lettre (-1) » révèle une lettre du mot sélectionné, à toi seul.
-- La partie s'arrête au bout de 4 minutes ou quand la grille est pleine. Le plus gros score gagne.
+- La partie s'arrête au bout de 2 minutes ou quand la grille est pleine. Le plus gros score gagne.
 - Avant la partie, choisis un avatar. Son pouvoir (bouton à côté de « Acheter une lettre ») sert 2 fois par partie : Freeze (Le Givré), Trip (Le Perché) ou Verlan (Le Verlan). Pas de pouvoir en solo.
 - Gelé par un Freeze ? Racle le givre de ton avatar en passant vite ta souris d'un bord à l'autre, plusieurs fois.
 
@@ -41,6 +41,6 @@ Les tests lancent le vrai serveur et simulent deux joueurs avec `socket.io-clien
 ## Mise en ligne (Render)
 Web Service Node : commande de build `npm install`, commande de démarrage `npm start`. Le port est fourni par Render (`PORT`).
 
-Variable facultative : `GAME_DURATION_MS` (durée d'une partie en millisecondes, 240000 par défaut).
+Variable facultative : `GAME_DURATION_MS` (durée d'une partie en millisecondes, 120000 par défaut).
 
 Règles du jeu : `docs/brief.md`. Avancement : `docs/roadmap.md`.

@@ -13,7 +13,7 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 - [x] **En ligne sur Render** (https://pas-le-mot.onrender.com/), testé avec 2 joueurs simulés sur le site en ligne
 
 ## L2 · Une vraie partie (jeudi soir) [x]
-- [x] Chrono 4 min affiché, fin au chrono ou grille pleine
+- [x] Chrono 2 min affiché (montée de stress à 30, 20 et 10 s), fin au chrono ou grille pleine
 - [x] Écran de fin (gagné / perdu / égalité) + Rejouer
 - [x] Anti-spam : mot bloqué 3 s après une erreur
 - [x] Acheter une lettre (-1)

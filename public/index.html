@@ -85,7 +85,7 @@
       </div>
 
       <div class="arena-center">
-        <div class="timer" id="timer" aria-label="Temps restant">4:00</div>
+        <div class="timer" id="timer" aria-label="Temps restant">2:00</div>
         <div class="vs" aria-hidden="true">VS</div>
       </div>
     </div>
@@ -97,6 +97,13 @@
 
     <div class="board-area">
       <div class="panel grid-panel">
+        <!-- La définition du mot sélectionné, juste au-dessus de la grille -->
+        <div class="current-clue" id="current-clue" aria-live="polite">
+          <span class="cc-num" id="cc-num"></span>
+          <span class="cc-dir" id="cc-dir" aria-hidden="true"></span>
+          <span class="cc-text" id="cc-text"></span>
+          <span class="cc-len" id="cc-len"></span>
+        </div>
         <div id="board" class="board"></div>
       </div>
       <div class="side">
@@ -113,6 +120,11 @@
       </div>
     </div>
   </section>
+
+  <!-- Fin de partie qui approche : bords rouges qui battent, alertes, compte à rebours -->
+  <div id="stress" aria-hidden="true"></div>
+  <div id="stress-alert" aria-hidden="true"></div>
+  <div id="countdown" aria-hidden="true"></div>
 
   <!-- Super attaque : cinématique puis rayon géant (vue par les deux joueurs) -->
   <div id="fx" aria-hidden="true" hidden></div>

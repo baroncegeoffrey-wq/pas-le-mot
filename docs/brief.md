@@ -5,7 +5,7 @@
 2. La moitié des mots est classique, l'autre moitié vient de l'argot d'aujourd'hui (vulgaire autorisé). Ce sont des mots qui existent, avec de vraies définitions.
 3. Tu remplis les cases d'un mot puis tu appuies sur Entrée : juste = +1 et le mot est à toi, faux = -1.
 4. Un mot validé s'affiche chez les deux joueurs dans la couleur de celui qui l'a trouvé, et ses lettres aident pour les mots qui le croisent.
-5. Au bout de 4 minutes, ou quand la grille est pleine, le plus gros score gagne.
+5. Au bout de 2 minutes, ou quand la grille est pleine, le plus gros score gagne.
 
 ---
 
@@ -14,7 +14,7 @@
 **Déroulé**
 - Le joueur choisit un pseudo, clique « Trouver une partie », et il est apparié avec le prochain joueur en attente (même système que le morpion).
 - Les deux joueurs reçoivent la même grille, tirée au hasard dans la bibliothèque de mots.
-- Chrono : 4 minutes.
+- Chrono : 2 minutes. Les 30 dernières secondes deviennent de plus en plus stressantes (30 s, 20 s, puis compte à rebours géant sur les 10 dernières).
 
 **La grille partagée**
 - Les deux joueurs jouent sur la même grille.
@@ -43,7 +43,7 @@
 ## Mode solo
 
 - Bouton « Jouer seul » à l'accueil : la partie démarre tout de suite, sans adversaire.
-- Mêmes règles qu'à deux : même grille, chrono de 4 minutes, +1 / -1, mot bloqué 3 s après une erreur, achat de lettre à -1.
+- Mêmes règles qu'à deux : même grille, chrono de 2 minutes, +1 / -1, mot bloqué 3 s après une erreur, achat de lettre à -1.
 - Fin au chrono ou quand la grille est pleine. Pas de gagné ni de perdu : l'écran de fin affiche le score et le nombre de mots trouvés.
 - « Rejouer » relance une partie solo.
 
