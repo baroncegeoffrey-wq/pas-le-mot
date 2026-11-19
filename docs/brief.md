@@ -73,6 +73,12 @@ Avant la partie, chaque joueur choisit un avatar. Chaque avatar a un pouvoir, ut
 - Une arène en haut de l'écran : moi à gauche sur une plateforme verte, l'adversaire à droite sur une plateforme rose, devant une ville de nuit.
 - Quand un pouvoir est lancé, les deux joueurs voient la super attaque : une cinématique (bande diagonale, le personnage en gros plan, le nom de l'attaque) puis un rayon géant avec éclairs et explosion à l'impact. L'effet du pouvoir commence juste après (environ 2,7 s).
 
-## Hors périmètre du rendu (vendredi)
-- Le confort sur téléphone
-- Les salons privés avec un code
+## Salons privés et attente
+
+- « Créer un salon privé » donne un code de 4 lettres (sans I ni O) et un lien d'invitation (`?salon=CODE`). L'ami rejoint avec le code ou en ouvrant le lien ; la partie démarre dès qu'il arrive. Un code ne sert qu'une fois.
+- Pendant l'attente (file publique ou salon privé) : le personnage fait les cent pas, un chrono d'attente, « Copier le lien » et « Annuler ».
+
+## Sons et téléphone
+
+- Sons fabriqués dans le navigateur (aucun fichier, aucun service) : compte à rebours, mot juste ou faux, alertes, battement de cœur des 30 dernières secondes, super attaque, givre, fin. Un bouton « SON : ON/OFF » les coupe (choix retenu).
+- Sur téléphone : la grille s'adapte à la largeur de l'écran, le Trip suit le doigt et le Freeze se racle au doigt.

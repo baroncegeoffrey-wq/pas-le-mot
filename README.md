@@ -19,6 +19,8 @@ Puis ouvrir http://localhost:3000 dans deux onglets (un par joueur), choisir un 
 - La partie s'arrête au bout de 2 minutes ou quand la grille est pleine. Le plus gros score gagne.
 - Avant la partie, choisis un avatar. Son pouvoir (bouton à côté de « Acheter une lettre ») sert 2 fois par partie : Freeze (Le Givré), Trip (Le Perché) ou Verlan (Le Verlan). Pas de pouvoir en solo.
 - Gelé par un Freeze ? Racle le givre de ton avatar en passant vite ta souris d'un bord à l'autre, plusieurs fois.
+- Pour jouer contre un ami précis : « Créer un salon privé », puis envoie-lui le code ou le lien. Il clique « Rejoindre ».
+- Le bouton « SON : ON/OFF » en haut à droite coupe les sons.
 
 ## Tests
 ```bash

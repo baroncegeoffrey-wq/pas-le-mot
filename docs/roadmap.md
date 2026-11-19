@@ -42,8 +42,8 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 - [x] Réponses de la partie sur l'écran de fin (mot, définition, qui l'a trouvé)
 - [x] Compte à rebours « 3, 2, 1, GO ! » au début
 - [x] Aide « Comment jouer ? » sur l'accueil
-- [ ] Écran d'attente plus vivant (lien à partager)
-- [ ] Sons (avec bouton pour couper)
-- [ ] Mobile
-- [ ] Salons privés avec code
+- [x] Écran d'attente (personnage qui patiente, lien à copier, annuler)
+- [x] Sons (avec bouton pour couper)
+- [x] Téléphone (grille adaptée à l'écran, cartes compactes, Trip et Freeze au doigt)
+- [x] Salons privés avec un code ou un lien d'invitation
 - [x] Agrandir la bibliothèque de mots (175 mots : 95 argot dont verlan et gros mots, 80 classiques ; définitions plus difficiles)

@@ -11,7 +11,7 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 - `grid.js` : le placement des mots dans une grille qui se croise
 - `matchmaking.js` : la file d'attente et les salons (repris du morpion)
 - `powers.js` : les avatars, leurs pouvoirs et leurs durées
-- `public/` : index.html, style.css, client.js, sprites.js (les personnages 8 bits)
+- `public/` : index.html, style.css, client.js, sprites.js (les personnages 8 bits), sounds.js (les sons, fabriqués avec Web Audio)
 
 ## Stack
 - Node.js + Express : serveur HTTP, sert les fichiers statiques
@@ -56,6 +56,12 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 | `unfrozen` | serveur → clients | `{ slot }` (ce joueur est dégivré et peut rejouer) |
 | `game-over` | serveur → clients | `{ scores, winner, stats, solutions }` (en solo : `{ scores: [score], winner: null, found, total, stats, solutions }`) ; `stats[slot]` = `{ found, wrong, bought, powers }`, `solutions` = `[{ number, direction, word, clue, foundBy }]` |
 | `opponent-left` | serveur → client | |
+| `create-room` | client → serveur | `{ pseudo, avatar }` (salon privé) |
+| `room-created` | serveur → client | `{ code }` (4 lettres, à partager) |
+| `join-room` | client → serveur | `{ code, pseudo, avatar }` |
+| `room-error` | serveur → client | `{ reason }` (code inconnu ou salon fermé) |
+| `cancel-search` | client → serveur | (quitte la file d'attente ou le salon privé) |
+| `search-cancelled` | serveur → client | |
 
 ## Conventions
 - Commentaires de code en français
