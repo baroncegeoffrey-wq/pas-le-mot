@@ -591,6 +591,9 @@ function buildBoard(grid) {
   words = new Map();
   cells = new Map();
   board.innerHTML = '';
+  // Taille des cases : 2,4 rem au maximum, plus petites si l'écran est étroit
+  // (téléphone) pour que la grille entière tienne en largeur.
+  board.style.setProperty('--size', `min(2.4rem, calc((100vw - 64px - ${(grid.width - 1) * 3}px) / ${grid.width}))`);
   board.style.gridTemplateColumns = `repeat(${grid.width}, var(--size))`;
 
   for (const w of grid.words) {
@@ -626,6 +629,8 @@ function buildBoard(grid) {
       const input = document.createElement('input');
       input.autocomplete = 'off';
       input.spellcheck = false;
+      input.setAttribute('autocapitalize', 'characters'); // clavier du téléphone en majuscules
+      input.setAttribute('autocorrect', 'off');
       input.dataset.key = key(r, c);
       input.setAttribute('aria-label', `Case ligne ${r + 1}, colonne ${c + 1}`);
       el.appendChild(input);
@@ -1151,13 +1156,13 @@ function onTripFocus(event) {
 function stopTrip() {
   tripLayer.hidden = true;
   gameScreen.classList.remove('tripping');
-  document.removeEventListener('mousemove', onTripMouse);
+  document.removeEventListener('pointermove', onTripMouse);
   board.removeEventListener('focusin', onTripFocus);
 }
 function startTrip(duration) {
   tripLayer.hidden = false;
   gameScreen.classList.add('tripping');
-  document.addEventListener('mousemove', onTripMouse);
+  document.addEventListener('pointermove', onTripMouse);
   board.addEventListener('focusin', onTripFocus);
   if (document.activeElement && document.activeElement.dataset.key) {
     onTripFocus({ target: document.activeElement });
