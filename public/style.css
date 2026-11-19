@@ -279,20 +279,18 @@ body {
   border-color: var(--acid);
   box-shadow: inset 0 0 22px rgba(198, 255, 0, 0.08);
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
   clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
 }
 .board { display: grid; gap: 3px; }
 
 /* Définition du mot sélectionné, au-dessus de la grille */
 .current-clue {
-  align-self: stretch;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
-  max-width: 100%;
+  min-height: 48px; /* hauteur fixe : rien ne bouge quand on change de mot */
   padding: 6px 12px;
   background: rgba(245, 225, 0, 0.1);
   border-left: 4px solid var(--yellow);

@@ -95,15 +95,17 @@
       <p id="game-status" class="status" aria-live="polite">Remplis un mot puis appuie sur Entrée.</p>
     </div>
 
+    <!-- La définition du mot sélectionné, sur toute la largeur : sa longueur
+         ne change jamais la taille de la grille. -->
+    <div class="current-clue" id="current-clue" aria-live="polite">
+      <span class="cc-num" id="cc-num"></span>
+      <span class="cc-dir" id="cc-dir" aria-hidden="true"></span>
+      <span class="cc-text" id="cc-text"></span>
+      <span class="cc-len" id="cc-len"></span>
+    </div>
+
     <div class="board-area">
       <div class="panel grid-panel">
-        <!-- La définition du mot sélectionné, juste au-dessus de la grille -->
-        <div class="current-clue" id="current-clue" aria-live="polite">
-          <span class="cc-num" id="cc-num"></span>
-          <span class="cc-dir" id="cc-dir" aria-hidden="true"></span>
-          <span class="cc-text" id="cc-text"></span>
-          <span class="cc-len" id="cc-len"></span>
-        </div>
         <div id="board" class="board"></div>
       </div>
       <div class="side">
