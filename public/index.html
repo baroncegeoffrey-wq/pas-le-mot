@@ -47,6 +47,15 @@
       </div>
     </form>
     <p id="status" class="status">Connexion au serveur...</p>
+
+    <details class="howto">
+      <summary>COMMENT JOUER ?</summary>
+      <ol>
+        <li>Clique une case ou une définition, tape le mot, puis <strong>Entrée</strong>. Juste : +1. Faux : -1, et ce mot est bloqué 3 s pour toi.</li>
+        <li>Vous avez la même grille : le premier qui trouve un mot le gagne. « Acheter une lettre » t'en révèle une, pour -1.</li>
+        <li>Ton avatar a une <strong>super attaque</strong> (2 fois par partie) : Freeze, Trip ou Verlan. Au bout de 2 minutes, le plus gros score gagne.</li>
+      </ol>
+    </details>
   </section>
 
   <!-- Écran de jeu -->
@@ -123,6 +132,9 @@
     </div>
   </section>
 
+  <!-- Compte à rebours de départ : 3, 2, 1, GO ! -->
+  <div id="go" aria-live="assertive" hidden></div>
+
   <!-- Fin de partie qui approche : bords rouges qui battent, alertes, compte à rebours -->
   <div id="stress" aria-hidden="true"></div>
   <div id="stress-alert" aria-hidden="true"></div>
@@ -189,9 +201,14 @@
         <div class="podium-plate"><span class="name"></span><span class="score"></span></div>
       </div>
     </div>
+    <div class="result-stats" id="result-stats"></div>
     <div class="result-actions">
       <button type="button" id="replay-btn" class="btn btn-primary">REJOUER</button>
       <button type="button" id="home-btn" class="btn btn-ghost">ACCUEIL</button>
+    </div>
+    <div class="result-solutions" id="result-solutions" hidden>
+      <h2>// LES RÉPONSES</h2>
+      <ol id="solutions-list"></ol>
     </div>
   </section>
 

@@ -14,6 +14,7 @@
 **Déroulé**
 - Le joueur choisit un pseudo, clique « Trouver une partie », et il est apparié avec le prochain joueur en attente (même système que le morpion).
 - Les deux joueurs reçoivent la même grille, tirée au hasard dans la bibliothèque de mots.
+- Avant de jouer, un compte à rebours « 3, 2, 1, GO ! » (3,5 s) : rien ne compte avant le GO.
 - Chrono : 2 minutes. Les 30 dernières secondes deviennent de plus en plus stressantes (30 s, 20 s, puis compte à rebours géant sur les 10 dernières).
 
 **La grille partagée**
@@ -37,7 +38,7 @@
 
 **Fin de partie**
 - Chrono à zéro, ou tous les mots trouvés.
-- Écran de résultat, puis bouton « Rejouer ».
+- Écran de résultat : gagnant et perdant, stats de chacun (mots trouvés, erreurs, lettres achetées, super attaques), puis toutes les réponses de la partie (mot, définition, qui l'a trouvé). Boutons « Rejouer » et « Accueil ».
 - Si un joueur se déconnecte, l'autre est prévenu (« Adversaire déconnecté »).
 
 ## Mode solo

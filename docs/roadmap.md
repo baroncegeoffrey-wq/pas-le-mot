@@ -38,7 +38,12 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 - [x] Direction artistique « Néon acide » (dark, ville isométrique, néons, glitchs), d'après la maquette D
 - [x] Petits personnages 8 bits originaux, face à face sur des plateformes isométriques, qui respirent
 - [x] Super attaque vue par les deux joueurs : cinématique (1,2 s) puis rayon géant avec éclairs et impact (1,5 s), puis l'effet du pouvoir
-- [ ] Stats de fin de partie (mots trouvés, erreurs, lettres achetées)
+- [x] Stats de fin de partie (mots trouvés, erreurs, lettres achetées, super attaques)
+- [x] Réponses de la partie sur l'écran de fin (mot, définition, qui l'a trouvé)
+- [x] Compte à rebours « 3, 2, 1, GO ! » au début
+- [x] Aide « Comment jouer ? » sur l'accueil
+- [ ] Écran d'attente plus vivant (lien à partager)
+- [ ] Sons (avec bouton pour couper)
 - [ ] Mobile
 - [ ] Salons privés avec code
 - [x] Agrandir la bibliothèque de mots (175 mots : 95 argot dont verlan et gros mots, 80 classiques ; définitions plus difficiles)

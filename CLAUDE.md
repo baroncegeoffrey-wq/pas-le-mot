@@ -23,7 +23,7 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 
 ## Règles
 1. Le serveur fait autorité. Il valide chaque mot, calcule les scores, gère le chrono et les pouvoirs. Le client ne fait qu'afficher.
-2. **Le serveur n'envoie jamais les solutions au client.** Le client reçoit la grille vide (positions, longueurs, numéros, définitions). Une lettre n'est envoyée que lorsqu'un mot est trouvé (aux deux joueurs) ou achetée (à l'acheteur seul).
+2. **Le serveur n'envoie jamais les solutions au client pendant la partie.** Le client reçoit la grille vide (positions, longueurs, numéros, définitions). Une lettre n'est envoyée que lorsqu'un mot est trouvé (aux deux joueurs) ou achetée (à l'acheteur seul). Toutes les réponses ne partent qu'avec `game-over`, une fois la partie terminée.
 3. Les réponses sont comparées sans majuscules ni accents.
 4. Un mot trouvé est verrouillé : aucun des deux joueurs ne peut plus le jouer.
 5. Si deux joueurs valident le même mot en même temps, le premier message reçu par le serveur gagne.
@@ -39,7 +39,7 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 | `find-game` | client → serveur | `{ pseudo, avatar }` (avatar : `givre`, `perche` ou `verlan`) |
 | `play-solo` | client → serveur | `{ pseudo }` (mode solo) |
 | `waiting` | serveur → client | |
-| `game-start` | serveur → clients | `{ roomId, grid, clues, you, opponent, endsAt, serverNow }` (sans solutions ; `you` = `{ pseudo, slot, avatar, powersLeft }`, `opponent` = `{ pseudo, slot, avatar }` ou `null` en solo) |
+| `game-start` | serveur → clients | `{ roomId, grid, clues, you, opponent, startsAt, endsAt, serverNow }` (`startsAt` = le « GO » après le compte à rebours ; rien n'est accepté avant) (sans solutions ; `you` = `{ pseudo, slot, avatar, powersLeft }`, `opponent` = `{ pseudo, slot, avatar }` ou `null` en solo) |
 | `submit-word` | client → serveur | `{ roomId, wordId, letters }` |
 | `word-claimed` | serveur → clients | `{ wordId, letters, by, scores }` |
 | `word-wrong` | serveur → client fautif | `{ wordId, scores, lockedUntil, serverNow }` |
@@ -54,7 +54,7 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 | `scrape` | client gelé → serveur | `{ roomId }` (un coup de raclette sur son avatar) |
 | `frost` | serveur → client gelé | `{ layers }` (couches de givre restantes, après un coup ou quand ça repousse) |
 | `unfrozen` | serveur → clients | `{ slot }` (ce joueur est dégivré et peut rejouer) |
-| `game-over` | serveur → clients | `{ scores, winner }` (en solo : `{ scores: [score], winner: null, found, total }`) |
+| `game-over` | serveur → clients | `{ scores, winner, stats, solutions }` (en solo : `{ scores: [score], winner: null, found, total, stats, solutions }`) ; `stats[slot]` = `{ found, wrong, bought, powers }`, `solutions` = `[{ number, direction, word, clue, foundBy }]` |
 | `opponent-left` | serveur → client | |
 
 ## Conventions

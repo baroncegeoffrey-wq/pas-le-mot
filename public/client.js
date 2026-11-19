@@ -59,6 +59,8 @@ let clockOffset = 0; // heure du serveur - heure locale
 let myAvatar = null;
 let verlanActive = false; // pendant le Verlan, on écrit les mots par la fin
 let frozenActive = false; // pendant le Freeze, on ne peut plus jouer
+let startLocked = false; // pendant le « 3, 2, 1 », on ne peut pas encore jouer
+let goTimers = []; // minuteries du compte à rebours de départ
 const effectTimers = {}; // pouvoir reçu -> minuterie de fin de l'effet
 
 // Sens d'écriture : 1 = du début vers la fin du mot, -1 = par la fin (Verlan).
@@ -198,8 +200,50 @@ socket.on('game-start', (data) => {
   resultScreen.hidden = true;
   gameScreen.hidden = false;
   selectWord(data.grid.words[0].id, true);
-  startTimer(data.endsAt, data.serverNow);
+  const startsAt = data.startsAt || data.serverNow;
+  startTimer(data.endsAt, data.serverNow, data.endsAt - startsAt);
+  startCountdown(startsAt, data.serverNow);
 });
+
+/* ---------- Compte à rebours de départ : 3, 2, 1, GO ! ---------- */
+
+function stopCountdown() {
+  goTimers.forEach(clearTimeout);
+  goTimers = [];
+  $('go').hidden = true;
+  startLocked = false;
+}
+
+function showGo(text, final) {
+  const go = $('go');
+  go.innerHTML = '';
+  const span = document.createElement('span');
+  span.textContent = text;
+  go.appendChild(span);
+  go.classList.toggle('final', final);
+  go.hidden = false;
+}
+
+// startsAt est l'heure du serveur ; on la ramène à l'horloge locale.
+function startCountdown(startsAt, serverNow) {
+  stopCountdown();
+  const localStart = startsAt - (serverNow - Date.now());
+  const wait = localStart - Date.now();
+  if (wait <= 50) return; // pas de compte à rebours (déjà commencé)
+  startLocked = true;
+  gameStatus.textContent = 'Prêt ? La partie commence dans un instant...';
+  [3, 2, 1].forEach((n) => {
+    const at = wait - n * 1000;
+    if (at >= -100) goTimers.push(setTimeout(() => showGo(String(n), false), Math.max(0, at)));
+  });
+  goTimers.push(setTimeout(() => {
+    startLocked = false;
+    showGo('GO !', true);
+    gameStatus.textContent = 'Remplis un mot puis appuie sur Entrée.';
+    if (currentWord) selectWord(currentWord, true);
+  }, wait));
+  goTimers.push(setTimeout(() => { $('go').hidden = true; }, wait + 800));
+}
 
 // Plaque de nom d'un joueur : pseudo, score, avatar, pouvoirs restants.
 function fillPlayerBox(box, player, isMe, powersLeft) {
@@ -264,12 +308,14 @@ function clearStress() {
 
 /* ---------- Chrono (affichage seulement : c'est le serveur qui arrête la partie) ---------- */
 
-function startTimer(endsAt, serverNow) {
+// duration : durée de la partie (le chrono ne dépasse jamais cette valeur,
+// même pendant le compte à rebours de départ).
+function startTimer(endsAt, serverNow, duration) {
   clearInterval(timerInterval);
   clearStress();
   clockOffset = serverNow - Date.now(); // écart entre l'horloge du serveur et la nôtre
   const tick = () => {
-    const left = Math.max(0, endsAt - (Date.now() + clockOffset));
+    const left = Math.min(duration, Math.max(0, endsAt - (Date.now() + clockOffset)));
     const seconds = Math.ceil(left / 1000);
     timerEl.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
     timerEl.classList.toggle('low', seconds <= 30);
@@ -284,9 +330,12 @@ function startTimer(endsAt, serverNow) {
 
 // Écran de fin. tone : 'win', 'lose', 'draw' ou 'neutral'.
 // scores : les scores par slot, ou null quand il n'y a pas de podium à montrer.
-function showResult(title, detail, tone, scores, winner) {
+function showResult(title, detail, tone, scores, winner, extra = {}) {
   clearInterval(timerInterval);
   clearStress();
+  stopCountdown();
+  renderStats(extra.stats);
+  renderSolutions(extra.solutions);
   clearEffects();
   roomId = null;
   const titleEl = $('result-title');
@@ -321,19 +370,90 @@ function fillPodium(card, player, scores, winner) {
   card.querySelector('.podium-tag').textContent = isWinner ? 'VAINQUEUR' : (isLoser ? 'K.O.' : '');
 }
 
-socket.on('game-over', ({ scores, winner, found, total }) => {
+// Tableau des stats : une colonne par joueur (moi d'abord).
+function renderStats(stats) {
+  const box = $('result-stats');
+  box.innerHTML = '';
+  if (!stats || !stats.length) return;
+  const cols = stats.length > 1
+    ? [{ slot: mySlot, cls: 'me', name: 'TOI' }, { slot: 1 - mySlot, cls: 'opp', name: opponent ? opponent.pseudo.toUpperCase() : 'ADVERSAIRE' }]
+    : [{ slot: 0, cls: 'me', name: 'TOI' }];
+  const rows = [
+    ['Mots trouvés', 'found', 'high'],
+    ['Erreurs', 'wrong', 'low'],
+    ['Lettres achetées', 'bought', 'low'],
+    ['Super attaques', 'powers', 'none'],
+  ];
+  const table = document.createElement('table');
+  const head = table.insertRow();
+  head.appendChild(document.createElement('th'));
+  cols.forEach((col) => {
+    const th = document.createElement('th');
+    th.className = col.cls;
+    th.textContent = col.name;
+    head.appendChild(th);
+  });
+  rows.forEach(([label, keyName, better]) => {
+    const tr = table.insertRow();
+    tr.insertCell().textContent = label;
+    const values = cols.map((col) => stats[col.slot === mySlot && stats.length === 1 ? 0 : col.slot][keyName]);
+    values.forEach((value) => {
+      const td = tr.insertCell();
+      td.textContent = value;
+      // En duo, la meilleure valeur de la ligne est en jaune.
+      if (cols.length > 1 && better !== 'none' && values[0] !== values[1]) {
+        const best = better === 'high' ? Math.max(...values) : Math.min(...values);
+        if (value === best) td.className = 'best';
+      }
+    });
+  });
+  box.appendChild(table);
+}
+
+// Les réponses : chaque mot avec sa définition et qui l'a trouvé.
+function renderSolutions(solutions) {
+  const wrap = $('result-solutions');
+  const list = $('solutions-list');
+  list.innerHTML = '';
+  wrap.hidden = !solutions || !solutions.length;
+  if (wrap.hidden) return;
+  const sorted = [...solutions].sort((a, b) => (a.direction === b.direction ? a.number - b.number : a.direction === 'across' ? -1 : 1));
+  sorted.forEach((s) => {
+    const li = document.createElement('li');
+    const who = s.foundBy === null ? 'nobody' : (s.foundBy === mySlot ? 'mine' : 'theirs');
+    li.className = who;
+    const n = document.createElement('span');
+    n.className = 'sol-n';
+    n.textContent = `${s.number} ${s.direction === 'across' ? '→' : '↓'}`;
+    const word = document.createElement('span');
+    word.className = 'sol-word';
+    word.textContent = s.word;
+    const whoText = document.createElement('span');
+    whoText.className = 'sol-who';
+    whoText.textContent = who === 'mine' ? 'trouvé par toi' : who === 'theirs' ? `trouvé par ${opponent ? opponent.pseudo : 'l\'adversaire'}` : 'pas trouvé';
+    word.appendChild(whoText);
+    const clue = document.createElement('span');
+    clue.className = 'sol-clue';
+    clue.textContent = s.clue;
+    li.append(n, word, clue);
+    list.appendChild(li);
+  });
+}
+
+socket.on('game-over', ({ scores, winner, found, total, stats, solutions }) => {
+  const extra = { stats, solutions };
   if (players.length === 1) {
     const words = `${found} mot${found > 1 ? 's' : ''} trouvé${found > 1 ? 's' : ''} sur ${total}`;
-    showResult('PARTIE TERMINÉE', `Score : ${scores[0]}  ·  ${words}`, 'neutral', scores, null);
+    showResult('PARTIE TERMINÉE', `Score : ${scores[0]}  ·  ${words}`, 'neutral', scores, null, extra);
     return;
   }
   const me = players.find((p) => p.slot === mySlot);
   if (winner === null) {
-    showResult('ÉGALITÉ !', `${scores[0]} partout`, 'draw', scores, null);
+    showResult('ÉGALITÉ !', `${scores[0]} partout`, 'draw', scores, null, extra);
   } else if (winner === mySlot) {
-    showResult('GAGNÉ !', `${me.pseudo} remporte la manche, ${scores[mySlot]} à ${scores[1 - mySlot]}`, 'win', scores, winner);
+    showResult('GAGNÉ !', `${me.pseudo} remporte la manche, ${scores[mySlot]} à ${scores[1 - mySlot]}`, 'win', scores, winner, extra);
   } else {
-    showResult('PERDU...', `${opponent.pseudo} remporte la manche, ${scores[1 - mySlot]} à ${scores[mySlot]}`, 'lose', scores, winner);
+    showResult('PERDU...', `${opponent.pseudo} remporte la manche, ${scores[1 - mySlot]} à ${scores[mySlot]}`, 'lose', scores, winner, extra);
   }
 });
 
@@ -503,7 +623,8 @@ board.addEventListener('mousedown', (event) => {
 board.addEventListener('keydown', (event) => {
   const k = event.target.dataset.key;
   if (!k || !currentWord) return;
-  if (frozenActive) { event.preventDefault(); return; } // gelé : le clavier ne répond plus
+  // Gelé, ou avant le GO : le clavier ne répond pas.
+  if (frozenActive || startLocked) { event.preventDefault(); return; }
   const cell = cells.get(k);
   const [r, c] = k.split(',').map(Number);
 
@@ -554,7 +675,7 @@ board.addEventListener('input', (event) => {
   if (!k) return;
   let cell = cells.get(k);
   if (cell.locked) return;
-  if (frozenActive) { cell.input.value = ''; return; }
+  if (frozenActive || startLocked) { cell.input.value = ''; return; }
   // event.data = le texte qui vient d'être tapé ou collé (sans l'ancienne lettre).
   const raw = typeof event.data === 'string' ? event.data : cell.input.value;
   const letters = [...raw].map(cleanLetter).filter(Boolean);
@@ -648,7 +769,7 @@ socket.on('word-locked', ({ lockedUntil, serverNow }) => {
 
 buyBtn.addEventListener('click', () => {
   const w = words.get(currentWord);
-  if (!w || w.claimed || !roomId) return;
+  if (!w || w.claimed || !roomId || startLocked) return;
   socket.emit('buy-letter', { roomId, wordId: w.id });
   // On rend la main à la grille pour continuer à taper.
   const target = w.cells.find((k) => !cells.get(k).input.value) || w.cells[0];
@@ -681,7 +802,7 @@ function setPowerButton(left) {
 }
 
 powerBtn.addEventListener('click', () => {
-  if (!roomId) return;
+  if (!roomId || startLocked) return;
   socket.emit('use-power', { roomId });
   const w = words.get(currentWord);
   if (w) selectWord(w.id, true); // on rend la main à la grille
