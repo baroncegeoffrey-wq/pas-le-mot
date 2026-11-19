@@ -48,6 +48,9 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 - [x] Pendant une vidéo : chrono en pause et saisies bloquées chez les deux joueurs, reprise à la fin (flash blanc)
 - [x] Les 3 vidéos sont préchargées au début de la partie
 - [x] Verlan : après sa vidéo, le décor de l'arène se retourne (fissures et débris) pendant l'effet
+- [x] Persos animés : GIF détourés image par image (fumée du Perché gardée), WebP animé transparent, .png en secours
+- [x] Attaque visible à chaque mot trouvé : charge, projectile géant propre à chaque perso, explosion et onde de choc (canvas en mode additif, 60 i/s)
+- [x] Coup critique : 7 lettres ou plus = dégâts × 1,5, mini-cinématique dans l'arène avec « CRITIQUE ! », projectile encore plus gros
 - [ ] Remplacer la vidéo provisoire du Perché (même nom de fichier, puis `npm run assets`)
 - [ ] Tester le rendu animé (ralenti, impacts) sur un écran visible, à deux
 - [ ] Fusionner dans main et mettre en ligne

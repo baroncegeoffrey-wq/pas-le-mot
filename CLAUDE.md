@@ -11,8 +11,8 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 - `grid.js` : le placement des mots dans une grille qui se croise
 - `matchmaking.js` : la file d'attente et les salons (repris du morpion)
 - `powers.js` : les avatars, leurs pouvoirs et leurs durées
-- `public/` : index.html, style.css, client.js, sounds.js (les sons, fabriqués avec Web Audio)
-- `public/assets/` : `avatars/<avatar>.png` (un visuel par avatar, tourné vers la droite), `cine/<avatar>.webm` (vidéos de super attaque) + `cine/<avatar>.jpg` (image d'attente) + `cine/durations.json` (durées en secondes, lues par powers.js), `arena/arene.webm` (fond en boucle) et `arena/arene.jpg` (secours)
+- `public/` : index.html, style.css, client.js, attack.js (les attaques à chaque mot : charge, projectile, explosion, sur un canvas), sounds.js (les sons, fabriqués avec Web Audio)
+- `public/assets/` : `avatars/<avatar>.png` (un visuel fixe par avatar, tourné vers la droite) et `avatars/<avatar>.webp` (le même, animé, utilisé en combat), `cine/<avatar>-crit.webm` (mini-cinématique de coup critique, 3 s), `cine/<avatar>.webm` (vidéos de super attaque) + `cine/<avatar>.jpg` (image d'attente) + `cine/durations.json` (durées en secondes, lues par powers.js), `arena/arene.webm` (fond en boucle) et `arena/arene.jpg` (secours)
 - `scripts/prepare-assets.js` : prépare images et vidéos depuis `assets-src/` (`npm run assets`, nécessite ffmpeg)
 
 ## Stack
@@ -43,7 +43,7 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 | `waiting` | serveur → client | |
 | `game-start` | serveur → clients | `{ roomId, grid, clues, you, opponent, startsAt, endsAt, maxHp, serverNow }` (`startsAt` = le « GO » après le compte à rebours ; rien n'est accepté avant) (sans solutions ; `you` = `{ pseudo, slot, avatar, powersLeft }`, `opponent` = `{ pseudo, slot, avatar }` ou `null` en solo) |
 | `submit-word` | client → serveur | `{ roomId, wordId, letters }` |
-| `word-claimed` | serveur → clients | `{ wordId, letters, by, target, damage, hp }` (`hp` = PV des deux joueurs) |
+| `word-claimed` | serveur → clients | `{ wordId, letters, by, target, damage, critical, hp }` (`hp` = PV des deux joueurs ; `critical` = mot de 7 lettres ou plus, dégâts × 1,5) |
 | `word-wrong` | serveur → client fautif | `{ wordId, target, damage, hp, lockedUntil, serverNow }` |
 | `word-locked` | serveur → client fautif | `{ wordId, lockedUntil, serverNow }` (renvoi pendant le blocage de 3 s, sans pénalité) |
 | `hp` | serveur → adversaire | `{ target, damage, hp }` (recul ou lettre achetée par l'autre joueur) |
@@ -74,7 +74,7 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 - Couleurs (variables dans `public/style.css`, jamais en dur ailleurs) : fond `#0a0c12`, panneaux `#10131b`, texte `#e8ecf5`, moi = vert acide `#c6ff00`, l'adversaire = rose `#ff2a6d`, accents jaune `#f5e100` et cyan `#00e5ff`.
 - Moi toujours à gauche, l'adversaire à droite.
 - Polices (Google Fonts) : Silkscreen (titres, étiquettes), VT323 (texte).
-- Personnages : un seul visuel par avatar, `public/assets/avatars/<avatar>.png` (silhouettes provisoires pour l'instant). Ne reprendre aucun personnage ni visuel d'un jeu ou d'une série existants (l'inspiration se limite à l'ambiance).
+- Personnages : un seul visuel par avatar, `public/assets/avatars/<avatar>.png` (fixe) et `.webp` (animé, en combat). Ne reprendre aucun personnage ni visuel d'un jeu ou d'une série existants (l'inspiration se limite à l'ambiance).
 - Animations coupées si le système demande de réduire les animations.
 
 ## À ne pas faire

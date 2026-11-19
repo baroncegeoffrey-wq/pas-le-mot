@@ -51,6 +51,8 @@ Règles du jeu : `docs/brief.md`. Avancement : `docs/roadmap.md`.
 ## Préparer les images et vidéos
 1. Dépose les fichiers bruts dans `~/Documents/01-Projets/pas-le-mot/assets-src/` :
    - `givre.jpeg`, `perche.jpeg`, `verlan.jpeg` : les avatars, tournés vers la droite, sur un fond uni ;
+   - `givre.gif`, `perche.gif`, `verlan.gif` : les mêmes, animés (boucle), sur fond vert ;
+   - `givre-cine.gif`, `perche-cine.gif`, `verlan-cine.gif` : les mini-cinématiques de coup critique (3 s) ;
    - `givre-cine.mp4`, `perche-cine.mp4`, `verlan-cine.mp4` : les vidéos de super attaque (une dizaine de secondes), et si tu veux `givre-cine.jpeg`... : l'image affichée le temps que la vidéo démarre ;
    - `arene.gif` : le fond d'arène animé, et `arene.jpeg` : son image de secours.
 2. Lance (ffmpeg doit être installé) :
@@ -58,11 +60,15 @@ Règles du jeu : `docs/brief.md`. Avancement : `docs/roadmap.md`.
 npm run assets
 ```
 3. Les fichiers prêts arrivent dans `public/assets/` :
+   - persos animés : `avatars/givre.webp`... (WebP animé transparent, fond retiré image par image, même cadrage pour toutes les images, reflets verts du Givré et du Verlan corrigés) ;
+   - coups critiques : `cine/givre-crit.webm`... (moins de 1,5 Mo, sans son) ;
    - avatars : le fond est retiré par un remplissage qui part des bords de l'image (la fumée verte du Perché, au milieu, est gardée), puis recadrés au plus près du perso et réduits à 160 px de haut, pixels nets ;
    - arène : `arene.webm` (boucle vidéo agrandie sans lissage) et `arene.jpg` (secours) ;
    - vidéos de super attaque : gardées entières (on ne coupe que les images noires ou figées tout au début et à la fin, 0,5 s maximum de chaque côté), en .webm 720p de moins de 4 Mo, plus `cine/durations.json` (la durée de chaque vidéo, lue par le serveur pour mettre le chrono en pause juste le temps qu'il faut).
 
 Remplacer une vidéo (par exemple celle du Perché) : dépose le nouveau fichier sous le même nom dans `assets-src/` et relance `npm run assets`. Les navigateurs la rechargent d'eux-mêmes.
+
+Pour ne refaire qu'une partie (plus rapide) : `ONLY=gif npm run assets` (ne traite que les fichiers dont le nom contient « gif »).
 
 Trop ou pas assez de fond retiré ? Règle la tolérance : `BG_TOLERANCE=50 npm run assets` (défaut 70, 34 pour le Perché pour garder sa fumée verte).
 

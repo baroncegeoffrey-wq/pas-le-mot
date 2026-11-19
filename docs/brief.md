@@ -3,7 +3,7 @@
 **En 5 lignes**
 1. Un combat de mots croisés en ligne, façon JRPG : 2 joueurs, face à face dans une arène, sur la même grille de 12 mots très croisés (chaque mot trouvé donne des lettres à ceux qu'il croise).
 2. La moitié des mots est classique, l'autre moitié vient de l'argot d'aujourd'hui (vulgaire autorisé). Ce sont des mots qui existent, avec de vraies définitions.
-3. Chacun a 100 PV. Tu remplis les cases d'un mot puis tu appuies sur Entrée : juste = tu frappes l'adversaire (3 dégâts par lettre), faux = 5 dégâts de recul pour toi.
+3. Chacun a 100 PV. Tu remplis les cases d'un mot puis tu appuies sur Entrée : juste = tu frappes l'adversaire (3 dégâts par lettre, × 1,5 à partir de 7 lettres), faux = 5 dégâts de recul pour toi.
 4. Un mot validé s'affiche chez les deux joueurs dans la couleur de celui qui l'a trouvé, et ses lettres aident pour les mots qui le croisent.
 5. K.O. dès qu'un joueur tombe à 0 PV. Sinon, au bout de 2 minutes (ou grille pleine), celui qui a le plus de PV gagne.
 
@@ -27,7 +27,8 @@
 | Action | Effet |
 |---|---|
 | Départ | 100 PV chacun |
-| Mot juste | Dégâts à l'adversaire = lettres × 3 (FLEX = 12, CHAUSSETTE = 30) |
+| Mot juste | Dégâts à l'adversaire = lettres × 3 (FLEX = 12, LIMACE = 18) |
+| Coup critique (mot de 7 lettres ou plus) | Dégâts × 1,5, arrondis (TCHATCHE = 24 × 1,5 = 36, CHAUSSETTE = 45) |
 | Mot faux | 5 PV de dégâts de recul pour toi, et ce mot est bloqué 3 secondes pour toi (anti-spam) |
 | Acheter une lettre (révélée pour toi seul) | 3 PV |
 
@@ -36,6 +37,9 @@
 - Le serveur calcule tout ; le navigateur ne fait qu'afficher.
 
 **Ressenti des coups**
+- Chaque mot trouvé se voit, en 3 temps. **Charge** (0,2 s) : l'attaquant s'illumine, une aura de sa couleur grossit autour de lui, l'arène s'assombrit. **Tir** (0,4 s) : un projectile énorme (au moins la taille du perso, plus gros pour un mot long) traverse l'arène avec une traînée lumineuse et des particules : lance de glace géante cyan (Givré), boule de fumée verte et violette qui tourbillonne avec des champignons lumineux (Perché), cassette géante qui glitche avec bandes RGB, pixels et éclats d'écran (Verlan). **Impact** : explosion de la taille du perso adverse (éclats de glace, nuage de fumée, explosion de pixels), onde de choc, puis le coup ci-dessous. La barre de PV ne descend qu'à l'impact.
+- Coup critique : la mini-cinématique de l'attaquant (3 s) se joue dans le cadre de l'arène chez les deux joueurs, avec « CRITIQUE ! » en gros, sans mettre le chrono en pause ; puis le projectile part, encore plus gros.
+- Les persos sont animés (boucle de 3 s), celui de droite en miroir.
 - Chaque coup : arrêt sur image de 80 ms, tremblement de l'écran proportionnel aux dégâts, flash blanc et recul de la cible, chiffre de dégâts qui jaillit, étincelles et sang stylisé (pixels).
 - K.O. : ralenti, zoom sur celui qui tombe, grand « K.O. », puis l'écran de fin.
 
@@ -50,7 +54,7 @@
 ## Mode solo
 
 - Bouton « Jouer seul » à l'accueil : la partie démarre tout de suite, sans adversaire.
-- On frappe un mannequin d'entraînement (100 PV). Mêmes règles qu'à deux : chrono de 2 minutes, dégâts lettres × 3, recul de 5 PV par erreur, lettre achetée à 3 PV.
+- On frappe un mannequin d'entraînement (100 PV). Mêmes règles qu'à deux : chrono de 2 minutes, dégâts lettres × 3 (× 1,5 à partir de 7 lettres), recul de 5 PV par erreur, lettre achetée à 3 PV.
 - Fin au K.O. du mannequin, au chrono ou quand la grille est pleine. L'écran de fin affiche les dégâts infligés et le nombre de mots trouvés.
 - « Rejouer » relance une partie solo.
 
