@@ -23,6 +23,17 @@
   --perche: #b57bf0;
   --verlan: #f5a442;
 
+  /* Attaques à chaque mot trouvé (dessinées par attack.js, en mode additif) */
+  --fx-ice: #00e5ff;
+  --fx-ice-white: #dff8ff;
+  --fx-smoke-green: #7dff8a;
+  --fx-smoke-violet: #a24dff;
+  --fx-shroom: #8af2ff;
+  --fx-tape-r: #ff2a4f;
+  --fx-tape-g: #2aff7a;
+  --fx-tape-b: #2a6bff;
+  --fx-tape-body: #ff2a6d;
+
   /* Givre (Freeze) */
   --ice-bg: rgba(6, 18, 32, 0.9);
   --ice-1: rgba(235, 248, 255, 0.55);
@@ -399,6 +410,10 @@ body.hitstop * { animation-play-state: paused !important; }
 @keyframes recoil { 0% { translate: 0 0; } 30% { translate: calc(var(--dir) * 26px) -4px; } 100% { translate: 0 0; } }
 @keyframes lunge { 0%, 100% { translate: 0 0; } 40% { translate: calc(var(--dir-lunge, 1) * 22px) 0; } }
 #fighter-opp.lunge { --dir-lunge: -1; }
+
+/* Attaque à chaque mot : le canvas des effets (attack.js) et l'attaquant qui charge */
+.fx-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
+.fighter.charging img { filter: brightness(1.9) drop-shadow(0 0 10px var(--aura)) drop-shadow(0 0 22px var(--aura)); transition: filter 0.2s; }
 
 /* Chiffres de dégâts */
 .dmg {

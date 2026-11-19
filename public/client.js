@@ -26,6 +26,7 @@ const iceAvatar = $('ice-avatar');
 const cineLayer = $('cine');
 const cineVideo = $('cine-video');
 const arena = $('arena');
+Attack.init(arena); // le canvas des attaques, posé sur l'arène
 const boxMe = $('box-me');
 const boxOpp = $('box-opp');
 const fighterMe = $('fighter-me');
@@ -414,9 +415,16 @@ function fillPlayerBox(box, player, isMe, powersLeft) {
 
 // Met à jour les deux barres de PV. La partie blanche (« ghost ») descend un peu
 // après la barre colorée, pour bien voir le morceau de vie perdu.
+// PV affichés = PV du serveur + dégâts encore « en vol » (le projectile n'a
+// pas encore touché) : la barre ne descend qu'à l'impact.
+let lastHp = [100, 100];
+let pendingDamage = [0, 0];
+
 function setHp(hp, instant) {
-  hp.forEach((value, slot) => {
+  lastHp = hp.slice();
+  hp.forEach((serverValue, slot) => {
     if (slot !== mySlot && slot !== 1 - mySlot) return;
+    const value = Math.min(maxHp, serverValue + (pendingDamage[slot] || 0));
     const box = boxOf(slot);
     const bar = box.querySelector('.hp');
     const pct = Math.max(0, Math.min(100, (value / maxHp) * 100));
@@ -435,7 +443,9 @@ function setHp(hp, instant) {
 /* ---------- Impacts : chaque coup se sent ---------- */
 
 function resetFighters() {
-  [fighterMe, fighterOpp].forEach((f) => f.classList.remove('iced', 'flash', 'recoil', 'lunge', 'ko-fall'));
+  Attack.clear();
+  pendingDamage = [0, 0];
+  [fighterMe, fighterOpp].forEach((f) => f.classList.remove('iced', 'flash', 'recoil', 'lunge', 'ko-fall', 'charging'));
   arena.classList.remove('ko-zoom', 'ko-left', 'ko-right', 'upside-down');
   $('ko-text').hidden = true;
 }
@@ -482,13 +492,11 @@ function popDamage(x, y, damage, kind) {
 function hitFx(side, damage, kind) {
   if (!damage) return;
   const target = side === 'me' ? fighterMe : fighterOpp;
-  const attacker = side === 'me' ? fighterOpp : fighterMe;
   const box = target.getBoundingClientRect();
   const origin = arena.getBoundingClientRect();
   const x = box.left - origin.left + box.width / 2;
   const y = box.top - origin.top + box.height * 0.4;
 
-  if (kind === 'word') replay(attacker, 'lunge');
   document.body.classList.add('hitstop');
   setTimeout(() => {
     document.body.classList.remove('hitstop');
@@ -505,6 +513,29 @@ function hitFx(side, damage, kind) {
 }
 
 const sideOf = (slot) => (slot === mySlot ? 'me' : 'opp');
+const fighterOf = (slot) => (slot === mySlot ? fighterMe : fighterOpp);
+const avatarOfSlot = (slot) => (slot === mySlot ? myAvatar : (opponent ? opponent.avatar : DUMMY.avatar));
+
+// Mot trouvé : l'attaquant charge, tire son projectile, et l'impact (barre de
+// PV, hit-stop, tremblement...) arrive quand il touche. Voir attack.js.
+function attackFx(by, target, letters, damage, big = false) {
+  pendingDamage[target] += damage;
+  setHp(lastHp);
+  const from = fighterOf(by);
+  Attack.fire({
+    from,
+    to: fighterOf(target),
+    avatar: avatarOfSlot(by),
+    letters,
+    big,
+    onShot: () => replay(from, 'lunge'),
+    onImpact: () => {
+      pendingDamage[target] = Math.max(0, pendingDamage[target] - damage);
+      setHp(lastHp);
+      hitFx(sideOf(target), damage, 'word');
+    },
+  });
+}
 
 function setPips(box, left) {
   const pips = box.querySelector('.pips');
@@ -724,8 +755,11 @@ socket.on('game-over', ({
     else if (winner === mySlot) showResult('GAGNÉ !', how, 'win', hp, winner, extra);
     else showResult('PERDU...', how, 'lose', hp, winner, extra);
   };
-  if (ko !== null && ko !== undefined) playKO(ko, show);
-  else show();
+  // On laisse les projectiles encore en vol toucher avant le K.O. ou l'écran de fin.
+  Attack.whenIdle(() => {
+    if (ko !== null && ko !== undefined) playKO(ko, show);
+    else show();
+  });
 });
 
 // K.O. : ralenti, zoom sur celui qui tombe, grand « K.O. », puis l'écran de fin.
@@ -1028,7 +1062,7 @@ socket.on('word-claimed', ({
   w.clueEl.classList.add(by === mySlot ? 'mine' : 'theirs');
   if (currentWord === wordId) buyBtn.disabled = true;
   setHp(hp);
-  hitFx(sideOf(target), damage, 'word');
+  attackFx(by, target, letters.length, damage);
   gameStatus.textContent = by === mySlot
     ? `Bien vu ! ${damage} dégâts (${w.number})`
     : `${opponent ? opponent.pseudo : 'L\'adversaire'} trouve le ${w.number} et te frappe : -${damage} PV`;
