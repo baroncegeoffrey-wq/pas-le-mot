@@ -7,11 +7,37 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main>
+  <!-- Écran d'accueil : pseudo + recherche d'adversaire -->
+  <section id="lobby" class="screen">
     <h1>PAS LE MOT</h1>
     <p class="sub">C'est pas le mot que tu crois</p>
-    <p id="status">Connexion au serveur...</p>
-  </main>
+    <form id="find-form">
+      <label for="pseudo">Ton pseudo</label>
+      <input id="pseudo" name="pseudo" maxlength="16" autocomplete="off" required>
+      <button type="submit" id="find-btn" disabled>Trouver une partie</button>
+    </form>
+    <p id="status" class="status">Connexion au serveur...</p>
+  </section>
+
+  <!-- Écran de jeu -->
+  <section id="game" class="screen" hidden>
+    <header class="scoreboard">
+      <div class="player" id="player-0"><span class="name"></span><span class="score">0</span></div>
+      <div class="vs">VS</div>
+      <div class="player" id="player-1"><span class="name"></span><span class="score">0</span></div>
+    </header>
+    <p id="game-status" class="status">Remplis un mot puis appuie sur Entrée.</p>
+    <div class="board-area">
+      <div id="board" class="board"></div>
+      <div class="clues">
+        <h2>Horizontal</h2>
+        <ol id="clues-across"></ol>
+        <h2>Vertical</h2>
+        <ol id="clues-down"></ol>
+      </div>
+    </div>
+  </section>
+
   <script src="/socket.io/socket.io.js"></script>
   <script src="client.js"></script>
 </body>
