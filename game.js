@@ -73,7 +73,7 @@ class Game {
 
   // Un joueur propose un mot. Renvoie ce qui s'est passé :
   // - { type: 'ignored' } : mot inconnu, déjà trouvé ou incomplet (pas de pénalité)
-  // - { type: 'claimed', ... } : juste, +1, le mot est à lui
+  // - { type: 'claimed', ... } : juste, un point par lettre, le mot est à lui
   // - { type: 'wrong', ... } : faux, -1, et le mot est bloqué 3 s pour lui
   // - { type: 'locked', ... } : le mot est encore bloqué pour lui (pas de pénalité)
   submitWord(slot, wordId, letters, now = Date.now()) {
@@ -90,7 +90,7 @@ class Game {
 
     if (answer === word.answer) {
       this.claimedBy.set(wordId, slot);
-      this.scores[slot] += 1;
+      this.scores[slot] += word.length; // un point par lettre
       this.stats[slot].found += 1;
       return { type: 'claimed', wordId, letters: word.answer, by: slot, scores: [...this.scores] };
     }

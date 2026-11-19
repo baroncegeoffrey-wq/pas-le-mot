@@ -1,19 +1,20 @@
 // Fabrication d'une grille de mots croisés à partir de data/mots.json.
 //
-// Méthode : placement "glouton" avec beaucoup d'essais.
+// Méthode : placement « glouton » avec beaucoup d'essais.
 // - On mélange les mots classiques et les mots d'argot, puis on les pose un par
 //   un en alternant les deux types. Le premier mot est posé à l'horizontale.
-// - Chaque mot suivant doit croiser une lettre déjà posée. On liste toutes les
-//   positions valides (lettres qui correspondent, pas de mot collé à un autre)
-//   et on choisit celle qui croise le plus de mots et garde la grille compacte.
-// - Si un mot ne rentre nulle part, on le saute et on prend le suivant du même
-//   type. On recommence tout ça plusieurs fois et on garde la meilleure grille.
+// - Chaque mot suivant doit croiser une lettre déjà posée. À chaque étape, on
+//   compare plusieurs mots candidats et on garde celui qui croise le plus de
+//   mots déjà posés : plus de croisements = plus d'indices pour les joueurs.
+// - On recommence plusieurs fois et on tire au hasard parmi les grilles les
+//   plus croisées.
 const WORDS = require('./data/mots.json');
 
-const MIN_WORDS = 8;
-const MAX_WORDS = 10;
+const MIN_WORDS = 12;
+const MAX_WORDS = 12;
 const MAX_SIZE = 13; // largeur et hauteur max de la grille, en cases
-const ATTEMPTS = 60;
+const ATTEMPTS = 35;
+const CANDIDATES = 20;
 const MIN_POOL = 10; // en dessous, on ignore les mots à éviter pour ce type
 
 function shuffle(list) {
@@ -108,7 +109,7 @@ function findBestPlacement(cells, bounds, word) {
         // Plus de croisements = mieux ; à égalité, la grille la plus carrée et
         // la plus petite. Un peu de hasard pour varier les grilles.
         const score = crossings * 10 - Math.max(width, height) - (width * height) / 50 + Math.random();
-        if (!best || score > best.score) best = { row, col, direction, score, bounds: b };
+        if (!best || score > best.score) best = { row, col, direction, score, crossings, bounds: b };
       }
     }
   }
@@ -158,11 +159,26 @@ function tryBuild(target, exclude) {
         continue;
       }
 
-      const spot = findBestPlacement(cells, bounds, word);
-      if (!spot) continue; // ce mot ne rentre pas : on essaie le suivant
-      placeWord(cells, word, spot.row, spot.col, spot.direction);
+      // On compare plusieurs mots candidats et on garde celui qui croise le
+      // plus de mots déjà posés : plus de croisements = plus d'indices.
+      pool.unshift(entry);
+      let choice = null;
+      for (let i = 0; i < Math.min(CANDIDATES, pool.length); i++) {
+        const spot = findBestPlacement(cells, bounds, pool[i].mot);
+        if (spot && (!choice || spot.crossings > choice.spot.crossings
+          || (spot.crossings === choice.spot.crossings && spot.score > choice.spot.score))) {
+          choice = { index: i, spot };
+        }
+      }
+      if (!choice) {
+        pool.splice(0, Math.min(CANDIDATES, pool.length)); // aucun ne rentre : on passe aux suivants
+        continue;
+      }
+      const [picked] = pool.splice(choice.index, 1);
+      const { spot } = choice;
+      placeWord(cells, picked.mot, spot.row, spot.col, spot.direction);
       bounds = spot.bounds;
-      placed.push({ entry, row: spot.row, col: spot.col, direction: spot.direction });
+      placed.push({ entry: picked, row: spot.row, col: spot.col, direction: spot.direction });
       done = true;
     }
 
@@ -218,13 +234,13 @@ function generateGrid({ exclude = new Set() } = {}) {
     if (!result) continue;
     const { bounds } = result;
     const size = Math.max(bounds.maxRow - bounds.minRow, bounds.maxCol - bounds.minCol) + 1;
-    results.push({ ...result, score: result.crossings * 3 - size });
+    results.push({ ...result, score: result.crossings * 6 - size });
   }
 
   // On tire au hasard parmi le meilleur quart des grilles : toujours de bonnes
   // grilles, mais sans favoriser toujours les mêmes mots (ceux qui croisent bien).
   results.sort((a, b) => b.score - a.score);
-  const top = results.slice(0, Math.max(1, Math.ceil(results.length / 4)));
+  const top = results.slice(0, Math.max(1, Math.ceil(results.length / 8)));
   const best = top[Math.floor(Math.random() * top.length)];
 
   if (!best) throw new Error('Impossible de construire une grille avec la bibliothèque actuelle');

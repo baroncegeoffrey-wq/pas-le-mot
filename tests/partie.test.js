@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const {
-  startServer, waitFor, expectNothing, answerOfClue, startMatch, sleep, pick,
+  startServer, waitFor, expectNothing, answerOfClue, pointsOf, startMatch, sleep, pick,
 } = require('./helpers');
 const { Game } = require('../game');
 
@@ -15,7 +15,7 @@ test('chrono : game-start annonce la fin, game-over arrive au bout du temps', as
     const first = g1.clues[0];
     p1.emit('submit-word', { roomId: g1.roomId, wordId: first.wordId, letters: answerOfClue(first.clue) });
     const [o1, o2] = await Promise.all([waitFor(p1, 'game-over', 3000), waitFor(p2, 'game-over', 3000)]);
-    assert.deepStrictEqual(pick(o1, ['scores', 'winner']), { scores: [1, 0], winner: 0 });
+    assert.deepStrictEqual(pick(o1, ['scores', 'winner']), { scores: [pointsOf(first.clue), 0], winner: 0 });
     assert.deepStrictEqual(o2, o1);
     // Stats de fin : 1 mot trouvé pour p1, rien pour p2.
     assert.deepStrictEqual(o1.stats, [
@@ -56,7 +56,7 @@ test('grille pleine : la partie s\'arrête tout de suite, puis on peut rejouer',
     }
     const result = await over;
     assert.strictEqual(result.winner, 1);
-    assert.strictEqual(result.scores[1], g1.clues.length);
+    assert.strictEqual(result.scores[1], g1.clues.reduce((sum, c) => sum + pointsOf(c.clue), 0));
 
     // Plus rien ne compte après la fin.
     p1.emit('submit-word', { roomId: g1.roomId, wordId: g1.clues[0].wordId, letters: 'X' });
@@ -203,7 +203,7 @@ test('compte à rebours : rien ne compte avant le GO, puis la partie dure son te
     await sleep(500);
     const ok = waitFor(p2, 'word-claimed');
     p1.emit('submit-word', { roomId: g1.roomId, wordId: clue.wordId, letters: answerOfClue(clue.clue) });
-    assert.deepStrictEqual((await ok).scores, [1, 0]);
+    assert.deepStrictEqual((await ok).scores, [pointsOf(clue.clue), 0]);
   } finally {
     p1.close(); p2.close(); server.stop();
   }

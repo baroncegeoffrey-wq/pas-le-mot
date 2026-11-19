@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { Game, normalize } = require('../game');
 const {
-  startServer, createPlayer, waitFor, expectNothing, answerOfClue, forbiddenKeys, startMatch,
+  startServer, createPlayer, waitFor, expectNothing, answerOfClue, pointsOf, forbiddenKeys, startMatch,
 } = require('./helpers');
 
 test('normalize : sans majuscules ni accents', () => {
@@ -13,7 +13,7 @@ test('normalize : sans majuscules ni accents', () => {
   assert.strictEqual(normalize('vénère'), 'VENERE');
 });
 
-test('Game : +1, -1, verrou, mot incomplet ignoré', () => {
+test('Game : un point par lettre, -1, verrou, mot incomplet ignoré', () => {
   const game = new Game();
   const [w] = game.grid.words;
   assert.deepStrictEqual(game.submitWord(0, w.id, 'X'.repeat(w.length - 1)), { type: 'ignored' });
@@ -21,7 +21,7 @@ test('Game : +1, -1, verrou, mot incomplet ignoré', () => {
   assert.deepStrictEqual(game.scores, [0, -1]);
   const ok = game.submitWord(0, w.id, w.display.split(''));
   assert.strictEqual(ok.type, 'claimed');
-  assert.deepStrictEqual(game.scores, [1, -1]);
+  assert.deepStrictEqual(game.scores, [w.length, -1]); // un point par lettre
   // Verrouillé : plus personne ne peut le jouer, même juste.
   assert.deepStrictEqual(game.submitWord(1, w.id, w.answer), { type: 'ignored' });
   assert.deepStrictEqual(game.submitWord(0, 'w999', 'ABC'), { type: 'ignored' });
@@ -34,7 +34,7 @@ test('partie : même grille pour les deux, sans aucune solution', async () => {
   try {
     assert.deepStrictEqual(g1.grid, g2.grid);
     assert.deepStrictEqual(g1.clues, g2.clues);
-    assert.ok(g1.grid.words.length >= 8 && g1.grid.words.length <= 10);
+    assert.strictEqual(g1.grid.words.length, 12);
     assert.deepStrictEqual(forbiddenKeys(g1), []);
 
     const json = JSON.stringify(g1);
@@ -69,7 +69,7 @@ test('partie : mot juste, mot faux, verrou et premier arrivé gagne', async () =
     assert.deepStrictEqual(r1, r2);
     assert.strictEqual(r1.by, 1);
     assert.strictEqual(r1.letters, answerOfClue(first.clue));
-    assert.deepStrictEqual(r1.scores, [-1, 1]);
+    assert.deepStrictEqual(r1.scores, [-1, pointsOf(first.clue)]);
 
     // Mot verrouillé : le rejouer ne fait rien.
     p1.emit('submit-word', { roomId, wordId: first.wordId, letters: answerOfClue(first.clue) });
@@ -90,7 +90,7 @@ test('partie : mot juste, mot faux, verrou et premier arrivé gagne', async () =
     await new Promise((r) => setTimeout(r, 300));
     assert.strictEqual(claims.length, 1);
     const total = claims[0].scores[0] + claims[0].scores[1];
-    assert.strictEqual(total, 1); // -1 + 1 + 1
+    assert.strictEqual(total, -1 + pointsOf(first.clue) + pointsOf(second.clue));
 
     // Un intrus hors partie ne peut rien valider.
     const intruder = createPlayer(server.url);

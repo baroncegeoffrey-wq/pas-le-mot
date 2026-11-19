@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const {
-  startServer, createPlayer, waitFor, expectNothing, answerOfClue, forbiddenKeys, startMatch, sleep, pick,
+  startServer, createPlayer, waitFor, expectNothing, answerOfClue, pointsOf, forbiddenKeys, startMatch, sleep, pick,
 } = require('./helpers');
 
 async function startSolo(server, pseudo = 'Solo') {
@@ -51,7 +51,8 @@ test('solo : mêmes règles (+1, -1, blocage, achat), fin quand la grille est pl
     p.emit('submit-word', { roomId: g.roomId, wordId: a.wordId, letters: answerOfClue(a.clue) });
     const result = await over;
     assert.deepStrictEqual(pick(result, ['scores', 'winner', 'found', 'total']), {
-      scores: [g.clues.length - 2], winner: null, found: g.clues.length, total: g.clues.length,
+      // tous les mots (un point par lettre), moins l'erreur et la lettre achetée
+      scores: [g.clues.reduce((sum, c) => sum + pointsOf(c.clue), 0) - 2], winner: null, found: g.clues.length, total: g.clues.length,
     });
     assert.deepStrictEqual(result.stats, [{ found: g.clues.length, wrong: 1, bought: 1, powers: 0 }]);
     assert.ok(result.solutions.every((s) => s.foundBy === 0));
@@ -68,7 +69,7 @@ test('solo : fin au chrono avec le nombre de mots trouvés', async () => {
     p.emit('submit-word', { roomId: g.roomId, wordId: clue.wordId, letters: answerOfClue(clue.clue) });
     const over = await waitFor(p, 'game-over');
     assert.deepStrictEqual(pick(over, ['scores', 'winner', 'found', 'total']), {
-      scores: [1], winner: null, found: 1, total: g.clues.length,
+      scores: [pointsOf(clue.clue)], winner: null, found: 1, total: g.clues.length,
     });
   } finally {
     p.close(); server.stop();

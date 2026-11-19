@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const {
-  startServer, createPlayer, waitFor, expectNothing, answerOfClue, forbiddenKeys, startMatch, sleep,
+  startServer, createPlayer, waitFor, expectNothing, answerOfClue, pointsOf, forbiddenKeys, startMatch, sleep,
 } = require('./helpers');
 
 const GARBAGE = [
@@ -36,7 +36,7 @@ test('messages absurdes : le serveur ne plante pas et ne bouge pas les scores', 
     const clue = g1.clues[0];
     const claimed = waitFor(p2, 'word-claimed');
     p1.emit('submit-word', { roomId: g1.roomId, wordId: clue.wordId, letters: answerOfClue(clue.clue) });
-    assert.deepStrictEqual((await claimed).scores, [1, 0]);
+    assert.deepStrictEqual((await claimed).scores, [pointsOf(clue.clue), 0]);
   } finally {
     p1.close(); p2.close(); server.stop();
   }

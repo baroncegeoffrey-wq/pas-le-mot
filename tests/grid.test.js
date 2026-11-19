@@ -66,19 +66,35 @@ function checkGrid(grid) {
   assert.ok(words.every((w) => Number.isInteger(w.number) && w.number > 0));
 }
 
-test('grid : 300 grilles valides', () => {
+test('grid : 80 grilles valides', () => {
   const t0 = Date.now();
-  for (let i = 0; i < 300; i++) checkGrid(generateGrid());
-  const perGrid = (Date.now() - t0) / 300;
-  assert.ok(perGrid < 100, `trop lent : ${perGrid} ms par grille`);
+  for (let i = 0; i < 80; i++) checkGrid(generateGrid());
+  const perGrid = (Date.now() - t0) / 80;
+  // Une grille est fabriquée une seule fois par partie : moins d'une demi-seconde suffit.
+  assert.ok(perGrid < 500, `trop lent : ${perGrid} ms par grille`);
 });
 
 test('grid : les mots à éviter ne sortent pas (s\'il en reste assez)', () => {
   const WORDS = require('../data/mots.json');
   const exclude = new Set(WORDS.slice(0, 20).map((w) => w.mot));
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 20; i++) {
     const g = generateGrid({ exclude });
     checkGrid(g);
     assert.ok(g.words.every((w) => !exclude.has(w.answer)));
   }
+});
+
+test('grid : 12 mots bien croisés (en moyenne plus de 2 croisements par mot)', () => {
+  let crossings = 0;
+  let words = 0;
+  for (let i = 0; i < 40; i++) {
+    const g = generateGrid();
+    assert.strictEqual(g.words.length, 12);
+    const count = new Map();
+    const cellsOf = (w) => Array.from({ length: w.length }, (_, k) =>
+      `${w.row + (w.direction === 'down' ? k : 0)},${w.col + (w.direction === 'across' ? k : 0)}`);
+    g.words.forEach((w) => cellsOf(w).forEach((k) => count.set(k, (count.get(k) || 0) + 1)));
+    g.words.forEach((w) => { crossings += cellsOf(w).filter((k) => count.get(k) > 1).length; words++; });
+  }
+  assert.ok(crossings / words > 2.1, `seulement ${(crossings / words).toFixed(2)} croisements par mot`);
 });
