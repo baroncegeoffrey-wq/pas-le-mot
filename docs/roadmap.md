@@ -21,6 +21,11 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 - [x] Tests « casser le jeu » passés
 - [x] README
 
+## L2 bis · Mode solo [ ]
+- [x] Bouton « Jouer seul » : partie à un joueur, mêmes règles
+- [x] Écran de fin solo (score et mots trouvés) + Rejouer en solo
+- [x] Tests à un joueur simulé
+
 ## L3 · Avatars et pouvoirs (vendredi matin, si L1 et L2 sont en ligne) [ ]
 - [ ] Choix de l'avatar avant la partie
 - [ ] Le Givré : Freeze (3 cases gelées 10 s)

@@ -46,6 +46,7 @@ h1 { font-size: 3rem; margin: 0; letter-spacing: .05em; }
 }
 #find-form input { background: var(--cell); color: var(--ink); }
 button { background: var(--p0); color: white; cursor: pointer; font-weight: 600; }
+button.secondary { background: transparent; border: 1px solid var(--cell); color: var(--cell); }
 button:disabled { opacity: .5; cursor: default; }
 .status { margin-top: 1rem; min-height: 1.5em; opacity: .85; }
 

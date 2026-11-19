@@ -40,6 +40,13 @@
 - Écran de résultat, puis bouton « Rejouer ».
 - Si un joueur se déconnecte, l'autre est prévenu (« Adversaire déconnecté »).
 
+## Mode solo
+
+- Bouton « Jouer seul » à l'accueil : la partie démarre tout de suite, sans adversaire.
+- Mêmes règles qu'à deux : même grille, chrono de 4 minutes, +1 / -1, mot bloqué 3 s après une erreur, achat de lettre à -1.
+- Fin au chrono ou quand la grille est pleine. Pas de gagné ni de perdu : l'écran de fin affiche le score et le nombre de mots trouvés.
+- « Rejouer » relance une partie solo.
+
 ## Avatars et pouvoirs (lot 3)
 
 Avant la partie, chaque joueur choisit un avatar. Chaque avatar a un pouvoir, utilisable 2 fois par partie.

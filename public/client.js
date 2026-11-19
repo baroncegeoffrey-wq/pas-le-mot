@@ -9,6 +9,7 @@ const statusText = $('status');
 const gameStatus = $('game-status');
 const findForm = $('find-form');
 const findBtn = $('find-btn');
+const soloBtn = $('solo-btn');
 const pseudoInput = $('pseudo');
 const board = $('board');
 const timerEl = $('timer');
@@ -21,7 +22,8 @@ let mySlot = null;
 let words = new Map(); // wordId -> { id, number, direction, cells: ["r,c", ...] }
 let cells = new Map(); // "r,c" -> { el, input, across, down, locked }
 let currentWord = null; // wordId sélectionné
-let players = []; // [{ pseudo, slot }] rangés par slot
+let players = []; // [{ pseudo, slot }] rangés par slot (un seul en solo)
+let lastMode = 'duo'; // 'duo' ou 'solo' : ce que relance le bouton Rejouer
 let timerInterval = null;
 let clockOffset = 0; // heure du serveur - heure locale
 
@@ -40,6 +42,7 @@ try { pseudoInput.value = localStorage.getItem('pseudo') || ''; } catch (e) { /*
 socket.on('connect', () => {
   statusText.textContent = 'Connecté. Choisis un pseudo.';
   findBtn.disabled = false;
+  soloBtn.disabled = false;
 });
 socket.on('disconnect', () => {
   statusText.textContent = 'Déconnecté du serveur';
@@ -55,17 +58,31 @@ findForm.addEventListener('submit', (event) => {
 });
 
 function findGame() {
+  lastMode = 'duo';
   socket.emit('find-game', { pseudo: pseudoInput.value.trim() });
   findBtn.disabled = true;
   statusText.textContent = 'Recherche d\'un adversaire...';
 }
 
-// Revient à l'accueil et relance une recherche avec le même pseudo.
+function playSolo() {
+  lastMode = 'solo';
+  socket.emit('play-solo', { pseudo: pseudoInput.value.trim() });
+}
+
+soloBtn.addEventListener('click', () => {
+  const pseudo = pseudoInput.value.trim();
+  if (!pseudo) { pseudoInput.reportValidity(); return; }
+  try { localStorage.setItem('pseudo', pseudo); } catch (e) { /* tant pis */ }
+  playSolo();
+});
+
+// Revient à l'accueil et relance une partie du même type, avec le même pseudo.
 $('replay-btn').addEventListener('click', () => {
   resultScreen.hidden = true;
   gameScreen.hidden = true;
   lobby.hidden = false;
-  findGame();
+  if (lastMode === 'solo') playSolo();
+  else findGame();
 });
 
 socket.on('waiting', () => {
@@ -77,9 +94,11 @@ socket.on('waiting', () => {
 socket.on('game-start', (data) => {
   roomId = data.roomId;
   mySlot = data.you.slot;
-  players = [data.you, data.opponent].sort((a, b) => a.slot - b.slot);
+  players = [data.you, data.opponent].filter(Boolean).sort((a, b) => a.slot - b.slot);
 
-  for (const p of [data.you, data.opponent]) {
+  // En solo, la case de l'adversaire est cachée.
+  $('player-1').hidden = !data.opponent;
+  for (const p of players) {
     const box = $(`player-${p.slot}`);
     box.querySelector('.name').textContent = p.pseudo;
     box.querySelector('.score').textContent = '0';
@@ -123,10 +142,15 @@ function showResult(title, detail) {
   lobby.hidden = true;
   resultScreen.hidden = false;
   findBtn.disabled = false;
+  soloBtn.disabled = false;
   $('replay-btn').focus();
 }
 
-socket.on('game-over', ({ scores, winner }) => {
+socket.on('game-over', ({ scores, winner, found, total }) => {
+  if (players.length === 1) {
+    showResult('Partie terminée', `Score : ${scores[0]}  ·  ${found} mot${found > 1 ? 's' : ''} trouvé${found > 1 ? 's' : ''} sur ${total}`);
+    return;
+  }
   const title = winner === null ? 'Égalité !' : (winner === mySlot ? 'Gagné !' : 'Perdu...');
   const detail = players.map((p) => `${p.pseudo} : ${scores[p.slot]}`).join('  ·  ');
   showResult(title, detail);

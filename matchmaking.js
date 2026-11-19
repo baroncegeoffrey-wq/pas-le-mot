@@ -8,7 +8,8 @@ const MAX_PSEUDO_LENGTH = 16;
 // Joueurs en attente d'un adversaire : [{ socket, pseudo }]
 const queue = [];
 
-// roomId -> { game, timer, players: [{ id, pseudo }, { id, pseudo }] }
+// roomId -> { game, timer, solo, players: [{ id, pseudo }, { id, pseudo }] }
+// (un seul joueur dans players en mode solo)
 const activeGames = new Map();
 
 // socketId -> roomId
@@ -50,6 +51,19 @@ function addToQueue(socket, rawPseudo, onMatch) {
     player.join(roomId);
   }
 
+  onMatch(roomId, room);
+}
+
+// Mode solo : un salon pour un seul joueur, sans passer par la file d'attente.
+function createSoloRoom(socket, rawPseudo, onMatch) {
+  if (playerRooms.has(socket.id)) return;
+  removeFromQueue(socket); // il attendait peut-être un adversaire
+
+  const roomId = crypto.randomUUID();
+  const room = { game: null, timer: null, solo: true, players: [{ id: socket.id, pseudo: cleanPseudo(rawPseudo) }] };
+  activeGames.set(roomId, room);
+  playerRooms.set(socket.id, roomId);
+  socket.join(roomId);
   onMatch(roomId, room);
 }
 
@@ -101,6 +115,7 @@ function endGame(roomId, io) {
 
 module.exports = {
   addToQueue,
+  createSoloRoom,
   removeFromQueue,
   handleDisconnect,
   endGame,

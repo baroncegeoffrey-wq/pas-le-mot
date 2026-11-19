@@ -3,7 +3,9 @@ const path = require('path');
 const http = require('http');
 const express = require('express');
 const { Server } = require('socket.io');
-const { addToQueue, handleDisconnect, getRoomOf, endGame } = require('./matchmaking');
+const {
+  addToQueue, createSoloRoom, handleDisconnect, getRoomOf, endGame,
+} = require('./matchmaking');
 const { Game } = require('./game');
 
 const app = express();
@@ -16,8 +18,8 @@ const GAME_DURATION_MS = Number(process.env.GAME_DURATION_MS) || 4 * 60 * 1000;
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Deux joueurs viennent d'être appariés : on crée la grille et on envoie à
-// chacun la version publique (sans les solutions).
+// Deux joueurs viennent d'être appariés (ou un joueur lance une partie solo) :
+// on crée la grille et on envoie à chacun la version publique (sans les solutions).
 function startGame(roomId, room) {
   room.game = new Game();
   const { grid, clues } = room.game.getPublicGrid();
@@ -31,7 +33,8 @@ function startGame(roomId, room) {
       grid,
       clues,
       you: { pseudo: player.pseudo, slot: index },
-      opponent: { pseudo: opponent.pseudo, slot: 1 - index },
+      // En solo, pas d'adversaire.
+      opponent: opponent ? { pseudo: opponent.pseudo, slot: 1 - index } : null,
       endsAt,
       // L'heure du serveur, pour que le client corrige un écart d'horloge.
       serverNow: Date.now(),
@@ -44,7 +47,17 @@ function startGame(roomId, room) {
 function finishGame(roomId, room) {
   if (room.game.over) return;
   const { scores, winner } = room.game.finish();
-  io.to(roomId).emit('game-over', { scores, winner });
+  if (room.solo) {
+    // En solo : pas de gagnant, juste ton score et le nombre de mots trouvés.
+    io.to(roomId).emit('game-over', {
+      scores: [scores[0]],
+      winner: null,
+      found: room.game.claimedBy.size,
+      total: room.game.grid.words.length,
+    });
+  } else {
+    io.to(roomId).emit('game-over', { scores, winner });
+  }
   endGame(roomId, io);
 }
 
@@ -113,6 +126,10 @@ io.on('connection', (socket) => {
 
   socket.on('find-game', (data) => {
     addToQueue(socket, data && data.pseudo, startGame);
+  });
+
+  socket.on('play-solo', (data) => {
+    createSoloRoom(socket, data && data.pseudo, startGame);
   });
 
   socket.on('submit-word', (data) => handleSubmitWord(socket, data));

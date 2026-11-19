@@ -36,16 +36,19 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 | Événement | Sens | Contenu |
 |---|---|---|
 | `find-game` | client → serveur | `{ pseudo, avatar }` |
+| `play-solo` | client → serveur | `{ pseudo }` (mode solo) |
 | `waiting` | serveur → client | |
-| `game-start` | serveur → clients | `{ roomId, grid, clues, you, opponent, endsAt }` (sans solutions) |
+| `game-start` | serveur → clients | `{ roomId, grid, clues, you, opponent, endsAt, serverNow }` (sans solutions ; `opponent` vaut `null` en solo) |
 | `submit-word` | client → serveur | `{ roomId, wordId, letters }` |
 | `word-claimed` | serveur → clients | `{ wordId, letters, by, scores }` |
-| `word-wrong` | serveur → client fautif | `{ wordId, scores, lockedUntil }` |
+| `word-wrong` | serveur → client fautif | `{ wordId, scores, lockedUntil, serverNow }` |
+| `word-locked` | serveur → client fautif | `{ wordId, lockedUntil, serverNow }` (renvoi pendant le blocage, sans pénalité) |
+| `scores` | serveur → adversaire | `{ scores }` (après une erreur ou un achat de l'autre joueur) |
 | `buy-letter` | client → serveur | `{ roomId, wordId }` |
 | `letter-revealed` | serveur → acheteur | `{ wordId, index, letter, scores }` |
 | `use-power` | client → serveur | `{ roomId }` |
 | `power-hit` | serveur → cible | `{ power, duration, payload }` |
-| `game-over` | serveur → clients | `{ scores, winner }` |
+| `game-over` | serveur → clients | `{ scores, winner }` (en solo : `{ scores: [score], winner: null, found, total }`) |
 | `opponent-left` | serveur → client | |
 
 ## Conventions
