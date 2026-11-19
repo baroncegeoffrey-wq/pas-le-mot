@@ -155,6 +155,7 @@ function handleSubmitWord(socket, data) {
       by: result.by,
       target: result.target,
       damage: result.damage,
+      critical: result.critical,
       hp: result.hp,
     });
     if (result.ko || room.game.isComplete()) finishGame(roomId, room);

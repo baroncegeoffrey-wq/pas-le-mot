@@ -415,6 +415,26 @@ body.hitstop * { animation-play-state: paused !important; }
 .fx-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
 .fighter.charging img { filter: brightness(1.9) drop-shadow(0 0 10px var(--aura)) drop-shadow(0 0 22px var(--aura)); transition: filter 0.2s; }
 
+/* Coup critique : mini-cinématique dans le cadre de l'arène + « CRITIQUE ! » */
+.crit { position: absolute; inset: 0; z-index: 5; pointer-events: none; display: grid; place-items: center; overflow: hidden; }
+.crit video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.crit.show video { animation: crit-in 0.25s ease-out; }
+.crit.no-video { background: radial-gradient(circle, rgba(255, 255, 255, 0.35), transparent 70%); }
+.crit-text {
+  position: relative;
+  font-family: var(--title);
+  font-weight: 700;
+  font-size: clamp(48px, 9vw, 110px);
+  color: var(--yellow);
+  text-shadow: 6px 0 var(--pink), -6px 0 var(--cyan), 0 0 30px var(--yellow), 0 6px 0 var(--ink);
+  transform: rotate(-6deg);
+}
+.crit.show .crit-text, .crit.again .crit-text { animation: crit-slam 0.5s cubic-bezier(0.2, 1.6, 0.4, 1), crit-glitch 0.18s steps(2) 0.5s 6; }
+@keyframes crit-in { 0% { opacity: 0; transform: scale(1.3); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes crit-slam { 0% { transform: rotate(-6deg) scale(3.5); opacity: 0; } 70% { transform: rotate(-6deg) scale(0.9); opacity: 1; } 100% { transform: rotate(-6deg) scale(1); } }
+@keyframes crit-glitch { 0% { translate: 0 0; } 50% { translate: 5px -3px; } 100% { translate: -4px 2px; } }
+.dmg.crit { color: var(--yellow); text-shadow: 4px 4px 0 var(--pink), -3px -3px 0 var(--cyan); }
+
 /* Chiffres de dégâts */
 .dmg {
   position: absolute;
@@ -491,7 +511,7 @@ body.hitstop * { animation-play-state: paused !important; }
 @keyframes cine-end { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0.95; } }
 @keyframes cine-flash { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
 
-.player-box { position: absolute; top: 18px; display: flex; flex-direction: column; gap: 6px; z-index: 2; }
+.player-box { position: absolute; top: 18px; display: flex; flex-direction: column; gap: 6px; z-index: 6; } /* au-dessus des effets */
 .player-box.me { left: 24px; }
 .player-box.opp { right: 24px; align-items: flex-end; }
 .nameplate {

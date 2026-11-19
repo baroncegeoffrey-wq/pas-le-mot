@@ -2,7 +2,7 @@
 // et surtout : aucune solution ne part vers le navigateur.
 const test = require('node:test');
 const assert = require('node:assert');
-const { Game, normalize } = require('../game');
+const { Game, normalize, wordDamage } = require('../game');
 const {
   startServer, createPlayer, waitFor, expectNothing, answerOfClue, damageOf, forbiddenKeys, startMatch,
 } = require('./helpers');
@@ -24,9 +24,11 @@ test('Game : dégâts = lettres × 3, recul de 5 sur erreur, verrou, mot incompl
   assert.deepStrictEqual(game.hp, [100, 95]); // recul pour le fautif
   const ok = game.submitWord(0, w.id, w.display.split(''));
   assert.strictEqual(ok.type, 'claimed');
-  assert.strictEqual(ok.damage, w.length * 3);
+  const expected = w.length >= 7 ? Math.round(w.length * 4.5) : w.length * 3;
+  assert.strictEqual(ok.damage, expected);
+  assert.strictEqual(ok.critical, w.length >= 7);
   assert.strictEqual(ok.target, 1);
-  assert.deepStrictEqual(game.hp, [100, 95 - w.length * 3]);
+  assert.deepStrictEqual(game.hp, [100, 95 - expected]);
   // Verrouillé : plus personne ne peut le jouer, même juste.
   assert.deepStrictEqual(game.submitWord(1, w.id, w.answer), { type: 'ignored' });
   assert.deepStrictEqual(game.submitWord(0, 'w999', 'ABC'), { type: 'ignored' });
@@ -136,4 +138,32 @@ test('Game : K.O. quand les PV tombent à 0, jamais en dessous', () => {
   for (let i = 0; i < 20; i++) g2.submitWord(0, w.id, 'Q'.repeat(w.length), i * 4000);
   assert.strictEqual(g2.hp[0], 0);
   assert.strictEqual(g2.finish().winner, 1);
+});
+
+test('coup critique : × 1,5 à partir de 7 lettres, arrondi', () => {
+  assert.deepStrictEqual(wordDamage(6), { critical: false, damage: 18 });
+  assert.deepStrictEqual(wordDamage(7), { critical: true, damage: 32 }); // 21 × 1,5 = 31,5
+  assert.deepStrictEqual(wordDamage(8), { critical: true, damage: 36 });
+  assert.deepStrictEqual(wordDamage(10), { critical: true, damage: 45 });
+});
+
+test('coup critique en vrai : les deux joueurs reçoivent critical et les bons dégâts', async () => {
+  const server = await startServer();
+  const { p1, p2, g1 } = await startMatch(server);
+  try {
+    const long = g1.clues.find((c) => answerOfClue(c.clue).length >= 7);
+    const short = g1.clues.find((c) => answerOfClue(c.clue).length < 7);
+    for (const [clue, critical] of [[long, true], [short, false]]) {
+      if (!clue) continue; // grille sans mot de cette taille : rien à vérifier
+      const got = [waitFor(p1, 'word-claimed'), waitFor(p2, 'word-claimed')];
+      p1.emit('submit-word', { roomId: g1.roomId, wordId: clue.wordId, letters: answerOfClue(clue.clue) });
+      const [a, b] = await Promise.all(got);
+      assert.deepStrictEqual(a, b);
+      assert.strictEqual(a.critical, critical);
+      assert.strictEqual(a.damage, damageOf(clue.clue));
+    }
+    assert.ok(long, 'une grille de 12 mots a au moins un mot de 7 lettres');
+  } finally {
+    p1.close(); p2.close(); server.stop();
+  }
 });

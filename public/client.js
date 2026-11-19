@@ -443,6 +443,7 @@ function setHp(hp, instant) {
 /* ---------- Impacts : chaque coup se sent ---------- */
 
 function resetFighters() {
+  finishCrit(false);
   Attack.clear();
   pendingDamage = [0, 0];
   [fighterMe, fighterOpp].forEach((f) => f.classList.remove('iced', 'flash', 'recoil', 'lunge', 'ko-fall', 'charging'));
@@ -507,9 +508,10 @@ function hitFx(side, damage, kind) {
     replay(target, 'flash');
     replay(target, 'recoil');
     popDamage(x, y - 40, damage, kind);
-    burstParticles(x, y, kind === 'word' ? 10 + Math.min(14, damage / 2) : 6, kind === 'word');
+    const strike = kind === 'word' || kind === 'crit';
+    burstParticles(x, y, strike ? 10 + Math.min(14, damage / 2) : 6, strike);
   }, HITSTOP_MS);
-  Sound.play(kind === 'word' ? 'impact' : 'bad');
+  Sound.play(kind === 'word' || kind === 'crit' ? 'impact' : 'bad');
 }
 
 const sideOf = (slot) => (slot === mySlot ? 'me' : 'opp');
@@ -518,23 +520,78 @@ const avatarOfSlot = (slot) => (slot === mySlot ? myAvatar : (opponent ? opponen
 
 // Mot trouvé : l'attaquant charge, tire son projectile, et l'impact (barre de
 // PV, hit-stop, tremblement...) arrive quand il touche. Voir attack.js.
-function attackFx(by, target, letters, damage, big = false) {
+// Coup critique : d'abord la mini-cinématique dans l'arène, puis un projectile
+// encore plus gros.
+function attackFx(by, target, letters, damage, critical = false) {
   pendingDamage[target] += damage;
   setHp(lastHp);
   const from = fighterOf(by);
-  Attack.fire({
-    from,
-    to: fighterOf(target),
-    avatar: avatarOfSlot(by),
-    letters,
-    big,
-    onShot: () => replay(from, 'lunge'),
-    onImpact: () => {
-      pendingDamage[target] = Math.max(0, pendingDamage[target] - damage);
-      setHp(lastHp);
-      hitFx(sideOf(target), damage, 'word');
-    },
-  });
+  const release = Attack.hold(); // le K.O. attendra aussi cette attaque
+  const fire = () => {
+    Attack.fire({
+      from,
+      to: fighterOf(target),
+      avatar: avatarOfSlot(by),
+      letters,
+      big: critical,
+      onShot: () => replay(from, 'lunge'),
+      onImpact: () => {
+        pendingDamage[target] = Math.max(0, pendingDamage[target] - damage);
+        setHp(lastHp);
+        hitFx(sideOf(target), damage, critical ? 'crit' : 'word');
+      },
+    });
+    release();
+  };
+  if (critical) playCrit(avatarOfSlot(by), fire);
+  else fire();
+}
+
+/* ---------- Coup critique : mini-cinématique dans l'arène ---------- */
+
+const CRIT_MS = 3000; // durée des mini-cinématiques (-crit.webm)
+const CRIT_TEXT_MS = 900; // sans vidéo : juste « CRITIQUE ! »
+const critLayer = $('crit');
+const critVideo = $('crit-video');
+const critFiles = {}; // avatar -> adresse locale (blob) de la mini-cinématique, ou 'missing'
+let critTimer = null;
+let critDone = null;
+
+// Pas de pause du chrono : la partie continue pendant la vidéo.
+function playCrit(avatar, done) {
+  // Une mini-cinématique déjà en cours : le 2e critique n'a que le texte.
+  const busy = critTimer !== null;
+  if (busy) {
+    setTimeout(done, CRIT_TEXT_MS);
+    replay(critLayer, 'again');
+    Sound.play('alert');
+    return;
+  }
+  const file = critFiles[avatar];
+  const withVideo = file && file !== 'missing' && file !== 'loading' && !reducedMotion();
+  critLayer.hidden = false;
+  critLayer.classList.toggle('no-video', !withVideo);
+  replay(critLayer, 'show');
+  if (withVideo) {
+    critVideo.src = file;
+    critVideo.currentTime = 0;
+    critVideo.play().catch(() => {});
+  }
+  Sound.play('alert');
+  critDone = done;
+  critTimer = setTimeout(() => finishCrit(true), withVideo ? CRIT_MS : CRIT_TEXT_MS);
+}
+
+function finishCrit(fire) {
+  clearTimeout(critTimer);
+  critTimer = null;
+  critVideo.pause();
+  critVideo.removeAttribute('src');
+  critLayer.hidden = true;
+  critLayer.classList.remove('show', 'again', 'no-video');
+  const done = critDone;
+  critDone = null;
+  if (fire && done) done();
 }
 
 function setPips(box, left) {
@@ -1044,7 +1101,7 @@ function submitCurrentWord() {
 }
 
 socket.on('word-claimed', ({
-  wordId, letters, by, target, damage, hp,
+  wordId, letters, by, target, damage, critical, hp,
 }) => {
   const w = words.get(wordId);
   if (!w) return;
@@ -1062,9 +1119,9 @@ socket.on('word-claimed', ({
   w.clueEl.classList.add(by === mySlot ? 'mine' : 'theirs');
   if (currentWord === wordId) buyBtn.disabled = true;
   setHp(hp);
-  attackFx(by, target, letters.length, damage);
+  attackFx(by, target, letters.length, damage, critical);
   gameStatus.textContent = by === mySlot
-    ? `Bien vu ! ${damage} dégâts (${w.number})`
+    ? `${critical ? 'Coup critique ! ' : 'Bien vu ! '}${damage} dégâts (${w.number})`
     : `${opponent ? opponent.pseudo : 'L\'adversaire'} trouve le ${w.number} et te frappe : -${damage} PV`;
   Sound.play(by === mySlot ? 'good' : 'theirs');
 
@@ -1173,6 +1230,15 @@ socket.on('power-refused', ({ reason }) => {
 const CINE_AVATARS = ['givre', 'perche', 'verlan'];
 const cineFiles = {};
 function preloadCinematics() {
+  // Les mini-cinématiques de coup critique, petites : chargées aussi.
+  CINE_AVATARS.forEach((avatar) => {
+    if (critFiles[avatar]) return;
+    critFiles[avatar] = 'loading';
+    fetch(`assets/cine/${avatar}-crit.webm`, { cache: 'no-cache' })
+      .then((res) => (res.ok ? res.blob() : Promise.reject(new Error('absente'))))
+      .then((blob) => { critFiles[avatar] = URL.createObjectURL(blob); })
+      .catch(() => { critFiles[avatar] = 'missing'; });
+  });
   CINE_AVATARS.forEach((avatar) => {
     if (cineFiles[avatar]) return; // déjà en mémoire
     cineFiles[avatar] = 'loading';

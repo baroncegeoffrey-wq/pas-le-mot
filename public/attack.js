@@ -25,8 +25,9 @@ const Attack = (() => {
   let last = 0;
   const attacks = [];
   const particles = [];
-  let inFlight = 0; // attaques qui n'ont pas encore touché
+  let inFlight = 0; // attaques qui n'ont pas encore touché (ou pas encore parties)
   let idleWaiters = [];
+  let generation = 0; // change à chaque clear() : les vieilles réservations ne comptent plus
   const C = {}; // couleurs [r, v, b]
   const glowCache = new Map();
 
@@ -497,17 +498,35 @@ const Attack = (() => {
     if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); }
   }
 
-  function impact(atk) {
-    atk.hit = true;
-    atk.from.classList.remove('charging');
-    atk.kind.explode(atk.b.x, atk.b.y, atk.boomSize);
-    if (atk.onImpact) atk.onImpact();
-    inFlight--;
+  function landed() {
+    inFlight = Math.max(0, inFlight - 1);
     if (inFlight === 0) {
       const waiters = idleWaiters;
       idleWaiters = [];
       waiters.forEach((fn) => fn());
     }
+  }
+
+  function impact(atk) {
+    atk.hit = true;
+    atk.from.classList.remove('charging');
+    atk.kind.explode(atk.b.x, atk.b.y, atk.boomSize);
+    if (atk.onImpact) atk.onImpact();
+    landed();
+  }
+
+  // Réserve une attaque qui partira plus tard (après la mini-cinématique d'un
+  // coup critique) : whenIdle() l'attend aussi. Renvoie la fonction à appeler
+  // une fois l'attaque lancée.
+  function hold() {
+    inFlight++;
+    const mine = generation;
+    let done = false;
+    return () => {
+      if (done || mine !== generation) return;
+      done = true;
+      landed();
+    };
   }
 
   function updateAttack(atk, dt) {
@@ -634,12 +653,13 @@ const Attack = (() => {
     attacks.length = 0;
     particles.length = 0;
     inFlight = 0;
+    generation++;
     const waiters = idleWaiters;
     idleWaiters = [];
     waiters.forEach((fn) => fn());
   }
 
   return {
-    init, fire, whenIdle, clear, busy: () => inFlight > 0,
+    init, fire, hold, whenIdle, clear, busy: () => inFlight > 0,
   };
 })();

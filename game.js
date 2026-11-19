@@ -11,9 +11,18 @@ const WRONG_LOCK_MS = 3000; // un mot raté est bloqué 3 s pour celui qui s'est
 const COMBAT = {
   maxHp: 100,
   damagePerLetter: 3, // mot trouvé : lettres × 3 de dégâts à l'adversaire
+  critMinLetters: 7, // coup critique : un mot de 7 lettres ou plus...
+  critMultiplier: 1.5, // ... fait 1,5 fois plus de dégâts (arrondi)
   wrongRecoil: 5, // erreur : 5 PV de dégâts de recul pour soi
   letterCost: 3, // acheter une lettre : 3 PV
 };
+
+// Dégâts d'un mot trouvé, et s'il s'agit d'un coup critique.
+function wordDamage(length) {
+  const critical = length >= COMBAT.critMinLetters;
+  const base = length * COMBAT.damagePerLetter;
+  return { critical, damage: critical ? Math.round(base * COMBAT.critMultiplier) : base };
+}
 
 // "frérot", "Frerot " et "FREROT" deviennent tous "FREROT".
 function normalize(text) {
@@ -111,11 +120,20 @@ class Game {
     if (answer === word.answer) {
       this.claimedBy.set(wordId, slot);
       this.stats[slot].found += 1;
-      // Mot trouvé : un coup porté à l'adversaire, lettres × 3.
-      const damage = this.hurt(1 - slot, word.length * COMBAT.damagePerLetter);
+      // Mot trouvé : un coup porté à l'adversaire, lettres × 3 (× 1,5 en critique).
+      const hit = wordDamage(word.length);
+      const damage = this.hurt(1 - slot, hit.damage);
       this.stats[slot].damage += damage;
       return {
-        type: 'claimed', wordId, letters: word.answer, by: slot, target: 1 - slot, damage, hp: [...this.hp], ko: this.koSlot !== null,
+        type: 'claimed',
+        wordId,
+        letters: word.answer,
+        by: slot,
+        target: 1 - slot,
+        damage,
+        critical: hit.critical,
+        hp: [...this.hp],
+        ko: this.koSlot !== null,
       };
     }
 
@@ -273,5 +291,5 @@ class Game {
 }
 
 module.exports = {
-  Game, normalize, WRONG_LOCK_MS, COMBAT,
+  Game, normalize, wordDamage, WRONG_LOCK_MS, COMBAT,
 };

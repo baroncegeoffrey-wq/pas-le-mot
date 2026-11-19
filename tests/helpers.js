@@ -56,8 +56,12 @@ function expectNothing(socket, event, ms = 300) {
 // humain avec la bibliothèque. Le serveur, lui, ne les envoie jamais.
 const WORDS = require('../data/mots.json');
 const answerOfClue = (clue) => WORDS.find((w) => w.definition === clue).mot;
-// Dégâts infligés par un mot trouvé : lettres × 3 (voir COMBAT dans game.js).
-const damageOf = (clue) => answerOfClue(clue).length * 3;
+// Dégâts infligés par un mot trouvé : lettres × 3, et × 1,5 (arrondi) à partir
+// de 7 lettres, le coup critique (voir COMBAT dans game.js).
+const damageOf = (clue) => {
+  const n = answerOfClue(clue).length;
+  return n >= 7 ? Math.round(n * 3 * 1.5) : n * 3;
+};
 
 // Cherche récursivement des clés de solution dans un message.
 function forbiddenKeys(value, found = []) {
