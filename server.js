@@ -21,7 +21,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Deux joueurs viennent d'être appariés (ou un joueur lance une partie solo) :
 // on crée la grille et on envoie à chacun la version publique (sans les solutions).
 function startGame(roomId, room) {
-  room.game = new Game();
+  room.game = new Game(undefined, room.players.map((p) => p.avatar));
   const { grid, clues } = room.game.getPublicGrid();
   const endsAt = Date.now() + GAME_DURATION_MS;
   room.timer = setTimeout(() => finishGame(roomId, room), GAME_DURATION_MS);
@@ -32,7 +32,12 @@ function startGame(roomId, room) {
       roomId,
       grid,
       clues,
-      you: { pseudo: player.pseudo, slot: index, avatar: player.avatar },
+      you: {
+        pseudo: player.pseudo,
+        slot: index,
+        avatar: player.avatar,
+        powersLeft: room.solo ? 0 : room.game.powersLeft[index],
+      },
       // En solo, pas d'adversaire.
       opponent: opponent ? { pseudo: opponent.pseudo, slot: 1 - index, avatar: opponent.avatar } : null,
       endsAt,
@@ -99,7 +104,12 @@ function handleSubmitWord(socket, data) {
     socket.to(roomId).emit('scores', { scores: result.scores });
   } else if (result.type === 'locked') {
     // Mot encore bloqué : pas de pénalité, on rappelle juste jusqu'à quand.
-    socket.emit('word-locked', { wordId: result.wordId, lockedUntil: result.lockedUntil, serverNow: Date.now() });
+    socket.emit('word-locked', {
+      wordId: result.wordId,
+      lockedUntil: result.lockedUntil,
+      reason: result.reason || 'wrong', // 'wrong' (erreur récente) ou 'freeze' (case gelée)
+      serverNow: Date.now(),
+    });
   }
 }
 
@@ -121,6 +131,28 @@ function handleBuyLetter(socket, data) {
   socket.to(roomId).emit('scores', { scores: result.scores });
 }
 
+function handleUsePower(socket, data) {
+  if (!data || typeof data !== 'object') return;
+  const found = findPlayerGame(socket, data.roomId);
+  if (!found) return;
+  const { room, slot } = found;
+
+  const result = room.game.usePower(slot);
+  if (result.type !== 'used') {
+    socket.emit('power-refused', { reason: result.reason });
+    return;
+  }
+  const attacker = room.players[slot];
+  // L'effet part chez la cible seulement ; le lanceur voit son compteur baisser.
+  io.to(room.players[result.target].id).emit('power-hit', {
+    power: result.power,
+    duration: result.duration,
+    payload: result.payload,
+    from: attacker.pseudo,
+  });
+  socket.emit('power-used', { power: result.power, remaining: result.remaining });
+}
+
 io.on('connection', (socket) => {
   console.log('Player connected', socket.id);
 
@@ -134,6 +166,7 @@ io.on('connection', (socket) => {
 
   socket.on('submit-word', (data) => handleSubmitWord(socket, data));
   socket.on('buy-letter', (data) => handleBuyLetter(socket, data));
+  socket.on('use-power', (data) => handleUsePower(socket, data));
 
   socket.on('disconnect', () => {
     console.log('Player disconnected', socket.id);

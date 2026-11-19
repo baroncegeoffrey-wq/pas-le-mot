@@ -1,6 +1,9 @@
 // Logique d'une partie, sans Socket.io : la grille, la validation des mots et
 // les scores. Le serveur fait autorité : tout se décide ici.
 const { generateGrid } = require('./grid');
+const {
+  AVATARS, USES_PER_GAME, POWER_DURATION_MS, FREEZE_CELLS,
+} = require('./powers');
 
 const WRONG_LOCK_MS = 3000; // un mot raté est bloqué 3 s pour celui qui s'est trompé
 
@@ -24,13 +27,17 @@ function readLetters(letters) {
 }
 
 class Game {
-  constructor(grid = generateGrid()) {
+  // avatars : ['givre', 'perche'] en duo, un seul en solo (pas de pouvoir).
+  constructor(grid = generateGrid(), avatars = []) {
     this.grid = grid; // contient les solutions : ne quitte jamais le serveur
     this.scores = [0, 0];
     this.claimedBy = new Map(); // wordId -> numéro du joueur (0 ou 1)
     this.over = false;
     this.lockedUntil = [new Map(), new Map()]; // par joueur : wordId -> heure de fin du blocage
     this.bought = [new Set(), new Set()]; // par joueur : cases "ligne,colonne" achetées
+    this.avatars = avatars;
+    this.powersLeft = [USES_PER_GAME, USES_PER_GAME];
+    this.frozen = [null, null]; // par joueur : { cells: Set, until } quand ses cases sont gelées
   }
 
   // Ce que le navigateur a le droit de voir : positions, longueurs, numéros et
@@ -67,6 +74,12 @@ class Game {
 
     const lockedUntil = this.lockedUntil[slot].get(wordId) || 0;
     if (now < lockedUntil) return { type: 'locked', wordId, lockedUntil };
+
+    // Une case gelée par le Givré : impossible de valider ce mot tant que ça dure.
+    const frozen = this.frozen[slot];
+    if (frozen && now < frozen.until && this.cellsOf(word).some((k) => frozen.cells.has(k))) {
+      return { type: 'locked', wordId, lockedUntil: frozen.until, reason: 'freeze' };
+    }
 
     const answer = readLetters(letters);
     if (answer.length !== word.length) return { type: 'ignored' };
@@ -109,6 +122,38 @@ class Game {
     this.bought[slot].add(k);
     this.scores[slot] -= 1;
     return { type: 'revealed', wordId, index, letter: word.answer[index], scores: [...this.scores] };
+  }
+
+  // Le joueur lance le pouvoir de son avatar sur l'adversaire.
+  // - { type: 'refused', reason } : solo, partie finie, plus d'utilisation...
+  // - { type: 'used', power, target, duration, payload, remaining }
+  usePower(slot, now = Date.now()) {
+    if (this.over) return { type: 'refused', reason: 'La partie est finie' };
+    if (this.avatars.length < 2) return { type: 'refused', reason: 'Pas de pouvoir en solo' };
+    if (this.powersLeft[slot] <= 0) return { type: 'refused', reason: 'Plus de pouvoir pour cette partie' };
+
+    const power = AVATARS[this.avatars[slot]].power;
+    const target = 1 - slot;
+    let payload = {};
+
+    if (power === 'freeze') {
+      // 3 cases au hasard que la cible peut encore remplir (ni trouvées, ni achetées).
+      const known = new Set(this.bought[target]);
+      for (const id of this.claimedBy.keys()) this.cellsOf(this.getWord(id)).forEach((k) => known.add(k));
+      const free = [...new Set(this.grid.words.flatMap((w) => this.cellsOf(w)))].filter((k) => !known.has(k));
+      if (free.length === 0) return { type: 'refused', reason: 'Plus aucune case à geler' };
+      const picked = [];
+      while (picked.length < FREEZE_CELLS && free.length) {
+        picked.push(free.splice(Math.floor(Math.random() * free.length), 1)[0]);
+      }
+      this.frozen[target] = { cells: new Set(picked), until: now + POWER_DURATION_MS };
+      payload = { cells: picked.map((k) => k.split(',').map(Number)).map(([row, col]) => ({ row, col })) };
+    }
+
+    this.powersLeft[slot] -= 1;
+    return {
+      type: 'used', power, target, duration: POWER_DURATION_MS, payload, remaining: this.powersLeft[slot],
+    };
   }
 
   isComplete() {
