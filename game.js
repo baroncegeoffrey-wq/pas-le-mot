@@ -26,6 +26,7 @@ class Game {
     this.grid = grid; // contient les solutions : ne quitte jamais le serveur
     this.scores = [0, 0];
     this.claimedBy = new Map(); // wordId -> numéro du joueur (0 ou 1)
+    this.over = false;
   }
 
   // Ce que le navigateur a le droit de voir : positions, longueurs, numéros et
@@ -55,6 +56,7 @@ class Game {
   // - { type: 'claimed', ... } : juste, +1, le mot est à lui
   // - { type: 'wrong', ... } : faux, -1
   submitWord(slot, wordId, letters) {
+    if (this.over) return { type: 'ignored' };
     const word = this.getWord(wordId);
     if (!word || this.claimedBy.has(wordId)) return { type: 'ignored' };
 
@@ -73,6 +75,14 @@ class Game {
 
   isComplete() {
     return this.claimedBy.size === this.grid.words.length;
+  }
+
+  // Termine la partie (chrono à zéro ou grille pleine). winner vaut le numéro
+  // du gagnant, ou null en cas d'égalité.
+  finish() {
+    this.over = true;
+    const [a, b] = this.scores;
+    return { scores: [...this.scores], winner: a === b ? null : (a > b ? 0 : 1) };
   }
 }
 

@@ -23,7 +23,7 @@
   <section id="game" class="screen" hidden>
     <header class="scoreboard">
       <div class="player" id="player-0"><span class="name"></span><span class="score">0</span></div>
-      <div class="vs">VS</div>
+      <div class="timer" id="timer" aria-label="Temps restant">4:00</div>
       <div class="player" id="player-1"><span class="name"></span><span class="score">0</span></div>
     </header>
     <p id="game-status" class="status">Remplis un mot puis appuie sur Entrée.</p>
@@ -36,6 +36,13 @@
         <ol id="clues-down"></ol>
       </div>
     </div>
+  </section>
+
+  <!-- Écran de fin -->
+  <section id="result" class="screen" hidden>
+    <h1 id="result-title"></h1>
+    <p id="result-detail" class="status"></p>
+    <button type="button" id="replay-btn">Rejouer</button>
   </section>
 
   <script src="/socket.io/socket.io.js"></script>

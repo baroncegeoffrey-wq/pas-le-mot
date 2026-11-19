@@ -2,36 +2,10 @@
 // et surtout : aucune solution ne part vers le navigateur.
 const test = require('node:test');
 const assert = require('node:assert');
-const WORDS = require('../data/mots.json');
 const { Game, normalize } = require('../game');
-const { startServer, createPlayer, waitFor, expectNothing } = require('./helpers');
-
-// Le test retrouve les réponses à partir des définitions, comme le ferait un
-// humain avec la bibliothèque. Le serveur, lui, ne les envoie jamais.
-const answerOfClue = (clue) => WORDS.find((w) => w.definition === clue).mot;
-
-// Cherche récursivement des clés interdites dans un message.
-function forbiddenKeys(value, found = []) {
-  if (value && typeof value === 'object') {
-    for (const [k, v] of Object.entries(value)) {
-      if (['answer', 'display', 'type', 'mot', 'affichage'].includes(k)) found.push(k);
-      forbiddenKeys(v, found);
-    }
-  }
-  return found;
-}
-
-async function startMatch(server) {
-  const p1 = createPlayer(server.url);
-  const p2 = createPlayer(server.url);
-  p1.emit('find-game', { pseudo: 'Un' });
-  await waitFor(p1, 'waiting');
-  const s1 = waitFor(p1, 'game-start');
-  const s2 = waitFor(p2, 'game-start');
-  p2.emit('find-game', { pseudo: 'Deux' });
-  const [g1, g2] = await Promise.all([s1, s2]);
-  return { p1, p2, g1, g2 };
-}
+const {
+  startServer, createPlayer, waitFor, expectNothing, answerOfClue, forbiddenKeys, startMatch,
+} = require('./helpers');
 
 test('normalize : sans majuscules ni accents', () => {
   assert.strictEqual(normalize('frérot'), 'FREROT');

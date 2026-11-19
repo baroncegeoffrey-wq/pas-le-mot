@@ -3,7 +3,7 @@ const path = require('path');
 const http = require('http');
 const express = require('express');
 const { Server } = require('socket.io');
-const { addToQueue, handleDisconnect, getRoomOf } = require('./matchmaking');
+const { addToQueue, handleDisconnect, getRoomOf, endGame } = require('./matchmaking');
 const { Game } = require('./game');
 
 const app = express();
@@ -11,6 +11,8 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
+// Durée d'une partie : 4 minutes (réglable pour les tests automatiques).
+const GAME_DURATION_MS = Number(process.env.GAME_DURATION_MS) || 4 * 60 * 1000;
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -19,6 +21,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 function startGame(roomId, room) {
   room.game = new Game();
   const { grid, clues } = room.game.getPublicGrid();
+  const endsAt = Date.now() + GAME_DURATION_MS;
+  room.timer = setTimeout(() => finishGame(roomId, room), GAME_DURATION_MS);
 
   room.players.forEach((player, index) => {
     const opponent = room.players[1 - index];
@@ -28,8 +32,20 @@ function startGame(roomId, room) {
       clues,
       you: { pseudo: player.pseudo, slot: index },
       opponent: { pseudo: opponent.pseudo, slot: 1 - index },
+      endsAt,
+      // L'heure du serveur, pour que le client corrige un écart d'horloge.
+      serverNow: Date.now(),
     });
   });
+}
+
+// Fin de partie : chrono à zéro ou grille pleine. On envoie le résultat puis
+// on ferme le salon (le chrono est arrêté dans endGame).
+function finishGame(roomId, room) {
+  if (room.game.over) return;
+  const { scores, winner } = room.game.finish();
+  io.to(roomId).emit('game-over', { scores, winner });
+  endGame(roomId, io);
 }
 
 // Retrouve la partie du joueur. Le salon vient du serveur (playerRooms), jamais
@@ -58,6 +74,7 @@ function handleSubmitWord(socket, data) {
       by: result.by,
       scores: result.scores,
     });
+    if (room.game.isComplete()) finishGame(roomId, room);
   } else if (result.type === 'wrong') {
     socket.emit('word-wrong', { wordId: result.wordId, scores: result.scores });
     // L'adversaire voit le score bouger, mais pas le mot tenté.

@@ -11,6 +11,8 @@ const findForm = $('find-form');
 const findBtn = $('find-btn');
 const pseudoInput = $('pseudo');
 const board = $('board');
+const timerEl = $('timer');
+const resultScreen = $('result');
 
 // État de la partie en cours
 let roomId = null;
@@ -18,6 +20,8 @@ let mySlot = null;
 let words = new Map(); // wordId -> { id, number, direction, cells: ["r,c", ...] }
 let cells = new Map(); // "r,c" -> { el, input, across, down, locked }
 let currentWord = null; // wordId sélectionné
+let players = []; // [{ pseudo, slot }] rangés par slot
+let timerInterval = null;
 
 const key = (r, c) => `${r},${c}`;
 
@@ -45,9 +49,21 @@ findForm.addEventListener('submit', (event) => {
   const pseudo = pseudoInput.value.trim();
   if (!pseudo) return;
   try { localStorage.setItem('pseudo', pseudo); } catch (e) { /* tant pis */ }
-  socket.emit('find-game', { pseudo });
+  findGame();
+});
+
+function findGame() {
+  socket.emit('find-game', { pseudo: pseudoInput.value.trim() });
   findBtn.disabled = true;
   statusText.textContent = 'Recherche d\'un adversaire...';
+}
+
+// Revient à l'accueil et relance une recherche avec le même pseudo.
+$('replay-btn').addEventListener('click', () => {
+  resultScreen.hidden = true;
+  gameScreen.hidden = true;
+  lobby.hidden = false;
+  findGame();
 });
 
 socket.on('waiting', () => {
@@ -59,6 +75,7 @@ socket.on('waiting', () => {
 socket.on('game-start', (data) => {
   roomId = data.roomId;
   mySlot = data.you.slot;
+  players = [data.you, data.opponent].sort((a, b) => a.slot - b.slot);
 
   for (const p of [data.you, data.opponent]) {
     const box = $(`player-${p.slot}`);
@@ -71,8 +88,46 @@ socket.on('game-start', (data) => {
   buildClues(data.clues);
   gameStatus.textContent = 'Remplis un mot puis appuie sur Entrée.';
   lobby.hidden = true;
+  resultScreen.hidden = true;
   gameScreen.hidden = false;
   selectWord(data.grid.words[0].id, true);
+  startTimer(data.endsAt, data.serverNow);
+});
+
+/* ---------- Chrono (affichage seulement : c'est le serveur qui arrête la partie) ---------- */
+
+function startTimer(endsAt, serverNow) {
+  clearInterval(timerInterval);
+  const offset = serverNow - Date.now(); // écart entre l'horloge du serveur et la nôtre
+  const tick = () => {
+    const left = Math.max(0, endsAt - (Date.now() + offset));
+    const seconds = Math.ceil(left / 1000);
+    timerEl.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+    timerEl.classList.toggle('low', seconds <= 30);
+    if (left === 0) clearInterval(timerInterval);
+  };
+  tick();
+  timerInterval = setInterval(tick, 250);
+}
+
+/* ---------- Fin de partie ---------- */
+
+function showResult(title, detail) {
+  clearInterval(timerInterval);
+  roomId = null;
+  $('result-title').textContent = title;
+  $('result-detail').textContent = detail;
+  gameScreen.hidden = true;
+  lobby.hidden = true;
+  resultScreen.hidden = false;
+  findBtn.disabled = false;
+  $('replay-btn').focus();
+}
+
+socket.on('game-over', ({ scores, winner }) => {
+  const title = winner === null ? 'Égalité !' : (winner === mySlot ? 'Gagné !' : 'Perdu...');
+  const detail = players.map((p) => `${p.pseudo} : ${scores[p.slot]}`).join('  ·  ');
+  showResult(title, detail);
 });
 
 function buildBoard(grid) {
