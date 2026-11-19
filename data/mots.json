@@ -3,7 +3,7 @@
     "id": "a01",
     "mot": "GOUMIN",
     "affichage": "goumin",
-    "definition": "Chagrin d'amour, en argot ivoirien. Ce que tu as après avoir été ghosté",
+    "definition": "Peine de cœur venue d'Abidjan",
     "type": "argot",
     "longueur": 6
   },
@@ -11,7 +11,7 @@
     "id": "a02",
     "mot": "SEUM",
     "affichage": "seum",
-    "definition": "Rage froide quand ça ne se passe pas comme prévu",
+    "definition": "Il monte quand tu perds la finale aux tirs au but",
     "type": "argot",
     "longueur": 4
   },
@@ -19,7 +19,7 @@
     "id": "a03",
     "mot": "GHOSTER",
     "affichage": "ghoster",
-    "definition": "Disparaître sans un mot, comme si l'autre n'avait jamais existé",
+    "definition": "Laisser quelqu'un en « vu » pour toujours",
     "type": "argot",
     "longueur": 7
   },
@@ -27,7 +27,7 @@
     "id": "a04",
     "mot": "CRINGE",
     "affichage": "cringe",
-    "definition": "Tellement gênant que tes orteils se recroquevillent",
+    "definition": "Ce qui te fait grimacer de honte pour les autres",
     "type": "argot",
     "longueur": 6
   },
@@ -35,7 +35,7 @@
     "id": "a05",
     "mot": "FLEX",
     "affichage": "flex",
-    "definition": "Frimer, étaler ce qu'on a",
+    "definition": "Montrer sa montre sans qu'on lui ait demandé l'heure",
     "type": "argot",
     "longueur": 4
   },
@@ -43,7 +43,7 @@
     "id": "a06",
     "mot": "RIZZ",
     "affichage": "rizz",
-    "definition": "Talent de dragueur, selon la génération Z",
+    "definition": "Charisme de séducteur, élu mot de l'année outre-Manche",
     "type": "argot",
     "longueur": 4
   },
@@ -51,7 +51,7 @@
     "id": "a07",
     "mot": "CHILL",
     "affichage": "chill",
-    "definition": "Tranquille, détendu",
+    "definition": "Mode avion pour le cerveau",
     "type": "argot",
     "longueur": 5
   },
@@ -59,7 +59,7 @@
     "id": "a08",
     "mot": "DINGUERIE",
     "affichage": "dinguerie",
-    "definition": "Truc incroyable, souvent prononcé la bouche ouverte",
+    "definition": "Ce qui mérite trois points d'exclamation",
     "type": "argot",
     "longueur": 9
   },
@@ -67,7 +67,7 @@
     "id": "a09",
     "mot": "WESH",
     "affichage": "wesh",
-    "definition": "Salut, ou « hein ? », selon le ton",
+    "definition": "Bonjour qui peut aussi vouloir dire « t'es sérieux ? »",
     "type": "argot",
     "longueur": 4
   },
@@ -75,7 +75,7 @@
     "id": "a10",
     "mot": "FREROT",
     "affichage": "frérot",
-    "definition": "Ton frère, ou ton pote qui en a le statut",
+    "definition": "Pas forcément la même mère, mais c'est tout comme",
     "type": "argot",
     "longueur": 6
   },
@@ -83,7 +83,7 @@
     "id": "a11",
     "mot": "MESKINE",
     "affichage": "meskine",
-    "definition": "Le pauvre, celui qui fait pitié",
+    "definition": "Le pauvre, au sens de la pitié, emprunté à l'arabe",
     "type": "argot",
     "longueur": 7
   },
@@ -91,7 +91,7 @@
     "id": "a12",
     "mot": "BOLOSS",
     "affichage": "boloss",
-    "definition": "Naïf qu'on arnaque facilement, ou gros nul",
+    "definition": "Proie idéale pour un vendeur de fausses montres",
     "type": "argot",
     "longueur": 6
   },
@@ -99,7 +99,7 @@
     "id": "a13",
     "mot": "CRUSH",
     "affichage": "crush",
-    "definition": "Personne qui te fait craquer en secret",
+    "definition": "Celle ou celui qui fait bugger ton cœur en secret",
     "type": "argot",
     "longueur": 5
   },
@@ -107,7 +107,7 @@
     "id": "a14",
     "mot": "MALAISANT",
     "affichage": "malaisant",
-    "definition": "Qui met tout le monde mal à l'aise",
+    "definition": "Qui installe un silence gênant dans la pièce",
     "type": "argot",
     "longueur": 9
   },
@@ -115,7 +115,7 @@
     "id": "a15",
     "mot": "CHELOU",
     "affichage": "chelou",
-    "definition": "Louche, bizarre. Verlan d'un mot qui veut dire la même chose",
+    "definition": "Louche, retourné dans tous les sens",
     "type": "argot",
     "longueur": 6
   },
@@ -123,7 +123,7 @@
     "id": "a16",
     "mot": "RELOU",
     "affichage": "relou",
-    "definition": "Pénible, lourd, en verlan",
+    "definition": "Lourd, mais lu de droite à gauche",
     "type": "argot",
     "longueur": 5
   },
@@ -131,7 +131,7 @@
     "id": "a17",
     "mot": "OUF",
     "affichage": "ouf",
-    "definition": "Fou, en verlan. Aussi : très",
+    "definition": "Fou, renversé",
     "type": "argot",
     "longueur": 3
   },
@@ -139,7 +139,7 @@
     "id": "a18",
     "mot": "VENERE",
     "affichage": "vénère",
-    "definition": "Énervé, en verlan",
+    "definition": "Remonté, mais dans l'autre sens",
     "type": "argot",
     "longueur": 6
   },
@@ -147,7 +147,7 @@
     "id": "a19",
     "mot": "KIFFER",
     "affichage": "kiffer",
-    "definition": "Aimer à fond",
+    "definition": "Prendre son pied, avec un mot venu de l'arabe",
     "type": "argot",
     "longueur": 6
   },
@@ -155,7 +155,7 @@
     "id": "a20",
     "mot": "BEDO",
     "affichage": "bédo",
-    "definition": "Joint de cannabis",
+    "definition": "Il tourne en soirée et sent fort",
     "type": "argot",
     "longueur": 4
   },
@@ -163,7 +163,7 @@
     "id": "a21",
     "mot": "DARONNE",
     "affichage": "daronne",
-    "definition": "Ta mère, celle qui a le dernier mot",
+    "definition": "Elle t'appelle par ton prénom complet quand ça chauffe",
     "type": "argot",
     "longueur": 7
   },
@@ -171,7 +171,7 @@
     "id": "a22",
     "mot": "MAILLE",
     "affichage": "maille",
-    "definition": "De l'argent, de la thune",
+    "definition": "Petite pièce du Moyen Âge devenue l'argent en général",
     "type": "argot",
     "longueur": 6
   },
@@ -179,7 +179,7 @@
     "id": "a23",
     "mot": "HESS",
     "affichage": "hess",
-    "definition": "La galère, quand le compte est à zéro",
+    "definition": "Fin de mois qui commence le 5",
     "type": "argot",
     "longueur": 4
   },
@@ -187,7 +187,7 @@
     "id": "a24",
     "mot": "ZBEUL",
     "affichage": "zbeul",
-    "definition": "Le bordel, le chaos total",
+    "definition": "Mettre le ___ : semer le chaos",
     "type": "argot",
     "longueur": 5
   },
@@ -195,7 +195,7 @@
     "id": "a25",
     "mot": "WALLAH",
     "affichage": "wallah",
-    "definition": "« Je te jure », version qui ne se discute pas",
+    "definition": "Serment express venu de l'arabe",
     "type": "argot",
     "longueur": 6
   },
@@ -203,7 +203,7 @@
     "id": "a26",
     "mot": "POUKAVE",
     "affichage": "poukave",
-    "definition": "Balance, celui qui va tout raconter",
+    "definition": "Il parle aux keufs",
     "type": "argot",
     "longueur": 7
   },
@@ -211,7 +211,7 @@
     "id": "a27",
     "mot": "MYTHO",
     "affichage": "mytho",
-    "definition": "Menteur, ou gros mensonge",
+    "definition": "Il a déjà serré la main de Messi, paraît-il",
     "type": "argot",
     "longueur": 5
   },
@@ -219,7 +219,7 @@
     "id": "a28",
     "mot": "KHEY",
     "affichage": "khey",
-    "definition": "Frère, pote, en argot venu de l'arabe",
+    "definition": "Frère venu du Maghreb, star des forums",
     "type": "argot",
     "longueur": 4
   },
@@ -227,7 +227,7 @@
     "id": "a29",
     "mot": "GOAT",
     "affichage": "goat",
-    "definition": "Le meilleur de tous les temps, en quatre lettres anglaises",
+    "definition": "Le plus grand de tous les temps, sous forme de chèvre anglaise",
     "type": "argot",
     "longueur": 4
   },
@@ -235,7 +235,7 @@
     "id": "a30",
     "mot": "MERDIQUE",
     "affichage": "merdique",
-    "definition": "De très mauvaise qualité, en plus vulgaire",
+    "definition": "Nul à chier, en un seul adjectif",
     "type": "argot",
     "longueur": 8
   },
@@ -243,7 +243,7 @@
     "id": "a31",
     "mot": "PECHO",
     "affichage": "pécho",
-    "definition": "Séduire, choper quelqu'un",
+    "definition": "Repartir de soirée avec un numéro, ou plus",
     "type": "argot",
     "longueur": 5
   },
@@ -251,7 +251,7 @@
     "id": "a32",
     "mot": "TEUF",
     "affichage": "teuf",
-    "definition": "Une fête, en verlan",
+    "definition": "Soirée retournée",
     "type": "argot",
     "longueur": 4
   },
@@ -259,7 +259,7 @@
     "id": "a33",
     "mot": "DARON",
     "affichage": "daron",
-    "definition": "Ton père, le chef de famille",
+    "definition": "Il éteint les lumières derrière toi en râlant",
     "type": "argot",
     "longueur": 5
   },
@@ -267,7 +267,7 @@
     "id": "a34",
     "mot": "CHIER",
     "affichage": "chier",
-    "definition": "Aller à la selle, version grossière. Aussi : quand ça va mal tourner",
+    "definition": "Ça va ___ : préparez-vous au drame",
     "type": "argot",
     "longueur": 5
   },
@@ -275,7 +275,7 @@
     "id": "a35",
     "mot": "TAFFER",
     "affichage": "taffer",
-    "definition": "Travailler",
+    "definition": "Bosser, sans enthousiasme particulier",
     "type": "argot",
     "longueur": 6
   },
@@ -283,7 +283,7 @@
     "id": "a36",
     "mot": "THUNE",
     "affichage": "thune",
-    "definition": "Argent, maille, oseille",
+    "definition": "Ce qui manque le 28 du mois",
     "type": "argot",
     "longueur": 5
   },
@@ -291,7 +291,7 @@
     "id": "c01",
     "mot": "BAGUETTE",
     "affichage": "baguette",
-    "definition": "Pain long que les Français portent sous le bras",
+    "definition": "Son savoir-faire est au patrimoine de l'Unesco depuis 2022",
     "type": "classique",
     "longueur": 8
   },
@@ -299,7 +299,7 @@
     "id": "c02",
     "mot": "FROMAGE",
     "affichage": "fromage",
-    "definition": "Il y en aurait plus de mille en France",
+    "definition": "De Gaulle se demandait comment gouverner un pays qui en a 246",
     "type": "classique",
     "longueur": 7
   },
@@ -307,7 +307,7 @@
     "id": "c03",
     "mot": "CROISSANT",
     "affichage": "croissant",
-    "definition": "Viennoiserie, ou forme de la lune",
+    "definition": "Il prend du beurre et la forme d'une lune pas finie",
     "type": "classique",
     "longueur": 9
   },
@@ -315,7 +315,7 @@
     "id": "c04",
     "mot": "PARAPLUIE",
     "affichage": "parapluie",
-    "definition": "Objet que tu oublies toujours le jour où il pleut",
+    "definition": "On ne l'ouvre jamais dans la maison, superstition oblige",
     "type": "classique",
     "longueur": 9
   },
@@ -323,7 +323,7 @@
     "id": "c05",
     "mot": "LUNDI",
     "affichage": "lundi",
-    "definition": "Le jour le plus détesté de la semaine",
+    "definition": "Premier jour de la semaine, dernier dans les cœurs",
     "type": "classique",
     "longueur": 5
   },
@@ -331,7 +331,7 @@
     "id": "c06",
     "mot": "MOUSTACHE",
     "affichage": "moustache",
-    "definition": "Poils au-dessus de la lèvre",
+    "definition": "Elle se cire, se frise et chatouille les bisous",
     "type": "classique",
     "longueur": 9
   },
@@ -339,7 +339,7 @@
     "id": "c07",
     "mot": "PANTOUFLE",
     "affichage": "pantoufle",
-    "definition": "Chausson d'intérieur",
+    "definition": "La charentaise en est une",
     "type": "classique",
     "longueur": 9
   },
@@ -347,7 +347,7 @@
     "id": "c08",
     "mot": "ESCARGOT",
     "affichage": "escargot",
-    "definition": "Il porte sa maison sur son dos et avance lentement",
+    "definition": "Gastéropode servi au beurre persillé",
     "type": "classique",
     "longueur": 8
   },
@@ -355,7 +355,7 @@
     "id": "c09",
     "mot": "CHAUSSETTE",
     "affichage": "chaussette",
-    "definition": "Elle disparaît mystérieusement dans la machine à laver",
+    "definition": "Elle part par paire et revient seule de la machine",
     "type": "classique",
     "longueur": 10
   },
@@ -363,7 +363,7 @@
     "id": "c10",
     "mot": "RONFLER",
     "affichage": "ronfler",
-    "definition": "Respirer bruyamment en dormant",
+    "definition": "Faire du bruit en dormant, au grand dam de l'autre côté du lit",
     "type": "classique",
     "longueur": 7
   },
@@ -371,7 +371,7 @@
     "id": "c11",
     "mot": "ORAGE",
     "affichage": "orage",
-    "definition": "Tonnerre, éclairs et grosse pluie",
+    "definition": "Il gronde avant d'éclater",
     "type": "classique",
     "longueur": 5
   },
@@ -379,7 +379,7 @@
     "id": "c12",
     "mot": "VELO",
     "affichage": "vélo",
-    "definition": "Deux roues et des pédales",
+    "definition": "La petite reine",
     "type": "classique",
     "longueur": 4
   },
@@ -387,7 +387,7 @@
     "id": "c13",
     "mot": "SIESTE",
     "affichage": "sieste",
-    "definition": "Petit somme après le repas",
+    "definition": "Somme de l'après-midi, sacré en Espagne",
     "type": "classique",
     "longueur": 6
   },
@@ -395,7 +395,7 @@
     "id": "c14",
     "mot": "BANANE",
     "affichage": "banane",
-    "definition": "Fruit jaune, ou sac porté à la taille",
+    "definition": "Fruit, coiffure d'Elvis ou sac à la ceinture",
     "type": "classique",
     "longueur": 6
   },
@@ -403,7 +403,7 @@
     "id": "c15",
     "mot": "FANTOME",
     "affichage": "fantôme",
-    "definition": "Revenant en drap blanc",
+    "definition": "Il traverse les murs et hante les châteaux",
     "type": "classique",
     "longueur": 7
   },
@@ -411,7 +411,7 @@
     "id": "c16",
     "mot": "VOLCAN",
     "affichage": "volcan",
-    "definition": "Montagne qui crache de la lave",
+    "definition": "L'Etna en est un",
     "type": "classique",
     "longueur": 6
   },
@@ -419,7 +419,7 @@
     "id": "c17",
     "mot": "ARMOIRE",
     "affichage": "armoire",
-    "definition": "Grand meuble de rangement, ou gros costaud",
+    "definition": "Meuble, ou gars bâti comme un frigo",
     "type": "classique",
     "longueur": 7
   },
@@ -427,7 +427,7 @@
     "id": "c18",
     "mot": "POULET",
     "affichage": "poulet",
-    "definition": "Volaille, ou policier en argot ancien",
+    "definition": "Rôti le dimanche, ou flic à l'ancienne",
     "type": "classique",
     "longueur": 6
   },
@@ -435,7 +435,7 @@
     "id": "c19",
     "mot": "CITRON",
     "affichage": "citron",
-    "definition": "Agrume jaune et acide",
+    "definition": "Agrume qu'on presse, ou tête qu'on se creuse",
     "type": "classique",
     "longueur": 6
   },
@@ -443,7 +443,7 @@
     "id": "c20",
     "mot": "HIBOU",
     "affichage": "hibou",
-    "definition": "Oiseau de nuit aux aigrettes",
+    "definition": "Rapace nocturne à aigrettes, contrairement à la chouette",
     "type": "classique",
     "longueur": 5
   },
@@ -451,7 +451,7 @@
     "id": "c21",
     "mot": "DRAGON",
     "affichage": "dragon",
-    "definition": "Créature qui crache du feu",
+    "definition": "Saint Georges l'a terrassé",
     "type": "classique",
     "longueur": 6
   },
@@ -459,7 +459,7 @@
     "id": "c22",
     "mot": "BOUGIE",
     "affichage": "bougie",
-    "definition": "Cire et mèche qu'on souffle aux anniversaires",
+    "definition": "Elle s'éteint d'un souffle et compte les années",
     "type": "classique",
     "longueur": 6
   },
@@ -467,7 +467,7 @@
     "id": "c23",
     "mot": "ETOILE",
     "affichage": "étoile",
-    "definition": "Elle brille la nuit dans le ciel",
+    "definition": "Le Soleil en est une",
     "type": "classique",
     "longueur": 6
   },
@@ -475,7 +475,7 @@
     "id": "c24",
     "mot": "PIRATE",
     "affichage": "pirate",
-    "definition": "Bandit des mers",
+    "definition": "Corsaire sans autorisation du roi",
     "type": "classique",
     "longueur": 6
   },
@@ -483,7 +483,7 @@
     "id": "c25",
     "mot": "NUAGE",
     "affichage": "nuage",
-    "definition": "Il cache le soleil",
+    "definition": "Cumulus ou nimbus",
     "type": "classique",
     "longueur": 5
   },
@@ -491,7 +491,7 @@
     "id": "c26",
     "mot": "CAFE",
     "affichage": "café",
-    "definition": "Boisson noire du matin",
+    "definition": "Expresso, allongé ou serré",
     "type": "classique",
     "longueur": 4
   },
@@ -499,7 +499,7 @@
     "id": "c27",
     "mot": "TORTUE",
     "affichage": "tortue",
-    "definition": "Animal lent à carapace",
+    "definition": "Elle a battu le lièvre chez La Fontaine",
     "type": "classique",
     "longueur": 6
   },
@@ -507,7 +507,7 @@
     "id": "c28",
     "mot": "PIZZA",
     "affichage": "pizza",
-    "definition": "Spécialité italienne en part triangulaire",
+    "definition": "La margherita en est une",
     "type": "classique",
     "longueur": 5
   },
@@ -515,7 +515,7 @@
     "id": "c29",
     "mot": "PISCINE",
     "affichage": "piscine",
-    "definition": "Bassin où l'on nage",
+    "definition": "Bassin où l'on fait des longueurs",
     "type": "classique",
     "longueur": 7
   },
@@ -523,7 +523,7 @@
     "id": "c30",
     "mot": "CACTUS",
     "affichage": "cactus",
-    "definition": "Plante du désert qui pique",
+    "definition": "Il stocke l'eau et pique ceux qui s'approchent",
     "type": "classique",
     "longueur": 6
   },
@@ -531,7 +531,7 @@
     "id": "c31",
     "mot": "GRENOUILLE",
     "affichage": "grenouille",
-    "definition": "Elle coasse et saute dans la mare",
+    "definition": "Elle coasse, et certains mangent ses cuisses",
     "type": "classique",
     "longueur": 10
   },
@@ -539,7 +539,7 @@
     "id": "c32",
     "mot": "SARDINE",
     "affichage": "sardine",
-    "definition": "Petit poisson serré dans sa boîte",
+    "definition": "On s'y serre comme elle dans sa boîte",
     "type": "classique",
     "longueur": 7
   },
@@ -547,7 +547,7 @@
     "id": "c33",
     "mot": "FRIGO",
     "affichage": "frigo",
-    "definition": "Tu l'ouvres dix fois en espérant que quelque chose a changé",
+    "definition": "Tu l'ouvres en espérant un miracle qui n'arrive jamais",
     "type": "classique",
     "longueur": 5
   },
@@ -555,7 +555,7 @@
     "id": "c34",
     "mot": "CHAUSSURE",
     "affichage": "chaussure",
-    "definition": "Elle va par paire au bout de tes pieds",
+    "definition": "Trouver ___ à son pied : trouver la bonne personne",
     "type": "classique",
     "longueur": 9
   },
@@ -563,7 +563,7 @@
     "id": "c35",
     "mot": "MOUSTIQUE",
     "affichage": "moustique",
-    "definition": "Insecte qui te pique la nuit",
+    "definition": "Bzzz à trois heures du matin",
     "type": "classique",
     "longueur": 9
   },
@@ -571,8 +571,832 @@
     "id": "c36",
     "mot": "TRACTEUR",
     "affichage": "tracteur",
-    "definition": "Engin agricole",
+    "definition": "Roi des champs, parfois roi des bouchons",
     "type": "classique",
     "longueur": 8
+  },
+  {
+    "id": "a37",
+    "mot": "MEUF",
+    "affichage": "meuf",
+    "definition": "Femme, à l'envers",
+    "type": "argot",
+    "longueur": 4
+  },
+  {
+    "id": "a38",
+    "mot": "KEUF",
+    "affichage": "keuf",
+    "definition": "Flic, retourné comme une crêpe",
+    "type": "argot",
+    "longueur": 4
+  },
+  {
+    "id": "a39",
+    "mot": "REUM",
+    "affichage": "reum",
+    "definition": "Mère, prononcée à l'envers",
+    "type": "argot",
+    "longueur": 4
+  },
+  {
+    "id": "a40",
+    "mot": "REUP",
+    "affichage": "reup",
+    "definition": "Père, retourné",
+    "type": "argot",
+    "longueur": 4
+  },
+  {
+    "id": "a41",
+    "mot": "REUSS",
+    "affichage": "reuss",
+    "definition": "Sœur, à rebours",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a42",
+    "mot": "CIMER",
+    "affichage": "cimer",
+    "definition": "Merci, dit de droite à gauche",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a43",
+    "mot": "TEMA",
+    "affichage": "téma",
+    "definition": "Regarde, mais dans l'autre sens",
+    "type": "argot",
+    "longueur": 4
+  },
+  {
+    "id": "a44",
+    "mot": "CHEUM",
+    "affichage": "cheum",
+    "definition": "Laid, sens dessus dessous",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a45",
+    "mot": "CHANME",
+    "affichage": "chanmé",
+    "definition": "Génial, mais d'abord méchant à l'envers",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a46",
+    "mot": "ZARBI",
+    "affichage": "zarbi",
+    "definition": "Bizarre, coupé et retourné",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a47",
+    "mot": "TEUB",
+    "affichage": "teub",
+    "definition": "Sexe masculin, version retournée et vulgaire",
+    "type": "argot",
+    "longueur": 4
+  },
+  {
+    "id": "a48",
+    "mot": "BEUH",
+    "affichage": "beuh",
+    "definition": "Herbe qui ne se mange pas en salade",
+    "type": "argot",
+    "longueur": 4
+  },
+  {
+    "id": "a49",
+    "mot": "CEFRAN",
+    "affichage": "céfran",
+    "definition": "Français, à l'envers",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a50",
+    "mot": "TECI",
+    "affichage": "téci",
+    "definition": "Cité, dans le désordre",
+    "type": "argot",
+    "longueur": 4
+  },
+  {
+    "id": "a51",
+    "mot": "GOLRI",
+    "affichage": "golri",
+    "definition": "Rigoler, à l'envers",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a52",
+    "mot": "ZIVA",
+    "affichage": "ziva",
+    "definition": "Vas-y, à l'envers",
+    "type": "argot",
+    "longueur": 4
+  },
+  {
+    "id": "a53",
+    "mot": "NAWAK",
+    "affichage": "nawak",
+    "definition": "N'importe quoi, en abrégé",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a54",
+    "mot": "CONNARD",
+    "affichage": "connard",
+    "definition": "Il double dans la file et te klaxonne en plus",
+    "type": "argot",
+    "longueur": 7
+  },
+  {
+    "id": "a55",
+    "mot": "CONNASSE",
+    "affichage": "connasse",
+    "definition": "Insulte de cour de récré au féminin, très peu polie",
+    "type": "argot",
+    "longueur": 8
+  },
+  {
+    "id": "a56",
+    "mot": "ENFOIRE",
+    "affichage": "enfoiré",
+    "definition": "Salaud, avec une pointe d'affection chez Coluche",
+    "type": "argot",
+    "longueur": 7
+  },
+  {
+    "id": "a57",
+    "mot": "BRANLEUR",
+    "affichage": "branleur",
+    "definition": "Il passe sa journée à ne rien foutre",
+    "type": "argot",
+    "longueur": 8
+  },
+  {
+    "id": "a58",
+    "mot": "BOUFFON",
+    "affichage": "bouffon",
+    "definition": "Amuseur du roi devenu insulte de collège",
+    "type": "argot",
+    "longueur": 7
+  },
+  {
+    "id": "a59",
+    "mot": "TOCARD",
+    "affichage": "tocard",
+    "definition": "Cheval qui finit dernier, ou gars bon à rien",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a60",
+    "mot": "BATARD",
+    "affichage": "bâtard",
+    "definition": "Enfant illégitime, pain trapu, ou insulte",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a61",
+    "mot": "PUTAIN",
+    "affichage": "putain",
+    "definition": "Juron national, ponctuation du Sud-Ouest",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a62",
+    "mot": "MERDE",
+    "affichage": "merde",
+    "definition": "Le mot de Cambronne",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a63",
+    "mot": "BORDEL",
+    "affichage": "bordel",
+    "definition": "Maison close, ou chambre d'ado",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a64",
+    "mot": "FOUTRE",
+    "affichage": "foutre",
+    "definition": "Je m'en ___ : je m'en moque grossièrement",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a65",
+    "mot": "NIQUER",
+    "affichage": "niquer",
+    "definition": "Casser, abîmer, ou pire, en très vulgaire",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a66",
+    "mot": "COUILLE",
+    "affichage": "couille",
+    "definition": "Il y a une ___ dans le potage : il y a un souci",
+    "type": "argot",
+    "longueur": 7
+  },
+  {
+    "id": "a67",
+    "mot": "NICHON",
+    "affichage": "nichon",
+    "definition": "Sein, en langage de vestiaire",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a68",
+    "mot": "CHIOTTES",
+    "affichage": "chiottes",
+    "definition": "Toilettes, sans aucune élégance",
+    "type": "argot",
+    "longueur": 8
+  },
+  {
+    "id": "a69",
+    "mot": "BALEC",
+    "affichage": "balec",
+    "definition": "Rien à faire, en abrégeant les bijoux de famille",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a70",
+    "mot": "CASSOS",
+    "affichage": "cassos",
+    "definition": "Cas social, en version courte et méchante",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a71",
+    "mot": "RAGEUX",
+    "affichage": "rageux",
+    "definition": "Il commente tout avec aigreur sous tes posts",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a72",
+    "mot": "GRAILLER",
+    "affichage": "grailler",
+    "definition": "Manger, sans manières",
+    "type": "argot",
+    "longueur": 8
+  },
+  {
+    "id": "a73",
+    "mot": "PIAULE",
+    "affichage": "piaule",
+    "definition": "Chambre, en argot",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a74",
+    "mot": "BAGNOLE",
+    "affichage": "bagnole",
+    "definition": "Caisse à quatre roues",
+    "type": "argot",
+    "longueur": 7
+  },
+  {
+    "id": "a75",
+    "mot": "TAULE",
+    "affichage": "taule",
+    "definition": "Prison, ou chambre en argot ancien",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a76",
+    "mot": "PIONCER",
+    "affichage": "pioncer",
+    "definition": "Dormir, en argot",
+    "type": "argot",
+    "longueur": 7
+  },
+  {
+    "id": "a77",
+    "mot": "TISE",
+    "affichage": "tise",
+    "definition": "Alcool qu'on ramène en soirée",
+    "type": "argot",
+    "longueur": 4
+  },
+  {
+    "id": "a78",
+    "mot": "PICOLER",
+    "affichage": "picoler",
+    "definition": "Lever le coude un peu trop souvent",
+    "type": "argot",
+    "longueur": 7
+  },
+  {
+    "id": "a79",
+    "mot": "CHIALER",
+    "affichage": "chialer",
+    "definition": "Pleurer comme une madeleine, version argot",
+    "type": "argot",
+    "longueur": 7
+  },
+  {
+    "id": "a80",
+    "mot": "GADJI",
+    "affichage": "gadji",
+    "definition": "Fille, d'après un mot venu du romani",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a81",
+    "mot": "CHIANT",
+    "affichage": "chiant",
+    "definition": "Ennuyeux à mourir, version vulgaire",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a82",
+    "mot": "FAYOT",
+    "affichage": "fayot",
+    "definition": "Il rappelle au prof qu'il y avait des devoirs",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a83",
+    "mot": "LARBIN",
+    "affichage": "larbin",
+    "definition": "Domestique servile, ou celui qui fait les cafés de tout le monde",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a84",
+    "mot": "BIFTON",
+    "affichage": "bifton",
+    "definition": "Billet de banque, en argot",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a85",
+    "mot": "POGNON",
+    "affichage": "pognon",
+    "definition": "Fric, oseille, blé",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a86",
+    "mot": "OSEILLE",
+    "affichage": "oseille",
+    "definition": "Plante acide, ou argent",
+    "type": "argot",
+    "longueur": 7
+  },
+  {
+    "id": "a87",
+    "mot": "EMBROUILLE",
+    "affichage": "embrouille",
+    "definition": "Situation qui part en clash",
+    "type": "argot",
+    "longueur": 10
+  },
+  {
+    "id": "a88",
+    "mot": "DEFONCE",
+    "affichage": "défoncé",
+    "definition": "Complètement perché après avoir trop fumé",
+    "type": "argot",
+    "longueur": 7
+  },
+  {
+    "id": "a89",
+    "mot": "BOURRE",
+    "affichage": "bourré",
+    "definition": "Il chante faux à 3 h du matin après six pintes",
+    "type": "argot",
+    "longueur": 6
+  },
+  {
+    "id": "a90",
+    "mot": "PETER",
+    "affichage": "péter",
+    "definition": "Lâcher une caisse, ou casser",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a91",
+    "mot": "GALERER",
+    "affichage": "galérer",
+    "definition": "Ramer sans bateau",
+    "type": "argot",
+    "longueur": 7
+  },
+  {
+    "id": "a92",
+    "mot": "BLAZE",
+    "affichage": "blaze",
+    "definition": "Nom, en argot",
+    "type": "argot",
+    "longueur": 5
+  },
+  {
+    "id": "a93",
+    "mot": "CHOURAVER",
+    "affichage": "chouraver",
+    "definition": "Piquer, voler, d'après un mot venu du romani",
+    "type": "argot",
+    "longueur": 9
+  },
+  {
+    "id": "a94",
+    "mot": "TCHATCHE",
+    "affichage": "tchatche",
+    "definition": "Bagou de vendeur de marché",
+    "type": "argot",
+    "longueur": 8
+  },
+  {
+    "id": "a95",
+    "mot": "MORFLER",
+    "affichage": "morfler",
+    "definition": "Prendre cher, en argot",
+    "type": "argot",
+    "longueur": 7
+  },
+  {
+    "id": "c37",
+    "mot": "ABEILLE",
+    "affichage": "abeille",
+    "definition": "Elle fait du miel et danse pour indiquer les fleurs",
+    "type": "classique",
+    "longueur": 7
+  },
+  {
+    "id": "c38",
+    "mot": "ACCORDEON",
+    "affichage": "accordéon",
+    "definition": "Piano à bretelles",
+    "type": "classique",
+    "longueur": 9
+  },
+  {
+    "id": "c39",
+    "mot": "AIGUILLE",
+    "affichage": "aiguille",
+    "definition": "On la cherche dans une botte de foin",
+    "type": "classique",
+    "longueur": 8
+  },
+  {
+    "id": "c40",
+    "mot": "ALLUMETTE",
+    "affichage": "allumette",
+    "definition": "Elle prend feu en se frottant",
+    "type": "classique",
+    "longueur": 9
+  },
+  {
+    "id": "c41",
+    "mot": "ANANAS",
+    "affichage": "ananas",
+    "definition": "Fruit couronné, piquant dehors",
+    "type": "classique",
+    "longueur": 6
+  },
+  {
+    "id": "c42",
+    "mot": "ARAIGNEE",
+    "affichage": "araignée",
+    "definition": "Huit pattes et une toile",
+    "type": "classique",
+    "longueur": 8
+  },
+  {
+    "id": "c43",
+    "mot": "ASPIRATEUR",
+    "affichage": "aspirateur",
+    "definition": "Il avale la poussière en faisant du bruit",
+    "type": "classique",
+    "longueur": 10
+  },
+  {
+    "id": "c44",
+    "mot": "BALEINE",
+    "affichage": "baleine",
+    "definition": "La bleue est le plus gros animal du monde",
+    "type": "classique",
+    "longueur": 7
+  },
+  {
+    "id": "c45",
+    "mot": "BOUSSOLE",
+    "affichage": "boussole",
+    "definition": "Son aiguille montre toujours le nord",
+    "type": "classique",
+    "longueur": 8
+  },
+  {
+    "id": "c46",
+    "mot": "BROSSE",
+    "affichage": "brosse",
+    "definition": "Pour les cheveux, ou coupe militaire",
+    "type": "classique",
+    "longueur": 6
+  },
+  {
+    "id": "c47",
+    "mot": "CAMEMBERT",
+    "affichage": "camembert",
+    "definition": "Fromage normand, ou diagramme rond",
+    "type": "classique",
+    "longueur": 9
+  },
+  {
+    "id": "c48",
+    "mot": "CANAPE",
+    "affichage": "canapé",
+    "definition": "On s'y affale, ou on le grignote à l'apéro",
+    "type": "classique",
+    "longueur": 6
+  },
+  {
+    "id": "c49",
+    "mot": "CAROTTE",
+    "affichage": "carotte",
+    "definition": "Légume qui rendrait aimable, paraît-il",
+    "type": "classique",
+    "longueur": 7
+  },
+  {
+    "id": "c50",
+    "mot": "CHAMEAU",
+    "affichage": "chameau",
+    "definition": "Deux bosses, contrairement au dromadaire",
+    "type": "classique",
+    "longueur": 7
+  },
+  {
+    "id": "c51",
+    "mot": "CHATEAU",
+    "affichage": "château",
+    "definition": "Demeure seigneuriale, ou tas de sable à la plage",
+    "type": "classique",
+    "longueur": 7
+  },
+  {
+    "id": "c52",
+    "mot": "CHOCOLAT",
+    "affichage": "chocolat",
+    "definition": "Noir à 70 %, au lait ou blanc",
+    "type": "classique",
+    "longueur": 8
+  },
+  {
+    "id": "c53",
+    "mot": "CRAYON",
+    "affichage": "crayon",
+    "definition": "Il se taille pour écrire",
+    "type": "classique",
+    "longueur": 6
+  },
+  {
+    "id": "c54",
+    "mot": "DENTIFRICE",
+    "affichage": "dentifrice",
+    "definition": "Pâte qu'on étale matin et soir",
+    "type": "classique",
+    "longueur": 10
+  },
+  {
+    "id": "c55",
+    "mot": "ECHARPE",
+    "affichage": "écharpe",
+    "definition": "Elle s'enroule autour du cou en hiver",
+    "type": "classique",
+    "longueur": 7
+  },
+  {
+    "id": "c56",
+    "mot": "EPONGE",
+    "affichage": "éponge",
+    "definition": "Elle boit sans avoir soif",
+    "type": "classique",
+    "longueur": 6
+  },
+  {
+    "id": "c57",
+    "mot": "FOURCHETTE",
+    "affichage": "fourchette",
+    "definition": "Elle pique dans l'assiette",
+    "type": "classique",
+    "longueur": 10
+  },
+  {
+    "id": "c58",
+    "mot": "GIRAFE",
+    "affichage": "girafe",
+    "definition": "Le plus grand animal terrestre",
+    "type": "classique",
+    "longueur": 6
+  },
+  {
+    "id": "c59",
+    "mot": "GUITARE",
+    "affichage": "guitare",
+    "definition": "Six cordes, souvent autour d'un feu de camp",
+    "type": "classique",
+    "longueur": 7
+  },
+  {
+    "id": "c60",
+    "mot": "HORLOGE",
+    "affichage": "horloge",
+    "definition": "Elle donne l'heure sans jamais se taire",
+    "type": "classique",
+    "longueur": 7
+  },
+  {
+    "id": "c61",
+    "mot": "LAMPADAIRE",
+    "affichage": "lampadaire",
+    "definition": "Il s'allume quand la rue s'endort",
+    "type": "classique",
+    "longueur": 10
+  },
+  {
+    "id": "c62",
+    "mot": "LIMACE",
+    "affichage": "limace",
+    "definition": "Escargot sans maison",
+    "type": "classique",
+    "longueur": 6
+  },
+  {
+    "id": "c63",
+    "mot": "MARMOTTE",
+    "affichage": "marmotte",
+    "definition": "Elle dort tout l'hiver et siffle en montagne",
+    "type": "classique",
+    "longueur": 8
+  },
+  {
+    "id": "c64",
+    "mot": "MIROIR",
+    "affichage": "miroir",
+    "definition": "Il te renvoie ton image",
+    "type": "classique",
+    "longueur": 6
+  },
+  {
+    "id": "c65",
+    "mot": "MOULIN",
+    "affichage": "moulin",
+    "definition": "Il tourne au vent et fait de la farine",
+    "type": "classique",
+    "longueur": 6
+  },
+  {
+    "id": "c66",
+    "mot": "OREILLER",
+    "affichage": "oreiller",
+    "definition": "Coussin pour la nuit",
+    "type": "classique",
+    "longueur": 8
+  },
+  {
+    "id": "c67",
+    "mot": "PAPILLON",
+    "affichage": "papillon",
+    "definition": "Il était chenille avant",
+    "type": "classique",
+    "longueur": 8
+  },
+  {
+    "id": "c68",
+    "mot": "PERROQUET",
+    "affichage": "perroquet",
+    "definition": "Oiseau qui répète tout ce qu'on dit",
+    "type": "classique",
+    "longueur": 9
+  },
+  {
+    "id": "c69",
+    "mot": "PINGOUIN",
+    "affichage": "pingouin",
+    "definition": "Oiseau qu'on confond souvent avec le manchot",
+    "type": "classique",
+    "longueur": 8
+  },
+  {
+    "id": "c70",
+    "mot": "RAQUETTE",
+    "affichage": "raquette",
+    "definition": "Elle renvoie la balle, ou marche dans la neige",
+    "type": "classique",
+    "longueur": 8
+  },
+  {
+    "id": "c71",
+    "mot": "REVEIL",
+    "affichage": "réveil",
+    "definition": "Il sonne toujours trop tôt",
+    "type": "classique",
+    "longueur": 6
+  },
+  {
+    "id": "c72",
+    "mot": "SABLIER",
+    "affichage": "sablier",
+    "definition": "Il compte le temps grain par grain",
+    "type": "classique",
+    "longueur": 7
+  },
+  {
+    "id": "c73",
+    "mot": "SAUCISSON",
+    "affichage": "saucisson",
+    "definition": "Il se tranche à l'apéro",
+    "type": "classique",
+    "longueur": 9
+  },
+  {
+    "id": "c74",
+    "mot": "SOUCOUPE",
+    "affichage": "soucoupe",
+    "definition": "Petite assiette, ou vaisseau d'extraterrestre",
+    "type": "classique",
+    "longueur": 8
+  },
+  {
+    "id": "c75",
+    "mot": "TELESCOPE",
+    "affichage": "télescope",
+    "definition": "Il rapproche les étoiles",
+    "type": "classique",
+    "longueur": 9
+  },
+  {
+    "id": "c76",
+    "mot": "TOBOGGAN",
+    "affichage": "toboggan",
+    "definition": "On glisse dessus au parc",
+    "type": "classique",
+    "longueur": 8
+  },
+  {
+    "id": "c77",
+    "mot": "TROMPETTE",
+    "affichage": "trompette",
+    "definition": "Cuivre à pistons",
+    "type": "classique",
+    "longueur": 9
+  },
+  {
+    "id": "c78",
+    "mot": "VAMPIRE",
+    "affichage": "vampire",
+    "definition": "Il craint l'ail et le soleil",
+    "type": "classique",
+    "longueur": 7
+  },
+  {
+    "id": "c79",
+    "mot": "VALISE",
+    "affichage": "valise",
+    "definition": "Elle part en vacances avec toi",
+    "type": "classique",
+    "longueur": 6
+  },
+  {
+    "id": "c80",
+    "mot": "ZEBRE",
+    "affichage": "zèbre",
+    "definition": "Cheval en pyjama rayé",
+    "type": "classique",
+    "longueur": 5
   }
 ]

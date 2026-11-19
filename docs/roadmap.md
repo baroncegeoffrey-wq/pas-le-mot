@@ -41,4 +41,4 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 - [ ] Stats de fin de partie (mots trouvés, erreurs, lettres achetées)
 - [ ] Mobile
 - [ ] Salons privés avec code
-- [ ] Agrandir la bibliothèque de mots
+- [x] Agrandir la bibliothèque de mots (175 mots : 95 argot dont verlan et gros mots, 80 classiques ; définitions plus difficiles)
