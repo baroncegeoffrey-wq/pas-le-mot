@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const {
-  startServer, createPlayer, waitFor, expectNothing, answerOfClue, forbiddenKeys, startMatch, sleep,
+  startServer, createPlayer, waitFor, expectNothing, answerOfClue, forbiddenKeys, startMatch, sleep, pick,
 } = require('./helpers');
 
 async function startSolo(server, pseudo = 'Solo') {
@@ -50,9 +50,11 @@ test('solo : mêmes règles (+1, -1, blocage, achat), fin quand la grille est pl
     const over = waitFor(p, 'game-over');
     p.emit('submit-word', { roomId: g.roomId, wordId: a.wordId, letters: answerOfClue(a.clue) });
     const result = await over;
-    assert.deepStrictEqual(result, {
+    assert.deepStrictEqual(pick(result, ['scores', 'winner', 'found', 'total']), {
       scores: [g.clues.length - 2], winner: null, found: g.clues.length, total: g.clues.length,
     });
+    assert.deepStrictEqual(result.stats, [{ found: g.clues.length, wrong: 1, bought: 1, powers: 0 }]);
+    assert.ok(result.solutions.every((s) => s.foundBy === 0));
   } finally {
     p.close(); server.stop();
   }
@@ -64,7 +66,8 @@ test('solo : fin au chrono avec le nombre de mots trouvés', async () => {
   try {
     const clue = g.clues[0];
     p.emit('submit-word', { roomId: g.roomId, wordId: clue.wordId, letters: answerOfClue(clue.clue) });
-    assert.deepStrictEqual(await waitFor(p, 'game-over'), {
+    const over = await waitFor(p, 'game-over');
+    assert.deepStrictEqual(pick(over, ['scores', 'winner', 'found', 'total']), {
       scores: [1], winner: null, found: 1, total: g.clues.length,
     });
   } finally {
@@ -99,7 +102,7 @@ test('solo : en duo, rien ne change (toujours un gagnant)', async () => {
   const server = await startServer({ GAME_DURATION_MS: '500' });
   const { p1, p2 } = await startMatch(server);
   try {
-    assert.deepStrictEqual(await waitFor(p1, 'game-over'), { scores: [0, 0], winner: null });
+    assert.deepStrictEqual(pick(await waitFor(p1, 'game-over'), ['scores', 'winner']), { scores: [0, 0], winner: null });
   } finally {
     p1.close(); p2.close(); server.stop();
   }

@@ -117,6 +117,7 @@ test('partie complète : aucune solution dans les messages, à aucun moment', as
       p2.emit('submit-word', { roomId: g1.roomId, wordId: clue.wordId, letters: answerOfClue(clue.clue) });
     }
     await over;
+    await sleep(200); // laisse le message de fin arriver aussi chez p2
 
     for (const player of [p1, p2]) {
       assert.deepStrictEqual(forbiddenKeys(player.received), []);
@@ -126,6 +127,9 @@ test('partie complète : aucune solution dans les messages, à aucun moment', as
       for (const clue of g1.clues) {
         assert.ok(!before.includes(`"${answerOfClue(clue.clue)}"`), `solution trouvée : ${answerOfClue(clue.clue)}`);
       }
+      // Les réponses complètes n'arrivent qu'avec la fin de partie, jamais avant.
+      const withSolutions = player.received.filter((m) => m.payload && m.payload.solutions);
+      assert.deepStrictEqual(withSolutions.map((m) => m.event), ['game-over']);
       // Les lettres achetées n'arrivent qu'à l'acheteur, une par une.
       for (const m of player.received.filter((x) => x.event === 'letter-revealed')) {
         assert.strictEqual(player, p2);

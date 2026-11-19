@@ -17,6 +17,8 @@ const io = new Server(server);
 const PORT = process.env.PORT || 3000;
 // Durée d'une partie : 2 minutes (réglable pour les tests automatiques).
 const GAME_DURATION_MS = Number(process.env.GAME_DURATION_MS) || 2 * 60 * 1000;
+// Compte à rebours « 3, 2, 1, GO » avant le début (0 dans les tests automatiques).
+const START_DELAY_MS = Number(process.env.START_DELAY_MS ?? 3500);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -59,13 +61,14 @@ function startGame(roomId, room) {
   const exclude = new Set(room.players.flatMap((p) => recentWords.get(p.pseudo.toLowerCase()) || []));
   const fullGrid = generateGrid({ exclude });
   room.players.forEach((p) => rememberWords(p.pseudo, fullGrid.words.map((w) => w.answer)));
-  room.game = new Game(fullGrid, room.players.map((p) => p.avatar));
+  const startsAt = Date.now() + START_DELAY_MS;
+  room.game = new Game(fullGrid, room.players.map((p) => p.avatar), startsAt);
   // Minuteries du Freeze, par joueur gelé : { regrow, safety }
   room.freezeTimers = [null, null];
   room.onClose = () => room.freezeTimers.forEach((_, slot) => clearFreezeTimers(room, slot));
   const { grid, clues } = room.game.getPublicGrid();
-  const endsAt = Date.now() + GAME_DURATION_MS;
-  room.timer = setTimeout(safe('fin du chrono', () => finishGame(roomId, room)), GAME_DURATION_MS);
+  const endsAt = startsAt + GAME_DURATION_MS;
+  room.timer = setTimeout(safe('fin du chrono', () => finishGame(roomId, room)), START_DELAY_MS + GAME_DURATION_MS);
 
   room.players.forEach((player, index) => {
     const opponent = room.players[1 - index];
@@ -81,6 +84,7 @@ function startGame(roomId, room) {
       },
       // En solo, pas d'adversaire.
       opponent: opponent ? { pseudo: opponent.pseudo, slot: 1 - index, avatar: opponent.avatar } : null,
+      startsAt,
       endsAt,
       // L'heure du serveur, pour que le client corrige un écart d'horloge.
       serverNow: Date.now(),
@@ -92,7 +96,9 @@ function startGame(roomId, room) {
 // on ferme le salon (le chrono est arrêté dans endGame).
 function finishGame(roomId, room) {
   if (room.game.over) return;
-  const { scores, winner } = room.game.finish();
+  const { scores, winner, stats } = room.game.finish();
+  // La partie est finie : on peut enfin montrer les réponses.
+  const solutions = room.game.getSolutions();
   if (room.solo) {
     // En solo : pas de gagnant, juste ton score et le nombre de mots trouvés.
     io.to(roomId).emit('game-over', {
@@ -100,9 +106,11 @@ function finishGame(roomId, room) {
       winner: null,
       found: room.game.claimedBy.size,
       total: room.game.grid.words.length,
+      stats: [stats[0]],
+      solutions,
     });
   } else {
-    io.to(roomId).emit('game-over', { scores, winner });
+    io.to(roomId).emit('game-over', { scores, winner, stats, solutions });
   }
   endGame(roomId, io);
 }

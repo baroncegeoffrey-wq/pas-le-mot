@@ -28,7 +28,8 @@ function readLetters(letters) {
 
 class Game {
   // avatars : ['givre', 'perche'] en duo, un seul en solo (pas de pouvoir).
-  constructor(grid = generateGrid(), avatars = []) {
+  // startsAt : heure du « GO » (avant, rien n'est accepté : compte à rebours).
+  constructor(grid = generateGrid(), avatars = [], startsAt = 0) {
     this.grid = grid; // contient les solutions : ne quitte jamais le serveur
     this.scores = [0, 0];
     this.claimedBy = new Map(); // wordId -> numéro du joueur (0 ou 1)
@@ -39,6 +40,13 @@ class Game {
     this.powersLeft = [USES_PER_GAME, USES_PER_GAME];
     // Par joueur : null, ou { layers, since, lastScrapeAt } tant qu'il est gelé.
     this.frozen = [null, null];
+    this.startsAt = startsAt;
+    // Statistiques de fin de partie, par joueur.
+    this.stats = [0, 1].map(() => ({ found: 0, wrong: 0, bought: 0, powers: 0 }));
+  }
+
+  hasStarted(now = Date.now()) {
+    return now >= this.startsAt;
   }
 
   // Ce que le navigateur a le droit de voir : positions, longueurs, numéros et
@@ -69,7 +77,8 @@ class Game {
   // - { type: 'wrong', ... } : faux, -1, et le mot est bloqué 3 s pour lui
   // - { type: 'locked', ... } : le mot est encore bloqué pour lui (pas de pénalité)
   submitWord(slot, wordId, letters, now = Date.now()) {
-    if (this.over || this.frozen[slot]) return { type: 'ignored' }; // gelé : il ne peut rien faire
+    // Partie finie, pas encore commencée, ou joueur gelé : rien ne compte.
+    if (this.over || this.frozen[slot] || !this.hasStarted(now)) return { type: 'ignored' };
     const word = this.getWord(wordId);
     if (!word || this.claimedBy.has(wordId)) return { type: 'ignored' };
 
@@ -82,10 +91,12 @@ class Game {
     if (answer === word.answer) {
       this.claimedBy.set(wordId, slot);
       this.scores[slot] += 1;
+      this.stats[slot].found += 1;
       return { type: 'claimed', wordId, letters: word.answer, by: slot, scores: [...this.scores] };
     }
 
     this.scores[slot] -= 1;
+    this.stats[slot].wrong += 1;
     this.lockedUntil[slot].set(wordId, now + WRONG_LOCK_MS);
     return { type: 'wrong', wordId, scores: [...this.scores], lockedUntil: now + WRONG_LOCK_MS };
   }
@@ -101,8 +112,8 @@ class Game {
 
   // Le joueur achète une lettre du mot (-1). On lui révèle, à lui seul, une case
   // qu'il ne connaît pas encore : ni achetée, ni venue d'un mot déjà trouvé.
-  buyLetter(slot, wordId) {
-    if (this.over || this.frozen[slot]) return { type: 'ignored' };
+  buyLetter(slot, wordId, now = Date.now()) {
+    if (this.over || this.frozen[slot] || !this.hasStarted(now)) return { type: 'ignored' };
     const word = this.getWord(wordId);
     if (!word || this.claimedBy.has(wordId)) return { type: 'ignored' };
 
@@ -116,6 +127,7 @@ class Game {
     const { k, index } = hidden[Math.floor(Math.random() * hidden.length)];
     this.bought[slot].add(k);
     this.scores[slot] -= 1;
+    this.stats[slot].bought += 1;
     return { type: 'revealed', wordId, index, letter: word.answer[index], scores: [...this.scores] };
   }
 
@@ -124,6 +136,7 @@ class Game {
   // - { type: 'used', power, target, duration, payload, remaining }
   usePower(slot, now = Date.now()) {
     if (this.over) return { type: 'refused', reason: 'La partie est finie' };
+    if (!this.hasStarted(now)) return { type: 'refused', reason: 'Attends le GO !' };
     if (this.avatars.length < 2) return { type: 'refused', reason: 'Pas de pouvoir en solo' };
     if (this.frozen[slot]) return { type: 'refused', reason: 'Tu es gelé : racle d\'abord ton givre !' };
     if (this.powersLeft[slot] <= 0) return { type: 'refused', reason: 'Plus de pouvoir pour cette partie' };
@@ -142,6 +155,7 @@ class Game {
     }
 
     this.powersLeft[slot] -= 1;
+    this.stats[slot].powers += 1;
     return {
       type: 'used', power, target, duration, payload, remaining: this.powersLeft[slot],
     };
@@ -193,7 +207,24 @@ class Game {
   finish() {
     this.over = true;
     const [a, b] = this.scores;
-    return { scores: [...this.scores], winner: a === b ? null : (a > b ? 0 : 1) };
+    return {
+      scores: [...this.scores],
+      winner: a === b ? null : (a > b ? 0 : 1),
+      stats: this.stats.map((s) => ({ ...s })),
+    };
+  }
+
+  // Les réponses, envoyées UNIQUEMENT une fois la partie terminée : chaque mot
+  // avec sa définition, et qui l'a trouvé (numéro du joueur, ou null).
+  getSolutions() {
+    if (!this.over) return [];
+    return this.grid.words.map((w) => ({
+      number: w.number,
+      direction: w.direction,
+      word: w.display.toUpperCase(),
+      clue: w.clue,
+      foundBy: this.claimedBy.has(w.id) ? this.claimedBy.get(w.id) : null,
+    }));
   }
 }
 

@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const {
-  startServer, waitFor, expectNothing, answerOfClue, startMatch, sleep,
+  startServer, waitFor, expectNothing, answerOfClue, startMatch, sleep, pick,
 } = require('./helpers');
 const { Game } = require('../game');
 
@@ -15,8 +15,22 @@ test('chrono : game-start annonce la fin, game-over arrive au bout du temps', as
     const first = g1.clues[0];
     p1.emit('submit-word', { roomId: g1.roomId, wordId: first.wordId, letters: answerOfClue(first.clue) });
     const [o1, o2] = await Promise.all([waitFor(p1, 'game-over', 3000), waitFor(p2, 'game-over', 3000)]);
-    assert.deepStrictEqual(o1, { scores: [1, 0], winner: 0 });
+    assert.deepStrictEqual(pick(o1, ['scores', 'winner']), { scores: [1, 0], winner: 0 });
     assert.deepStrictEqual(o2, o1);
+    // Stats de fin : 1 mot trouvé pour p1, rien pour p2.
+    assert.deepStrictEqual(o1.stats, [
+      { found: 1, wrong: 0, bought: 0, powers: 0 },
+      { found: 0, wrong: 0, bought: 0, powers: 0 },
+    ]);
+    // Les réponses arrivent avec la fin : tous les mots, avec qui les a trouvés.
+    assert.strictEqual(o1.solutions.length, g1.clues.length);
+    const firstSol = o1.solutions.find((s) => s.clue === first.clue);
+    assert.strictEqual(firstSol.foundBy, 0);
+    assert.strictEqual(o1.solutions.filter((s) => s.foundBy === null).length, g1.clues.length - 1);
+    for (const s of o1.solutions) {
+      const { normalize } = require('../game');
+      assert.strictEqual(normalize(s.word), answerOfClue(s.clue));
+    }
   } finally {
     p1.close(); p2.close(); server.stop();
   }
@@ -26,7 +40,7 @@ test('chrono : égalité à 0-0', async () => {
   const server = await startServer({ GAME_DURATION_MS: '500' });
   const { p1, p2 } = await startMatch(server);
   try {
-    assert.deepStrictEqual(await waitFor(p1, 'game-over'), { scores: [0, 0], winner: null });
+    assert.deepStrictEqual(pick(await waitFor(p1, 'game-over'), ['scores', 'winner']), { scores: [0, 0], winner: null });
   } finally {
     p1.close(); p2.close(); server.stop();
   }
@@ -167,5 +181,30 @@ test('déconnexion en file d\'attente : le joueur suivant ne tombe pas sur un fa
     assert.strictEqual((await start).opponent.pseudo, 'B');
   } finally {
     a.close(); b.close(); server.stop();
+  }
+});
+
+test('compte à rebours : rien ne compte avant le GO, puis la partie dure son temps', async () => {
+  const server = await startServer({ START_DELAY_MS: '800', GAME_DURATION_MS: '60000' });
+  const { p1, p2, g1 } = await startMatch(server);
+  try {
+    assert.ok(g1.startsAt - g1.serverNow > 600 && g1.startsAt - g1.serverNow <= 800);
+    assert.strictEqual(g1.endsAt - g1.startsAt, 60000);
+    const clue = g1.clues[0];
+    // Avant le GO : mot ignoré, pouvoir refusé, achat ignoré.
+    p1.emit('submit-word', { roomId: g1.roomId, wordId: clue.wordId, letters: answerOfClue(clue.clue) });
+    p1.emit('buy-letter', { roomId: g1.roomId, wordId: clue.wordId });
+    const refused = waitFor(p1, 'power-refused');
+    p1.emit('use-power', { roomId: g1.roomId });
+    assert.strictEqual((await refused).reason, 'Attends le GO !');
+    await expectNothing(p1, 'word-claimed', 300);
+    assert.ok(!p1.received.some((m) => m.event === 'letter-revealed'));
+    // Après le GO : ça marche.
+    await sleep(500);
+    const ok = waitFor(p2, 'word-claimed');
+    p1.emit('submit-word', { roomId: g1.roomId, wordId: clue.wordId, letters: answerOfClue(clue.clue) });
+    assert.deepStrictEqual((await ok).scores, [1, 0]);
+  } finally {
+    p1.close(); p2.close(); server.stop();
   }
 });

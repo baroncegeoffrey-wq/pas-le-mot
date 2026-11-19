@@ -8,7 +8,8 @@ const { io } = require('socket.io-client');
 function startServer(env = {}) {
   const child = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], {
     // PORT=0 : le système choisit un port libre (pas de collision entre fichiers de test).
-    env: { ...process.env, PORT: '0', ...env },
+    // START_DELAY_MS=0 : pas de compte à rebours dans les tests (sauf s'ils le demandent).
+    env: { ...process.env, PORT: '0', START_DELAY_MS: '0', ...env },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   return new Promise((resolve, reject) => {
@@ -79,6 +80,9 @@ async function startMatch(server) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Ne garde que certains champs d'un message (pour comparer l'essentiel).
+const pick = (obj, keys) => Object.fromEntries(keys.map((k) => [k, obj[k]]));
+
 module.exports = {
-  startServer, createPlayer, waitFor, expectNothing, answerOfClue, forbiddenKeys, startMatch, sleep,
+  startServer, createPlayer, waitFor, expectNothing, answerOfClue, forbiddenKeys, startMatch, sleep, pick,
 };
