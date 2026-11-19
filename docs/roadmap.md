@@ -26,13 +26,13 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 - [x] Écran de fin solo (score et mots trouvés) + Rejouer en solo
 - [x] Tests à un joueur simulé
 
-## L3 · Avatars et pouvoirs (vendredi matin, si L1 et L2 sont en ligne) [ ]
+## L3 · Avatars et pouvoirs (vendredi matin, si L1 et L2 sont en ligne) [x]
 - [x] Choix de l'avatar avant la partie (badges provisoires)
 - [x] Le Givré : Freeze (adversaire bloqué jusqu'à ce qu'il racle le givre de son avatar, 20 s max, vérifié par le serveur)
 - [x] Le Perché : Trip (écran flou et psychédélique, un cercle net suit la souris, 10 s)
 - [x] Le Verlan : Verlan (écran retourné en miroir, mots à remplir par la fin, 10 s)
 - [x] 2 utilisations par partie, compteur affiché, pas de pouvoir en solo
-- [ ] **En ligne sur Render** (nouveau Freeze à vérifier en ligne)
+- [x] **En ligne sur Render**, testé avec 2 joueurs simulés sur le site en ligne (nouveau Freeze compris)
 
 ## Après le rendu
 - [ ] Direction artistique JRPG rétro
