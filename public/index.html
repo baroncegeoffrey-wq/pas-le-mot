@@ -12,6 +12,7 @@
 <body>
   <!-- Ligne de balayage qui descend sur tout l'écran (décor) -->
   <div class="scanline" aria-hidden="true"></div>
+  <button type="button" id="mute-btn" class="mute-btn" aria-pressed="false">SON : ON</button>
 
   <!-- Écran d'accueil : pseudo, avatar, recherche d'adversaire -->
   <section id="lobby" class="screen">
@@ -235,6 +236,7 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="sprites.js"></script>
+  <script src="sounds.js"></script>
   <script src="client.js"></script>
 </body>
 </html>

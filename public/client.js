@@ -81,6 +81,19 @@ function cleanLetter(text) {
   return letter.slice(-1);
 }
 
+/* ---------- Son : bouton pour couper, et déblocage au premier clic ---------- */
+
+const muteBtn = $('mute-btn');
+function showMute() {
+  const muted = Sound.isMuted();
+  muteBtn.textContent = muted ? 'SON : OFF' : 'SON : ON';
+  muteBtn.setAttribute('aria-pressed', String(muted));
+}
+showMute();
+muteBtn.addEventListener('click', () => { Sound.toggle(); showMute(); });
+document.addEventListener('pointerdown', () => Sound.unlock(), { once: true });
+document.addEventListener('keydown', () => Sound.unlock(), { once: true });
+
 /* ---------- Accueil et recherche de partie ---------- */
 
 // Les personnages des cartes d'avatar.
@@ -333,6 +346,7 @@ function showGo(text, final) {
   go.appendChild(span);
   go.classList.toggle('final', final);
   go.hidden = false;
+  Sound.play(final ? 'go' : 'tick');
 }
 
 // startsAt est l'heure du serveur ; on la ramène à l'horloge locale.
@@ -387,6 +401,7 @@ function flashAlert(text) {
   alert.classList.remove('show');
   void alert.offsetWidth; // relance l'animation
   alert.classList.add('show');
+  Sound.play('alert');
 }
 
 function showCountdown(n) {
@@ -408,6 +423,9 @@ function updateStress(seconds) {
   if (seconds === 30) flashAlert('30 SECONDES !');
   if (seconds === 20) flashAlert('20 SECONDES !');
   if (seconds <= 10 && seconds > 0) showCountdown(seconds);
+  // Battement de cœur sur les 30 dernières secondes, bip en plus sur les 10 dernières.
+  if (seconds <= 30 && seconds > 0 && seconds !== 30 && seconds !== 20) Sound.play('heart');
+  if (seconds <= 10 && seconds > 0) Sound.play('countdown');
 }
 
 function clearStress() {
@@ -554,10 +572,12 @@ socket.on('game-over', ({ scores, winner, found, total, stats, solutions }) => {
   const extra = { stats, solutions };
   if (players.length === 1) {
     const words = `${found} mot${found > 1 ? 's' : ''} trouvé${found > 1 ? 's' : ''} sur ${total}`;
+    Sound.play('win');
     showResult('PARTIE TERMINÉE', `Score : ${scores[0]}  ·  ${words}`, 'neutral', scores, null, extra);
     return;
   }
   const me = players.find((p) => p.slot === mySlot);
+  Sound.play(winner === mySlot ? 'win' : 'lose');
   if (winner === null) {
     showResult('ÉGALITÉ !', `${scores[0]} partout`, 'draw', scores, null, extra);
   } else if (winner === mySlot) {
@@ -844,6 +864,7 @@ socket.on('word-claimed', ({ wordId, letters, by, scores }) => {
   if (currentWord === wordId) buyBtn.disabled = true;
   setScores(scores);
   gameStatus.textContent = by === mySlot ? `Bien vu ! +1 (${w.number})` : `L'adversaire a trouvé le ${w.number}.`;
+  Sound.play(by === mySlot ? 'good' : 'theirs');
 
   // Si j'étais sur ce mot, je passe au prochain mot libre.
   if (currentWord === wordId) {
@@ -861,6 +882,7 @@ socket.on('word-wrong', ({ wordId, scores, lockedUntil, serverNow }) => {
   const w = words.get(wordId);
   setScores(scores);
   gameStatus.textContent = `Raté ! -1. Ce mot est bloqué ${secondsUntil(lockedUntil, serverNow)} s pour toi.`;
+  Sound.play('bad');
   if (!w) return;
   w.cells.forEach((k) => {
     const el = cells.get(k).el;
@@ -887,6 +909,7 @@ buyBtn.addEventListener('click', () => {
 });
 
 socket.on('letter-revealed', ({ wordId, index, letter, scores }) => {
+  Sound.play('blip');
   const w = words.get(wordId);
   setScores(scores);
   if (!w) return;
@@ -976,8 +999,10 @@ function playSuperAttack(side, avatar, power, done) {
 
   fxLayer.hidden = false;
   fxLayer.className = 'phase-cutin';
+  Sound.play('whoosh');
   fxTimers.push(setTimeout(() => {
     fxLayer.className = 'phase-beam';
+    Sound.play('charge');
     arena.classList.remove('quake');
     void arena.offsetWidth; // relance l'animation
     arena.classList.add('quake');
@@ -986,6 +1011,7 @@ function playSuperAttack(side, avatar, power, done) {
     target.classList.remove('hit');
     void target.offsetWidth;
     target.classList.add('hit');
+    Sound.play('impact');
   }, CUTIN_MS + IMPACT_MS));
   fxTimers.push(setTimeout(() => {
     stopFx();
@@ -1054,6 +1080,7 @@ function onScrapeMove(event) {
 function scrapeHit() {
   if (!roomId) return;
   socket.emit('scrape', { roomId });
+  Sound.play('scrape');
   iceAvatar.classList.remove('scraped');
   void iceAvatar.offsetWidth; // relance l'animation
   iceAvatar.classList.add('scraped');
@@ -1096,6 +1123,7 @@ socket.on('unfrozen', ({ slot }) => {
     delete effectTimers.freeze;
     setFrost(0);
     freezeLayer.classList.add('thawing');
+    Sound.play('thaw');
     gameStatus.classList.remove('hit');
     gameStatus.textContent = 'Dégivré ! À toi de jouer.';
     setTimeout(() => {
