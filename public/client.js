@@ -23,25 +23,30 @@ const powerBtn = $('power-btn');
 const tripLayer = $('trip');
 const freezeLayer = $('freeze');
 const iceAvatar = $('ice-avatar');
-const fxLayer = $('fx');
-const fxTemplate = $('fx-template');
+const cineLayer = $('cine');
+const cineVideo = $('cine-video');
 const arena = $('arena');
 const boxMe = $('box-me');
 const boxOpp = $('box-opp');
 const fighterMe = $('fighter-me');
 const fighterOpp = $('fighter-opp');
 
-const USES_PER_GAME = 2;
-const SPRITE_PX = 8; // taille des personnages dans l'arène (16 × 8 = 128 px)
-// Couleurs de chaque super attaque (cœur et halo du rayon).
-const ATTACK_LOOK = {
-  freeze: { c1: '#00e5ff', c2: '#bfefff' },
-  trip: { c1: '#b57bf0', c2: '#ff7ad9' },
-  verlan: { c1: '#ff8a00', c2: '#f5e100' },
+const USES_PER_GAME = 1; // une seule super attaque par partie
+const HITSTOP_MS = 80; // arrêt sur image à chaque coup
+const KO_MS = 2600; // durée du ralenti de K.O. avant l'écran de fin
+const CINE_MAX_MS = 20000; // sécurité : une vidéo ne bloque jamais plus de 20 s
+
+// Nom affiché de chaque avatar. Les images sont dans public/assets/avatars/
+// (silhouettes provisoires, à remplacer avec scripts/prepare-assets.js).
+const AVATAR_NAMES = {
+  givre: 'Le Givré', perche: 'Le Perché', verlan: 'Le Verlan', mannequin: 'Mannequin',
 };
-const CUTIN_MS = 1200; // cinématique
-const BEAM_MS = 1500; // rayon jusqu'à l'impact et sa fin
-const IMPACT_MS = 620; // moment de l'impact dans le rayon
+const DUMMY = { pseudo: 'MANNEQUIN', slot: 1, avatar: 'mannequin' }; // l'adversaire du mode solo
+
+function avatarImg(img, who) {
+  img.src = `assets/avatars/${who}.png`;
+  img.alt = AVATAR_NAMES[who] || '';
+}
 
 // Nom du pouvoir de chaque avatar (affiché sur le bouton).
 const POWER_NAMES = { givre: 'Freeze', perche: 'Trip', verlan: 'Verlan' };
@@ -55,7 +60,9 @@ let currentWord = null; // wordId sélectionné
 let players = []; // [{ pseudo, slot, avatar }] rangés par slot (un seul en solo)
 let opponent = null; // { pseudo, slot, avatar }, ou null en solo
 let oppPowersLeft = 0; // compté à chaque pouvoir reçu
-let fxTimers = []; // minuteries de la super attaque en cours
+let cineTimers = []; // minuteries de la vidéo de super attaque
+let maxHp = 100;
+let koPlaying = false; // pendant le ralenti de K.O.
 let frostMax = 1; // couches de givre au départ (pour la barre)
 let lastMode = 'duo'; // 'duo' ou 'solo' : ce que relance le bouton Rejouer
 let timerInterval = null;
@@ -95,11 +102,6 @@ document.addEventListener('pointerdown', () => Sound.unlock(), { once: true });
 document.addEventListener('keydown', () => Sound.unlock(), { once: true });
 
 /* ---------- Accueil et recherche de partie ---------- */
-
-// Les personnages des cartes d'avatar.
-document.querySelectorAll('canvas.sprite[data-who]').forEach((canvas) => {
-  drawSprite(canvas, canvas.dataset.who, Number(canvas.dataset.px) || 6);
-});
 
 try {
   pseudoInput.value = localStorage.getItem('pseudo') || '';
@@ -202,7 +204,7 @@ let inviteLink = '';
 function showWaiting(mode, code) {
   findForm.hidden = true;
   waitingBox.hidden = false;
-  drawSprite($('waiting-sprite'), chosenAvatar(), 7);
+  avatarImg($('waiting-sprite'), chosenAvatar());
   const base = `${location.origin}${location.pathname}`;
   inviteLink = mode === 'private' ? `${base}?salon=${code}` : base;
   $('waiting-title').textContent = mode === 'private' ? 'SALON PRIVÉ CRÉÉ' : 'EN ATTENTE D\'UN ADVERSAIRE';
@@ -303,17 +305,15 @@ socket.on('game-start', (data) => {
   myAvatar = data.you.avatar;
   oppPowersLeft = opponent ? USES_PER_GAME : 0;
 
-  // L'arène : moi à gauche, l'adversaire à droite (caché en solo).
+  // L'arène : moi à gauche, l'adversaire à droite (un mannequin en solo).
+  maxHp = data.maxHp || 100;
+  const foe = opponent || DUMMY;
   fillPlayerBox(boxMe, data.you, true, data.opponent ? data.you.powersLeft : 0);
-  drawSprite(fighterMe.querySelector('canvas'), data.you.avatar, SPRITE_PX);
-  boxOpp.hidden = !opponent;
-  fighterOpp.parentElement.hidden = !opponent;
-  if (opponent) {
-    fillPlayerBox(boxOpp, opponent, false, oppPowersLeft);
-    drawSprite(fighterOpp.querySelector('canvas'), opponent.avatar, SPRITE_PX);
-  }
-  fighterMe.classList.remove('iced', 'hit');
-  fighterOpp.classList.remove('iced', 'hit');
+  fillPlayerBox(boxOpp, foe, false, oppPowersLeft);
+  avatarImg(fighterMe.querySelector('img'), data.you.avatar);
+  avatarImg(fighterOpp.querySelector('img'), foe.avatar);
+  resetFighters();
+  setHp([maxHp, maxHp], true);
   setPowerButton(data.opponent ? data.you.powersLeft : 0);
   powerBtn.hidden = !data.opponent; // pas de pouvoir en solo
 
@@ -373,10 +373,105 @@ function startCountdown(startsAt, serverNow) {
 // Plaque de nom d'un joueur : pseudo, score, avatar, pouvoirs restants.
 function fillPlayerBox(box, player, isMe, powersLeft) {
   box.querySelector('.name').textContent = player.pseudo;
-  box.querySelector('.score').textContent = '0';
-  box.querySelector('.avatar-label').textContent = `${SPRITES[player.avatar].name}${isMe ? ' · toi' : ''}`;
+  box.querySelector('.avatar-label').textContent = `${AVATAR_NAMES[player.avatar] || ''}${isMe ? ' · toi' : ''}`;
   setPips(box, powersLeft);
 }
+
+/* ---------- Points de vie ---------- */
+
+// Met à jour les deux barres de PV. La partie blanche (« ghost ») descend un peu
+// après la barre colorée, pour bien voir le morceau de vie perdu.
+function setHp(hp, instant) {
+  hp.forEach((value, slot) => {
+    if (slot !== mySlot && slot !== 1 - mySlot) return;
+    const box = boxOf(slot);
+    const bar = box.querySelector('.hp');
+    const pct = Math.max(0, Math.min(100, (value / maxHp) * 100));
+    const fill = bar.querySelector('.hp-fill');
+    const ghost = bar.querySelector('.hp-ghost');
+    fill.style.width = `${pct}%`;
+    if (instant) ghost.style.width = `${pct}%`;
+    else setTimeout(() => { ghost.style.width = `${pct}%`; }, 450);
+    bar.querySelector('.hp-text').textContent = `${value} PV`;
+    bar.setAttribute('aria-valuenow', String(value));
+    bar.classList.toggle('low', pct <= 30);
+    bar.classList.toggle('mid', pct > 30 && pct <= 60);
+  });
+}
+
+/* ---------- Impacts : chaque coup se sent ---------- */
+
+function resetFighters() {
+  [fighterMe, fighterOpp].forEach((f) => f.classList.remove('iced', 'flash', 'recoil', 'lunge', 'ko-fall'));
+  arena.classList.remove('ko-zoom', 'ko-left', 'ko-right');
+  $('ko-text').hidden = true;
+}
+
+// Relance une animation CSS (retirer puis remettre la classe).
+function replay(el, cls) {
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+}
+
+// Des étincelles et des gouttes (sang stylisé) qui jaillissent du point d'impact.
+function burstParticles(x, y, count, blood) {
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('span');
+    const isBlood = blood && i % 2 === 1;
+    p.className = isBlood ? 'particle blood' : 'particle spark';
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 40 + Math.random() * 90;
+    p.style.left = `${x}px`;
+    p.style.top = `${y}px`;
+    p.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+    p.style.setProperty('--dy', `${Math.sin(angle) * dist * 0.7 + (isBlood ? 40 : -10)}px`);
+    arena.appendChild(p);
+    setTimeout(() => p.remove(), 750);
+  }
+}
+
+// Le chiffre de dégâts qui jaillit au-dessus de la cible.
+function popDamage(x, y, damage, kind) {
+  const d = document.createElement('span');
+  d.className = `dmg ${kind}`;
+  d.textContent = `-${damage}`;
+  d.style.left = `${x}px`;
+  d.style.top = `${y}px`;
+  d.style.setProperty('--size', `${Math.min(64, 22 + damage)}px`);
+  arena.appendChild(d);
+  setTimeout(() => d.remove(), 1000);
+}
+
+// Un coup : arrêt sur image, tremblement proportionnel, flash blanc de la cible,
+// recul, chiffre de dégâts et particules. side : 'me' ou 'opp' (la cible).
+// kind : 'word' (mot trouvé), 'recoil' (erreur), 'cost' (lettre achetée).
+function hitFx(side, damage, kind) {
+  if (!damage) return;
+  const target = side === 'me' ? fighterMe : fighterOpp;
+  const attacker = side === 'me' ? fighterOpp : fighterMe;
+  const box = target.getBoundingClientRect();
+  const origin = arena.getBoundingClientRect();
+  const x = box.left - origin.left + box.width / 2;
+  const y = box.top - origin.top + box.height * 0.4;
+
+  if (kind === 'word') replay(attacker, 'lunge');
+  document.body.classList.add('hitstop');
+  setTimeout(() => {
+    document.body.classList.remove('hitstop');
+    // Tremblement : plus le coup est fort, plus l'écran bouge (2 à 22 px).
+    gameScreen.style.setProperty('--amp', `${Math.min(22, 2 + damage * 0.6)}px`);
+    replay(gameScreen, 'shake');
+    target.style.setProperty('--dir', side === 'me' ? '-1' : '1');
+    replay(target, 'flash');
+    replay(target, 'recoil');
+    popDamage(x, y - 40, damage, kind);
+    burstParticles(x, y, kind === 'word' ? 10 + Math.min(14, damage / 2) : 6, kind === 'word');
+  }, HITSTOP_MS);
+  Sound.play(kind === 'word' ? 'impact' : 'bad');
+}
+
+const sideOf = (slot) => (slot === mySlot ? 'me' : 'opp');
 
 function setPips(box, left) {
   const pips = box.querySelector('.pips');
@@ -458,8 +553,8 @@ function startTimer(endsAt, serverNow, duration) {
 /* ---------- Fin de partie ---------- */
 
 // Écran de fin. tone : 'win', 'lose', 'draw' ou 'neutral'.
-// scores : les scores par slot, ou null quand il n'y a pas de podium à montrer.
-function showResult(title, detail, tone, scores, winner, extra = {}) {
+// hp : les PV par slot, ou null quand il n'y a pas de podium à montrer.
+function showResult(title, detail, tone, hp, winner, extra = {}) {
   clearInterval(timerInterval);
   clearStress();
   stopCountdown();
@@ -474,10 +569,10 @@ function showResult(title, detail, tone, scores, winner, extra = {}) {
 
   // Le podium : le gagnant en grand, le perdant K.O.
   const me = players.find((p) => p.slot === mySlot);
-  fillPodium($('podium-me'), me, scores, winner);
-  const showOpp = Boolean(opponent && scores && scores.length > 1);
+  fillPodium($('podium-me'), me, hp, winner);
+  const showOpp = Boolean(opponent && hp);
   $('podium-opp').hidden = !showOpp;
-  if (showOpp) fillPodium($('podium-opp'), opponent, scores, winner);
+  if (showOpp) fillPodium($('podium-opp'), opponent, hp, winner);
 
   gameScreen.hidden = true;
   lobby.hidden = true;
@@ -486,11 +581,10 @@ function showResult(title, detail, tone, scores, winner, extra = {}) {
   $('replay-btn').focus();
 }
 
-function fillPodium(card, player, scores, winner) {
-  const big = winner === null || winner === undefined || winner === player.slot;
-  drawSprite(card.querySelector('canvas'), player.avatar, big ? 11 : 8);
+function fillPodium(card, player, hp, winner) {
+  avatarImg(card.querySelector('img'), player.avatar);
   card.querySelector('.name').textContent = player.pseudo.toUpperCase();
-  card.querySelector('.score').textContent = scores ? scores[player.slot] ?? scores[0] : '';
+  card.querySelector('.score').textContent = hp ? `${hp[player.slot]} PV` : '';
   const isWinner = winner !== null && winner !== undefined && winner === player.slot;
   const isLoser = winner !== null && winner !== undefined && winner !== player.slot;
   card.classList.toggle('winner', isWinner);
@@ -507,6 +601,7 @@ function renderStats(stats) {
     ? [{ slot: mySlot, cls: 'me', name: 'TOI' }, { slot: 1 - mySlot, cls: 'opp', name: opponent ? opponent.pseudo.toUpperCase() : 'ADVERSAIRE' }]
     : [{ slot: 0, cls: 'me', name: 'TOI' }];
   const rows = [
+    ['Dégâts infligés', 'damage', 'high'],
     ['Mots trouvés', 'found', 'high'],
     ['Erreurs', 'wrong', 'low'],
     ['Lettres achetées', 'bought', 'low'],
@@ -568,24 +663,56 @@ function renderSolutions(solutions) {
   });
 }
 
-socket.on('game-over', ({ scores, winner, found, total, stats, solutions }) => {
+socket.on('game-over', ({
+  hp, winner, ko, found, total, stats, solutions,
+}) => {
   const extra = { stats, solutions };
-  if (players.length === 1) {
-    const words = `${found} mot${found > 1 ? 's' : ''} trouvé${found > 1 ? 's' : ''} sur ${total}`;
-    Sound.play('win');
-    showResult('PARTIE TERMINÉE', `Score : ${scores[0]}  ·  ${words}`, 'neutral', scores, null, extra);
-    return;
-  }
-  const me = players.find((p) => p.slot === mySlot);
-  Sound.play(winner === mySlot ? 'win' : 'lose');
-  if (winner === null) {
-    showResult('ÉGALITÉ !', `${scores[0]} partout`, 'draw', scores, null, extra);
-  } else if (winner === mySlot) {
-    showResult('GAGNÉ !', `${me.pseudo} remporte la manche, ${scores[mySlot]} à ${scores[1 - mySlot]}`, 'win', scores, winner, extra);
-  } else {
-    showResult('PERDU...', `${opponent.pseudo} remporte la manche, ${scores[1 - mySlot]} à ${scores[mySlot]}`, 'lose', scores, winner, extra);
-  }
+  const show = () => {
+    if (players.length === 1) {
+      // Solo : on a frappé un mannequin d'entraînement.
+      const words = `${found} mot${found > 1 ? 's' : ''} trouvé${found > 1 ? 's' : ''} sur ${total}`;
+      Sound.play('win');
+      const title = ko === 1 ? 'MANNEQUIN K.O. !' : 'TEMPS ÉCOULÉ';
+      showResult(title, `${stats[0].damage} dégâts infligés  ·  ${words}`, ko === 1 ? 'win' : 'neutral', null, null, extra);
+      return;
+    }
+    const me = players.find((p) => p.slot === mySlot);
+    const winnerName = winner === mySlot ? me.pseudo : (opponent ? opponent.pseudo : '');
+    const how = ko !== null && ko !== undefined
+      ? `${winnerName} gagne par K.O. !`
+      : `${winnerName} gagne aux points de vie, ${hp[winner]} PV contre ${hp[1 - winner]}`;
+    Sound.play(winner === mySlot ? 'win' : 'lose');
+    if (winner === null) showResult('ÉGALITÉ !', `${hp[0]} PV partout`, 'draw', hp, null, extra);
+    else if (winner === mySlot) showResult('GAGNÉ !', how, 'win', hp, winner, extra);
+    else showResult('PERDU...', how, 'lose', hp, winner, extra);
+  };
+  if (ko !== null && ko !== undefined) playKO(ko, show);
+  else show();
 });
+
+// K.O. : ralenti, zoom sur celui qui tombe, grand « K.O. », puis l'écran de fin.
+function playKO(koSlot, then) {
+  koPlaying = true;
+  roomId = null; // plus aucune action pendant le ralenti
+  clearInterval(timerInterval);
+  clearStress();
+  clearEffects(); // gel, Trip, Verlan ou vidéo en cours : on voit le K.O. en clair
+  const loser = sideOf(koSlot) === 'me' ? fighterMe : fighterOpp;
+  // Laisse le dernier coup s'afficher, puis tout ralentit.
+  setTimeout(() => {
+    document.getAnimations().forEach((a) => { a.playbackRate = 0.25; });
+    arena.classList.add('ko-zoom', sideOf(koSlot) === 'me' ? 'ko-left' : 'ko-right');
+    loser.classList.add('ko-fall');
+    $('ko-text').hidden = false;
+    Sound.play('impact');
+  }, HITSTOP_MS + 150);
+  setTimeout(() => {
+    document.getAnimations().forEach((a) => { a.playbackRate = 1; });
+    koPlaying = false;
+    resetFighters();
+    then();
+  }, KO_MS);
+}
 
 function buildBoard(grid) {
   words = new Map();
@@ -844,14 +971,9 @@ function submitCurrentWord() {
   socket.emit('submit-word', { roomId, wordId: w.id, letters: letters.join('') });
 }
 
-function setScores(scores) {
-  scores.forEach((score, slot) => {
-    if (slot !== mySlot && !opponent) return;
-    boxOf(slot).querySelector('.score').textContent = score;
-  });
-}
-
-socket.on('word-claimed', ({ wordId, letters, by, scores }) => {
+socket.on('word-claimed', ({
+  wordId, letters, by, target, damage, hp,
+}) => {
   const w = words.get(wordId);
   if (!w) return;
   w.claimed = true;
@@ -867,10 +989,11 @@ socket.on('word-claimed', ({ wordId, letters, by, scores }) => {
   });
   w.clueEl.classList.add(by === mySlot ? 'mine' : 'theirs');
   if (currentWord === wordId) buyBtn.disabled = true;
-  setScores(scores);
+  setHp(hp);
+  hitFx(sideOf(target), damage, 'word');
   gameStatus.textContent = by === mySlot
-    ? `Bien vu ! +${w.length} points (${w.number})`
-    : `L'adversaire a trouvé le ${w.number} (+${w.length}).`;
+    ? `Bien vu ! ${damage} dégâts (${w.number})`
+    : `${opponent ? opponent.pseudo : 'L\'adversaire'} trouve le ${w.number} et te frappe : -${damage} PV`;
   Sound.play(by === mySlot ? 'good' : 'theirs');
 
   // Si j'étais sur ce mot, je passe au prochain mot libre.
@@ -885,10 +1008,13 @@ function secondsUntil(serverTime, serverNow) {
   return Math.max(1, Math.ceil((serverTime - serverNow) / 1000));
 }
 
-socket.on('word-wrong', ({ wordId, scores, lockedUntil, serverNow }) => {
+socket.on('word-wrong', ({
+  wordId, damage, hp, lockedUntil, serverNow,
+}) => {
   const w = words.get(wordId);
-  setScores(scores);
-  gameStatus.textContent = `Raté ! -1. Ce mot est bloqué ${secondsUntil(lockedUntil, serverNow)} s pour toi.`;
+  setHp(hp);
+  hitFx('me', damage, 'recoil');
+  gameStatus.textContent = `Raté ! ${damage} dégâts de recul. Ce mot est bloqué ${secondsUntil(lockedUntil, serverNow)} s pour toi.`;
   Sound.play('bad');
   if (!w) return;
   w.cells.forEach((k) => {
@@ -915,17 +1041,20 @@ buyBtn.addEventListener('click', () => {
   cells.get(target).input.focus();
 });
 
-socket.on('letter-revealed', ({ wordId, index, letter, scores }) => {
+socket.on('letter-revealed', ({
+  wordId, index, letter, damage, hp,
+}) => {
   Sound.play('blip');
   const w = words.get(wordId);
-  setScores(scores);
+  setHp(hp);
+  hitFx('me', damage, 'cost');
   if (!w) return;
   const cell = cells.get(w.cells[index]);
   cell.input.value = letter;
   cell.input.readOnly = true;
   cell.locked = true;
   cell.el.classList.add('bought');
-  gameStatus.textContent = `Lettre achetée : ${letter} (-1)`;
+  gameStatus.textContent = `Lettre achetée : ${letter} (-${damage} PV)`;
   // Si le curseur était sur cette case, on avance.
   if (document.activeElement === cell.input && currentWord === wordId) {
     const next = moveInWord(w.cells[index], writeStep());
@@ -948,10 +1077,10 @@ powerBtn.addEventListener('click', () => {
   if (w) selectWord(w.id, true); // on rend la main à la grille
 });
 
-socket.on('power-used', ({ power, remaining }) => {
+socket.on('power-used', ({ power, remaining, cine }) => {
   setPowerButton(remaining);
   gameStatus.textContent = `${POWER_NAMES[myAvatar]} lancé sur ${opponent ? opponent.pseudo : 'l\'adversaire'} !`;
-  playSuperAttack('me', myAvatar, power, () => {
+  playCine(cine, () => {
     // Freeze : l'adversaire reste givré jusqu'à ce qu'il se dégivre.
     if (power === 'freeze') fighterOpp.classList.add('iced');
   });
@@ -961,16 +1090,17 @@ socket.on('power-refused', ({ reason }) => {
   gameStatus.textContent = reason;
 });
 
-/* ---------- Super attaque : cinématique puis rayon géant ---------- */
+/* ---------- Super attaque : vidéo plein écran, synchronisée par le serveur ---------- */
 
-const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-function stopFx() {
-  fxTimers.forEach(clearTimeout);
-  fxTimers = [];
-  fxLayer.hidden = true;
-  fxLayer.className = '';
-  fxLayer.innerHTML = '';
+function stopCine() {
+  cineTimers.forEach(clearTimeout);
+  cineTimers = [];
+  cineVideo.onended = null;
+  cineVideo.onerror = null;
+  cineVideo.pause();
+  cineVideo.removeAttribute('src');
+  cineLayer.hidden = true;
+  cineLayer.classList.remove('flash');
 }
 
 // Centre d'un élément à l'écran.
@@ -979,54 +1109,50 @@ function centerOf(el) {
   return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
 }
 
-// side : 'me' (je lance, le rayon part de ma plateforme) ou 'opp' (je reçois).
-// done() est appelé à la fin de l'animation.
-function playSuperAttack(side, avatar, power, done) {
-  stopFx();
-  if (reducedMotion() || !opponent) { done(); return; }
-
-  const look = ATTACK_LOOK[power] || ATTACK_LOOK.freeze;
-  fxLayer.appendChild(fxTemplate.content.cloneNode(true));
-  fxLayer.style.setProperty('--c1', look.c1);
-  fxLayer.style.setProperty('--c2', look.c2);
-  fxLayer.style.setProperty('--band', side === 'me' ? 'var(--acid)' : 'var(--pink)');
-  drawSprite(fxLayer.querySelector('.cutin-hero canvas'), avatar, 15);
-  fxLayer.querySelector('.cutin-name').textContent = (POWER_NAMES[avatar] || '').toUpperCase();
-  fxLayer.querySelector('.cutin-sub').textContent = `${SPRITES[avatar].name.toUpperCase()} · SUPER ATTAQUE`;
-
-  // Le rayon va du lanceur à la cible, quelle que soit la position à l'écran.
-  const shooter = side === 'me' ? fighterMe : fighterOpp;
-  const target = side === 'me' ? fighterOpp : fighterMe;
-  const from = centerOf(shooter);
-  const to = centerOf(target);
-  fxLayer.style.setProperty('--bx', `${from.x}px`);
-  fxLayer.style.setProperty('--by', `${from.y}px`);
-  fxLayer.style.setProperty('--dist', `${Math.abs(to.x - from.x)}px`);
-  fxLayer.querySelector('.beam-wrap').classList.toggle('reverse', to.x < from.x);
-
-  fxLayer.hidden = false;
-  fxLayer.className = 'phase-cutin';
-  Sound.play('whoosh');
-  fxTimers.push(setTimeout(() => {
-    fxLayer.className = 'phase-beam';
-    Sound.play('charge');
-    arena.classList.remove('quake');
-    void arena.offsetWidth; // relance l'animation
-    arena.classList.add('quake');
-  }, CUTIN_MS));
-  fxTimers.push(setTimeout(() => {
-    target.classList.remove('hit');
-    void target.offsetWidth;
-    target.classList.add('hit');
-    Sound.play('impact');
-  }, CUTIN_MS + IMPACT_MS));
-  fxTimers.push(setTimeout(() => {
-    stopFx();
-    arena.classList.remove('quake');
-    target.classList.remove('hit');
+// cine = { avatar, at, serverNow } : la vidéo public/assets/cine/<avatar>.webm
+// démarre à l'heure `at` du serveur, chez les deux joueurs. Si le fichier
+// n'existe pas (encore), un flash blanc la remplace. done() est appelé à la fin.
+function playCine(cine, done) {
+  stopCine();
+  if (!cine) { done(); return; }
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    stopCine();
     done();
-  }, CUTIN_MS + BEAM_MS));
+  };
+  const flash = () => {
+    cineLayer.hidden = false;
+    cineLayer.classList.add('flash');
+    Sound.play('impact');
+    cineTimers.push(setTimeout(finish, 700));
+  };
+
+  // Heure de départ, ramenée à l'horloge locale.
+  const delay = Math.max(0, cine.at - (cine.serverNow - Date.now()) - Date.now());
+  let missing = false;
+  cineVideo.muted = Sound.isMuted();
+  cineVideo.onerror = () => { missing = true; };
+  cineVideo.onended = finish;
+  cineVideo.src = `assets/cine/${cine.avatar}.webm`;
+  cineVideo.load();
+
+  cineTimers.push(setTimeout(() => {
+    if (missing || reducedMotion()) { flash(); return; }
+    cineLayer.hidden = false;
+    cineVideo.currentTime = 0;
+    cineVideo.play().catch(() => {
+      // Lecture refusée (son bloqué par le navigateur) : on réessaie en muet.
+      cineVideo.muted = true;
+      cineVideo.play().catch(flash);
+    });
+  }, delay));
+  // Sécurité : une vidéo trop longue ou bloquée ne gêne jamais la partie.
+  cineTimers.push(setTimeout(finish, delay + CINE_MAX_MS));
 }
+
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---------- Pouvoirs : ceux que je reçois ---------- */
 
@@ -1105,7 +1231,7 @@ function stopFreeze() {
 function startFreeze({ layers }) {
   frozenActive = true;
   frostMax = layers;
-  drawSprite($('ice-sprite'), myAvatar, 14);
+  avatarImg($('ice-sprite'), myAvatar);
   const frost = $('frost');
   frost.innerHTML = '';
   for (let i = 0; i < layers; i++) {
@@ -1185,7 +1311,7 @@ function startVerlan(duration) {
 }
 
 function clearEffects() {
-  stopFx();
+  stopCine();
   for (const power of Object.keys(effectTimers)) {
     if (effectTimers[power].timer) clearTimeout(effectTimers[power].timer);
     effectTimers[power].stop();
@@ -1194,12 +1320,14 @@ function clearEffects() {
   gameStatus.classList.remove('hit');
 }
 
-socket.on('power-hit', ({ power, duration, payload, from }) => {
+socket.on('power-hit', ({
+  power, duration, payload, from, cine,
+}) => {
   oppPowersLeft = Math.max(0, oppPowersLeft - 1);
   setPips(boxOpp, oppPowersLeft);
   announce(`${from} lance une super attaque !`);
-  // D'abord la super attaque (vue aussi par celui qui la lance), puis l'effet.
-  playSuperAttack('opp', opponent ? opponent.avatar : 'givre', power, () => {
+  // D'abord la vidéo de super attaque (vue aussi par celui qui la lance), puis l'effet.
+  playCine(cine, () => {
     if (power === 'freeze') {
       startFreeze(payload);
       announce(`${from} t'a gelé ! Racle ton givre pour rejouer.`);
@@ -1214,4 +1342,8 @@ socket.on('power-hit', ({ power, duration, payload, from }) => {
   });
 });
 
-socket.on('scores', ({ scores }) => setScores(scores));
+// L'adversaire s'est trompé ou a acheté une lettre : on voit ses PV baisser.
+socket.on('hp', ({ target, damage, hp }) => {
+  setHp(hp);
+  hitFx(sideOf(target), damage, 'recoil');
+});
