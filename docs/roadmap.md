@@ -27,14 +27,16 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 - [x] Tests à un joueur simulé
 
 ## L3 · Avatars et pouvoirs (vendredi matin, si L1 et L2 sont en ligne) [ ]
-- [ ] Choix de l'avatar avant la partie
-- [ ] Le Givré : Freeze (3 cases gelées 10 s)
-- [ ] Le Perché : Flou (définitions floues 8 s)
-- [ ] Le Pickpocket : Vol (une définition cachée 15 s)
-- [ ] 2 utilisations par partie, compteur affiché
+- [x] Choix de l'avatar avant la partie (badges provisoires)
+- [x] Le Givré : Freeze (3 cases gelées 10 s, vérifié par le serveur)
+- [x] Le Perché : Trip (écran flou et psychédélique, un cercle net suit la souris, 10 s)
+- [x] Le Verlan : Verlan (écran retourné en miroir, mots à remplir par la fin, 10 s)
+- [x] 2 utilisations par partie, compteur affiché, pas de pouvoir en solo
+- [ ] **En ligne sur Render**
 
 ## Après le rendu
 - [ ] Direction artistique JRPG rétro
+- [ ] Petits personnages 8 bits originaux (animations très simples) à la place des badges : les deux joueurs se font face, s'affrontent, et on voit les pouvoirs partir avec des effets spéciaux
 - [ ] Mobile
 - [ ] Salons privés avec code
 - [ ] Agrandir la bibliothèque de mots

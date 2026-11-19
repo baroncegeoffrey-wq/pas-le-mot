@@ -49,13 +49,16 @@
 
 ## Avatars et pouvoirs (lot 3)
 
-Avant la partie, chaque joueur choisit un avatar. Chaque avatar a un pouvoir, utilisable 2 fois par partie.
+Avant la partie, chaque joueur choisit un avatar. Chaque avatar a un pouvoir, utilisable 2 fois par partie. Pas de pouvoir en mode solo.
 
 | Avatar | Pouvoir | Effet chez l'adversaire |
 |---|---|---|
-| Le Givré | Freeze | 3 cases au hasard de sa grille sont gelées pendant 10 s (impossible d'y taper) |
-| Le Perché | Flou | Ses définitions deviennent floues pendant 8 s |
-| Le Pickpocket | Vol | Une de ses définitions disparaît pendant 15 s |
+| Le Givré | Freeze | 3 cases au hasard de sa grille (encore vides) sont gelées pendant 10 s : impossible d'y taper, ni de valider un mot qui passe par elles |
+| Le Perché | Trip | Pendant 10 s, tout son écran devient flou et psychédélique (couleurs qui ondulent). Seul un petit cercle net suit sa souris (et la case où il tape) : il doit se promener pour lire |
+| Le Verlan | Verlan | Pendant 10 s, tout son écran est retourné comme dans un miroir (grille et définitions à lire à l'envers) et il doit remplir les mots en partant de la fin |
+
+- Si un pouvoir touche alors que le même effet est déjà en cours, l'effet repart pour 10 s.
+- Pour l'instant, les avatars sont de simples badges de couleur. Plus tard : des petits personnages 8 bits originaux (voir « Après le rendu » dans la roadmap).
 
 ## Les mots
 

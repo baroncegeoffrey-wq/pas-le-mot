@@ -17,6 +17,7 @@ Puis ouvrir http://localhost:3000 dans deux onglets (un par joueur), choisir un 
 - Entrée valide le mot : juste = +1 et le mot prend ta couleur chez les deux joueurs ; faux = -1 et ce mot est bloqué 3 secondes pour toi.
 - « Acheter une lettre (-1) » révèle une lettre du mot sélectionné, à toi seul.
 - La partie s'arrête au bout de 4 minutes ou quand la grille est pleine. Le plus gros score gagne.
+- Avant la partie, choisis un avatar. Son pouvoir (bouton à côté de « Acheter une lettre ») sert 2 fois par partie : Freeze (Le Givré), Trip (Le Perché) ou Verlan (Le Verlan). Pas de pouvoir en solo.
 
 ## Tests
 ```bash
@@ -29,7 +30,8 @@ Les tests lancent le vrai serveur et simulent deux joueurs avec `socket.io-clien
 |---|---|
 | `server.js` | Express + Socket.io : reçoit les événements et répond |
 | `matchmaking.js` | File d'attente et salons (repris du morpion) |
-| `game.js` | Une partie : validation des mots, scores, blocage, achat de lettre |
+| `game.js` | Une partie : validation des mots, scores, blocage, achat de lettre, pouvoirs |
+| `powers.js` | Les avatars et leurs pouvoirs |
 | `grid.js` | Pioche les mots et les place dans une grille qui se croise |
 | `data/mots.json` | La bibliothèque de mots et de définitions |
 | `public/` | La page du jeu (HTML, CSS, JS sans framework) |

@@ -10,6 +10,7 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 - `game.js` : la logique d'une partie (grille, validation, score, chrono, pouvoirs), sans Socket.io
 - `grid.js` : le placement des mots dans une grille qui se croise
 - `matchmaking.js` : la file d'attente et les salons (repris du morpion)
+- `powers.js` : les avatars, leurs pouvoirs et leurs durées
 - `public/` : index.html, style.css, client.js
 
 ## Stack
@@ -35,19 +36,21 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 ## Événements Socket.io (noms stables, en anglais)
 | Événement | Sens | Contenu |
 |---|---|---|
-| `find-game` | client → serveur | `{ pseudo, avatar }` |
+| `find-game` | client → serveur | `{ pseudo, avatar }` (avatar : `givre`, `perche` ou `verlan`) |
 | `play-solo` | client → serveur | `{ pseudo }` (mode solo) |
 | `waiting` | serveur → client | |
-| `game-start` | serveur → clients | `{ roomId, grid, clues, you, opponent, endsAt, serverNow }` (sans solutions ; `opponent` vaut `null` en solo) |
+| `game-start` | serveur → clients | `{ roomId, grid, clues, you, opponent, endsAt, serverNow }` (sans solutions ; `you` = `{ pseudo, slot, avatar, powersLeft }`, `opponent` = `{ pseudo, slot, avatar }` ou `null` en solo) |
 | `submit-word` | client → serveur | `{ roomId, wordId, letters }` |
 | `word-claimed` | serveur → clients | `{ wordId, letters, by, scores }` |
 | `word-wrong` | serveur → client fautif | `{ wordId, scores, lockedUntil, serverNow }` |
-| `word-locked` | serveur → client fautif | `{ wordId, lockedUntil, serverNow }` (renvoi pendant le blocage, sans pénalité) |
+| `word-locked` | serveur → client fautif | `{ wordId, lockedUntil, reason, serverNow }` (renvoi pendant un blocage, sans pénalité ; `reason` : `wrong` ou `freeze`) |
 | `scores` | serveur → adversaire | `{ scores }` (après une erreur ou un achat de l'autre joueur) |
 | `buy-letter` | client → serveur | `{ roomId, wordId }` |
 | `letter-revealed` | serveur → acheteur | `{ wordId, index, letter, scores }` |
 | `use-power` | client → serveur | `{ roomId }` |
-| `power-hit` | serveur → cible | `{ power, duration, payload }` |
+| `power-hit` | serveur → cible | `{ power, duration, payload, from }` (`power` : `freeze`, `trip` ou `verlan` ; `payload.cells` pour le Freeze) |
+| `power-used` | serveur → lanceur | `{ power, remaining }` |
+| `power-refused` | serveur → lanceur | `{ reason }` (solo, plus d'utilisation, partie finie) |
 | `game-over` | serveur → clients | `{ scores, winner }` (en solo : `{ scores: [score], winner: null, found, total }`) |
 | `opponent-left` | serveur → client | |
 
