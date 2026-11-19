@@ -1,5 +1,7 @@
 # C'est pas le mot que tu crois
 
+**Jouer en ligne : https://pas-le-mot.onrender.com/**
+
 Mots croisés multijoueur en temps réel : deux joueurs font la course sur la même grille de 8 à 10 mots, moitié mots classiques, moitié argot. Mot juste +1, mot faux -1, 4 minutes de chrono.
 
 ## Jouer en local

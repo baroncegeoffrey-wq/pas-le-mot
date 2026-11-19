@@ -2,7 +2,7 @@
 
 Un lot est coché seulement quand il est livré ET en ligne sur Render.
 
-## L1 · Le cœur jouable (jeudi) [ ]
+## L1 · Le cœur jouable (jeudi) [x]
 - [x] Projet initialisé (git, npm, express, socket.io), CLAUDE.md et docs/ commités
 - [x] Serveur + matchmaking repris du morpion, avec pseudo
 - [x] `grid.js` : pioche 8 à 10 mots (moitié classique, moitié argot) et les place dans une grille qui se croise
@@ -10,9 +10,9 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 - [x] Saisie lettre par lettre dans les cases, Entrée pour valider le mot
 - [x] Validation serveur : +1 / -1, mot révélé chez les deux dans la couleur du joueur
 - [x] Les solutions ne partent jamais au navigateur (vérifié par `tests/game.test.js`, qui inspecte chaque message reçu par 2 joueurs simulés)
-- [ ] **En ligne sur Render**, testé à deux onglets
+- [x] **En ligne sur Render** (https://pas-le-mot.onrender.com/), testé avec 2 joueurs simulés sur le site en ligne
 
-## L2 · Une vraie partie (jeudi soir) [ ]
+## L2 · Une vraie partie (jeudi soir) [x]
 - [x] Chrono 4 min affiché, fin au chrono ou grille pleine
 - [x] Écran de fin (gagné / perdu / égalité) + Rejouer
 - [x] Anti-spam : mot bloqué 3 s après une erreur
@@ -21,7 +21,7 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 - [x] Tests « casser le jeu » passés
 - [x] README
 
-## L2 bis · Mode solo [ ]
+## L2 bis · Mode solo [x]
 - [x] Bouton « Jouer seul » : partie à un joueur, mêmes règles
 - [x] Écran de fin solo (score et mots trouvés) + Rejouer en solo
 - [x] Tests à un joueur simulé
