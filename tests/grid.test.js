@@ -72,3 +72,13 @@ test('grid : 300 grilles valides', () => {
   const perGrid = (Date.now() - t0) / 300;
   assert.ok(perGrid < 100, `trop lent : ${perGrid} ms par grille`);
 });
+
+test('grid : les mots à éviter ne sortent pas (s\'il en reste assez)', () => {
+  const WORDS = require('../data/mots.json');
+  const exclude = new Set(WORDS.slice(0, 20).map((w) => w.mot));
+  for (let i = 0; i < 50; i++) {
+    const g = generateGrid({ exclude });
+    checkGrid(g);
+    assert.ok(g.words.every((w) => !exclude.has(w.answer)));
+  }
+});

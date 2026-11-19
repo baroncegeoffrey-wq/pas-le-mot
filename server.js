@@ -7,6 +7,7 @@ const {
   addToQueue, createSoloRoom, handleDisconnect, getRoomOf, endGame,
 } = require('./matchmaking');
 const { Game } = require('./game');
+const { generateGrid } = require('./grid');
 const { FREEZE } = require('./powers');
 
 const app = express();
@@ -19,16 +20,48 @@ const GAME_DURATION_MS = Number(process.env.GAME_DURATION_MS) || 4 * 60 * 1000;
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Filet de sécurité : une erreur dans un événement ne doit jamais faire tomber
+// le serveur (sinon toutes les parties en cours sont perdues). On la note dans
+// les logs (visibles sur Render) et on continue.
+function safe(name, fn) {
+  return (...args) => {
+    try {
+      fn(...args);
+    } catch (err) {
+      console.error(`Erreur dans ${name} :`, err);
+    }
+  };
+}
+process.on('uncaughtException', (err) => console.error('Erreur inattendue :', err));
+process.on('unhandledRejection', (err) => console.error('Promesse rejetée :', err));
+
+// Mots vus récemment par chaque pseudo, pour ne pas retomber sur les mêmes.
+const RECENT_WORDS_PER_PLAYER = 24;
+const MAX_REMEMBERED_PLAYERS = 1000;
+const recentWords = new Map(); // pseudo en minuscules -> [mots]
+
+function rememberWords(pseudo, words) {
+  const k = pseudo.toLowerCase();
+  const list = (recentWords.get(k) || []).concat(words).slice(-RECENT_WORDS_PER_PLAYER);
+  recentWords.delete(k); // le remettre en dernier = le plus récent
+  recentWords.set(k, list);
+  if (recentWords.size > MAX_REMEMBERED_PLAYERS) recentWords.delete(recentWords.keys().next().value);
+}
+
 // Deux joueurs viennent d'être appariés (ou un joueur lance une partie solo) :
 // on crée la grille et on envoie à chacun la version publique (sans les solutions).
 function startGame(roomId, room) {
-  room.game = new Game(undefined, room.players.map((p) => p.avatar));
+  // Les mots que ces joueurs ont vus récemment sont évités.
+  const exclude = new Set(room.players.flatMap((p) => recentWords.get(p.pseudo.toLowerCase()) || []));
+  const fullGrid = generateGrid({ exclude });
+  room.players.forEach((p) => rememberWords(p.pseudo, fullGrid.words.map((w) => w.answer)));
+  room.game = new Game(fullGrid, room.players.map((p) => p.avatar));
   // Minuteries du Freeze, par joueur gelé : { regrow, safety }
   room.freezeTimers = [null, null];
   room.onClose = () => room.freezeTimers.forEach((_, slot) => clearFreezeTimers(room, slot));
   const { grid, clues } = room.game.getPublicGrid();
   const endsAt = Date.now() + GAME_DURATION_MS;
-  room.timer = setTimeout(() => finishGame(roomId, room), GAME_DURATION_MS);
+  room.timer = setTimeout(safe('fin du chrono', () => finishGame(roomId, room)), GAME_DURATION_MS);
 
   room.players.forEach((player, index) => {
     const opponent = room.players[1 - index];
@@ -151,14 +184,14 @@ function startFreezeTimers(roomId, room, slot) {
   const target = room.players[slot].id;
   room.freezeTimers[slot] = {
     // S'il arrête de racler, le givre repousse.
-    regrow: setInterval(() => {
+    regrow: setInterval(safe('repousse du givre', () => {
       const layers = room.game.regrow(slot);
       if (layers !== null) io.to(target).emit('frost', { layers });
-    }, FREEZE.regrowMs / 4),
+    }), FREEZE.regrowMs / 4),
     // Sécurité : personne ne reste bloqué plus de 20 s.
-    safety: setTimeout(() => {
+    safety: setTimeout(safe('dégivrage automatique', () => {
       if (room.game.thaw(slot)) thawPlayer(roomId, room, slot);
-    }, FREEZE.maxMs),
+    }), FREEZE.maxMs),
   };
 }
 
@@ -199,23 +232,17 @@ function handleUsePower(socket, data) {
 io.on('connection', (socket) => {
   console.log('Player connected', socket.id);
 
-  socket.on('find-game', (data) => {
-    addToQueue(socket, data, startGame);
-  });
+  socket.on('find-game', safe('find-game', (data) => addToQueue(socket, data, startGame)));
+  socket.on('play-solo', safe('play-solo', (data) => createSoloRoom(socket, data, startGame)));
+  socket.on('submit-word', safe('submit-word', (data) => handleSubmitWord(socket, data)));
+  socket.on('buy-letter', safe('buy-letter', (data) => handleBuyLetter(socket, data)));
+  socket.on('use-power', safe('use-power', (data) => handleUsePower(socket, data)));
+  socket.on('scrape', safe('scrape', (data) => handleScrape(socket, data)));
 
-  socket.on('play-solo', (data) => {
-    createSoloRoom(socket, data, startGame);
-  });
-
-  socket.on('submit-word', (data) => handleSubmitWord(socket, data));
-  socket.on('buy-letter', (data) => handleBuyLetter(socket, data));
-  socket.on('use-power', (data) => handleUsePower(socket, data));
-  socket.on('scrape', (data) => handleScrape(socket, data));
-
-  socket.on('disconnect', () => {
-    console.log('Player disconnected', socket.id);
+  socket.on('disconnect', safe('disconnect', (reason) => {
+    console.log('Player disconnected', socket.id, reason);
     handleDisconnect(socket, io);
-  });
+  }));
 });
 
 server.listen(PORT, () => {

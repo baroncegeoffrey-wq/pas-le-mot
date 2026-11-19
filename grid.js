@@ -14,6 +14,7 @@ const MIN_WORDS = 8;
 const MAX_WORDS = 10;
 const MAX_SIZE = 13; // largeur et hauteur max de la grille, en cases
 const ATTEMPTS = 60;
+const MIN_POOL = 10; // en dessous, on ignore les mots à éviter pour ce type
 
 function shuffle(list) {
   const copy = [...list];
@@ -114,11 +115,18 @@ function findBestPlacement(cells, bounds, word) {
   return best;
 }
 
+// Les mots d'un type, sans ceux à éviter (sauf s'il n'en reste plus assez).
+function poolOf(type, exclude) {
+  const all = WORDS.filter((w) => w.type === type);
+  const fresh = all.filter((w) => !exclude.has(w.mot));
+  return shuffle(fresh.length >= MIN_POOL ? fresh : all);
+}
+
 // Un essai : pose `target` mots en alternant les deux types.
-function tryBuild(target) {
+function tryBuild(target, exclude) {
   const pools = {
-    classique: shuffle(WORDS.filter((w) => w.type === 'classique')),
-    argot: shuffle(WORDS.filter((w) => w.type === 'argot')),
+    classique: poolOf('classique', exclude),
+    argot: poolOf('argot', exclude),
   };
   // Pour un nombre impair de mots, le type en plus est tiré au hasard.
   let turn = Math.random() < 0.5 ? 'classique' : 'argot';
@@ -200,18 +208,24 @@ function finalize({ placed, bounds }) {
 
 // Point d'entrée : renvoie une grille complète AVEC les solutions.
 // Ce résultat reste sur le serveur (voir game.js pour la version publique).
-function generateGrid() {
+// exclude : mots (en majuscules) que les joueurs ont vus récemment, à éviter.
+function generateGrid({ exclude = new Set() } = {}) {
   const target = MIN_WORDS + Math.floor(Math.random() * (MAX_WORDS - MIN_WORDS + 1));
-  let best = null;
+  const results = [];
 
   for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
-    const result = tryBuild(target);
+    const result = tryBuild(target, exclude);
     if (!result) continue;
     const { bounds } = result;
     const size = Math.max(bounds.maxRow - bounds.minRow, bounds.maxCol - bounds.minCol) + 1;
-    const score = result.crossings * 3 - size;
-    if (!best || score > best.score) best = { ...result, score };
+    results.push({ ...result, score: result.crossings * 3 - size });
   }
+
+  // On tire au hasard parmi le meilleur quart des grilles : toujours de bonnes
+  // grilles, mais sans favoriser toujours les mêmes mots (ceux qui croisent bien).
+  results.sort((a, b) => b.score - a.score);
+  const top = results.slice(0, Math.max(1, Math.ceil(results.length / 4)));
+  const best = top[Math.floor(Math.random() * top.length)];
 
   if (!best) throw new Error('Impossible de construire une grille avec la bibliothèque actuelle');
   return finalize(best);

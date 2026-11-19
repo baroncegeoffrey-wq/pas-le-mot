@@ -104,3 +104,22 @@ test('solo : en duo, rien ne change (toujours un gagnant)', async () => {
     p1.close(); p2.close(); server.stop();
   }
 });
+
+test('mots variés : deux parties de suite avec le même pseudo n\'ont aucun mot en commun', async () => {
+  const server = await startServer({ GAME_DURATION_MS: '400' });
+  try {
+    const seen = [];
+    for (let i = 0; i < 3; i++) {
+      const { p, g } = await startSolo(server, 'Fidele');
+      seen.push(new Set(g.clues.map((c) => answerOfClue(c.clue))));
+      await waitFor(p, 'game-over');
+      p.close();
+    }
+    for (let i = 1; i < seen.length; i++) {
+      const common = [...seen[i]].filter((m) => seen[i - 1].has(m));
+      assert.deepStrictEqual(common, [], `partie ${i + 1} : mots déjà vus ${common}`);
+    }
+  } finally {
+    server.stop();
+  }
+});
