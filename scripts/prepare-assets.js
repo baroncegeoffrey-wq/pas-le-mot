@@ -29,6 +29,16 @@
 //   mettre le chrono en pause pendant la vidéo).
 // - Images des cinématiques (givre-cine.jpeg...) : réduites à 1280 px de large,
 //   dans <sortie>/cine/givre.jpg : affichées le temps que la vidéo démarre.
+// - Persos animés (givre.gif, perche.gif, verlan.gif) : le fond est retiré
+//   IMAGE PAR IMAGE (même remplissage depuis les bords que les sprites fixes),
+//   toutes les images sont recadrées sur la même zone (le perso ne saute pas),
+//   réduites à 160 px de haut sans lissage, puis réunies en WebP animé
+//   transparent qui boucle : <sortie>/avatars/givre.webp. Les .png des .jpeg
+//   restent en secours.
+// - Mini-cinématiques de coup critique (givre-cine.gif...) : .webm de moins de
+//   1,5 Mo, sans son, dans <sortie>/cine/givre-crit.webm.
+//
+// Pour ne refaire qu'une partie : ONLY=gif npm run assets (filtre sur le nom).
 //
 // Réglage : BG_TOLERANCE=60 node scripts/prepare-assets.js pour retirer plus
 // ou moins de fond autour de TOUS les persos (sinon : voir TOLERANCE_BY_SPRITE).
@@ -46,6 +56,7 @@ const ARENA_MAX_WIDTH = 2560;
 const VIDEO_HEIGHT = 720; // cinématiques en 720p
 const VIDEO_MAX_BYTES = 4 * 1024 * 1024; // 4 Mo maximum par cinématique
 const AUDIO_KBPS = 96;
+const CRIT_MAX_BYTES = 1.5 * 1024 * 1024; // mini-cinématique de coup critique : 1,5 Mo maximum
 const MAX_EDGE_TRIM = 0.5; // on ne coupe jamais plus de 0,5 s au début ni à la fin
 // Tolérance de couleur pour le remplissage du fond (distance RVB, de 0 à 441).
 // 70 retire bien le fond vert et son halo. Le Perché a de la fumée verte proche
@@ -219,6 +230,104 @@ function prepareSprite(file) {
   return { out, detail: `fond retiré (${Math.round((100 * removed) / (img.w * img.h))} %, tolérance ${tolerance}), recadré ${cropped.w}×${cropped.h}, réduit à ${SPRITE_HEIGHT} px de haut` };
 }
 
+// Reflets verts : la brume transparente du Givré, posée sur le fond vert,
+// ressort vert clair. On ramène le vert au niveau du rouge ou du bleu (le cyan
+// et le blanc ne bougent pas). Jamais pour le Perché, dont la fumée EST verte.
+const NO_DESPILL = new Set(['perche']);
+function despill({ data }) {
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] === 0) continue;
+    const limit = Math.max(data[i], data[i + 2]);
+    if (data[i + 1] > limit) data[i + 1] = limit;
+  }
+}
+
+// Décode TOUTES les images d'une animation (GIF) en pixels RVBA.
+function readFrames(file) {
+  const { w, h } = sizeOf(file);
+  const res = spawnSync('ffmpeg', ['-loglevel', 'error', '-i', file, '-f', 'rawvideo', '-pix_fmt', 'rgba', '-'],
+    { maxBuffer: 2 * 1024 * 1024 * 1024 });
+  if (res.status !== 0) throw new Error(`lecture impossible : ${String(res.stderr).slice(-300)}`);
+  const size = w * h * 4;
+  const frames = [];
+  for (let at = 0; at + size <= res.stdout.length; at += size) frames.push({ w, h, data: res.stdout.subarray(at, at + size) });
+  if (!frames.length) throw new Error('aucune image dans l\'animation');
+  return frames;
+}
+
+// Images par seconde d'une animation (ex. « 10/1 » → 10).
+function fpsOf(file) {
+  const out = run('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=r_frame_rate', '-of', 'csv=p=0', file]);
+  const [a, b] = out.trim().split('/').map(Number);
+  return a && b ? a / b : 10;
+}
+
+// Zone qui contient le perso dans TOUTES les images (pour un cadrage fixe).
+function unionBox(frames) {
+  let minX = Infinity; let minY = Infinity; let maxX = -1; let maxY = -1;
+  for (const { w, h, data } of frames) {
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (data[(y * w + x) * 4 + 3] > 0) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+  }
+  if (maxX < 0) throw new Error('plus rien après le retrait du fond : baisse BG_TOLERANCE');
+  return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+}
+
+// Perso animé : fond retiré image par image, cadrage commun, WebP animé
+// transparent (sans perte, pixels nets) qui boucle.
+function prepareAnimatedSprite(file) {
+  const name = slug(file);
+  const out = path.join(OUT, 'avatars', `${name}.webp`);
+  const frames = readFrames(file);
+  const tolerance = toleranceFor(name);
+  let removed = 0;
+  for (const frame of frames) {
+    removed += floodRemoveBackground(frame, tolerance);
+    if (!NO_DESPILL.has(name)) despill(frame);
+  }
+  const box = unionBox(frames);
+  const row = box.w * 4;
+  const raw = Buffer.alloc(frames.length * box.h * row);
+  frames.forEach(({ w, data }, i) => {
+    for (let y = 0; y < box.h; y++) {
+      data.copy(raw, (i * box.h + y) * row, ((box.y + y) * w + box.x) * 4, ((box.y + y) * w + box.x + box.w) * 4);
+    }
+  });
+  const fps = fpsOf(file);
+  const res = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${box.w}x${box.h}`,
+    '-r', String(fps), '-i', '-', '-vf', `scale=-2:${SPRITE_HEIGHT}:flags=neighbor`,
+    '-c:v', 'libwebp_anim', '-lossless', '1', '-compression_level', '6', '-loop', '0', '-pix_fmt', 'bgra', out],
+  { input: raw, maxBuffer: 64 * 1024 * 1024 });
+  if (res.status !== 0) throw new Error(`écriture impossible : ${String(res.stderr).slice(-300)}`);
+  const share = Math.round((100 * removed) / (frames.length * frames[0].w * frames[0].h));
+  return {
+    out,
+    detail: `${frames.length} images à ${fps} i/s, fond retiré image par image (${share} %, tolérance ${tolerance}), cadré ${box.w}×${box.h}, ${SPRITE_HEIGHT} px de haut, ${(fs.statSync(out).size / 1024).toFixed(0)} Ko`,
+  };
+}
+
+// Mini-cinématique de coup critique (givre-cine.gif) : .webm sans son, < 1,5 Mo.
+function prepareCritClip(file) {
+  const out = path.join(OUT, 'cine', `${cineName(file)}-crit.webm`);
+  let crf = 32;
+  for (let attempt = 1; attempt <= 6; attempt++) {
+    run('ffmpeg', ['-y', '-loglevel', 'error', '-i', file, '-vf', 'format=yuv420p',
+      '-c:v', 'libvpx-vp9', '-crf', String(crf), '-b:v', '0', '-deadline', 'good', '-cpu-used', '2', '-row-mt', '1', '-an', out]);
+    const size = fs.statSync(out).size;
+    if (size <= CRIT_MAX_BYTES) return { out, detail: `coup critique, ${durationOf(out).toFixed(2)} s, ${(size / 1024 / 1024).toFixed(2)} Mo (crf ${crf})` };
+    crf += 4;
+  }
+  throw new Error(`impossible de passer ${path.basename(file)} sous 1,5 Mo`);
+}
+
 // Facteur d'agrandissement entier (pixels nets) pour que l'arène fasse au
 // moins ARENA_MIN_WIDTH de large, sans dépasser ARENA_MAX_WIDTH.
 function arenaFactor(width) {
@@ -340,7 +449,8 @@ function main() {
   }
   for (const dir of ['avatars', 'arena', 'cine']) fs.mkdirSync(path.join(OUT, dir), { recursive: true });
 
-  const files = fs.readdirSync(SRC).filter((f) => !f.startsWith('.')).sort();
+  const only = process.env.ONLY ? new RegExp(process.env.ONLY, 'i') : null;
+  const files = fs.readdirSync(SRC).filter((f) => !f.startsWith('.') && (!only || only.test(f))).sort();
   if (files.length === 0) {
     console.log(`Rien à préparer : ${SRC} est vide.`);
     return;
@@ -351,9 +461,12 @@ function main() {
     const file = path.join(SRC, name);
     const ext = path.extname(name).toLowerCase();
     try {
-      if (ext === '.gif' && ARENA_NAME.test(name)) {
-        const { out, detail } = prepareArenaLoop(file);
-        console.log(`✓ ${name} → ${path.relative(process.cwd(), out)} (${detail})`);
+      if (ext === '.gif') {
+        let result;
+        if (ARENA_NAME.test(name)) result = prepareArenaLoop(file);
+        else if (/-cine$/.test(slug(file))) result = prepareCritClip(file);
+        else result = prepareAnimatedSprite(file);
+        console.log(`✓ ${name} → ${path.relative(process.cwd(), result.out)} (${result.detail})`);
       } else if (IMAGE_EXT.has(ext)) {
         let result;
         if (ARENA_NAME.test(name)) result = prepareArenaImage(file);

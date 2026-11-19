@@ -38,15 +38,27 @@ const CINE_MAX_MS = 20000; // sécurité : une vidéo ne bloque jamais plus de 2
 const CINE_END_FLASH_MS = 500; // flash blanc de fin de cinématique (le serveur compte la même durée)
 
 // Nom affiché de chaque avatar. Les images sont dans public/assets/avatars/
-// (silhouettes provisoires, à remplacer avec scripts/prepare-assets.js).
+// (préparées avec scripts/prepare-assets.js) : <avatar>.png (fixe) et, pour le
+// combat, <avatar>.webp (animé, en boucle).
 const AVATAR_NAMES = {
   givre: 'Le Givré', perche: 'Le Perché', verlan: 'Le Verlan', mannequin: 'Mannequin',
 };
 const DUMMY = { pseudo: 'MANNEQUIN', slot: 1, avatar: 'mannequin' }; // l'adversaire du mode solo
 
-function avatarImg(img, who) {
-  img.src = `assets/avatars/${who}.png`;
+const ANIMATED_AVATARS = new Set(['givre', 'perche', 'verlan']);
+
+// animated : le perso animé (.webp) en combat ; si le fichier manque ou ne se
+// lit pas, on retombe sur l'image fixe (.png).
+function avatarImg(img, who, animated = false) {
+  const still = `assets/avatars/${who}.png`;
   img.alt = AVATAR_NAMES[who] || '';
+  img.onerror = null;
+  if (animated && ANIMATED_AVATARS.has(who)) {
+    img.onerror = () => { img.onerror = null; img.src = still; };
+    img.src = `assets/avatars/${who}.webp`;
+  } else {
+    img.src = still;
+  }
 }
 
 // Nom du pouvoir de chaque avatar (affiché sur le bouton).
@@ -330,8 +342,8 @@ socket.on('game-start', (data) => {
   const foe = opponent || DUMMY;
   fillPlayerBox(boxMe, data.you, true, data.opponent ? data.you.powersLeft : 0);
   fillPlayerBox(boxOpp, foe, false, oppPowersLeft);
-  avatarImg(fighterMe.querySelector('img'), data.you.avatar);
-  avatarImg(fighterOpp.querySelector('img'), foe.avatar);
+  avatarImg(fighterMe.querySelector('img'), data.you.avatar, true);
+  avatarImg(fighterOpp.querySelector('img'), foe.avatar, true);
   resetFighters();
   setHp([maxHp, maxHp], true);
   preloadCinematics(); // les 3 vidéos, pour qu'elles se lancent sans délai
