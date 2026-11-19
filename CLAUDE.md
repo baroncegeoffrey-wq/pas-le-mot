@@ -43,14 +43,17 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 | `submit-word` | client → serveur | `{ roomId, wordId, letters }` |
 | `word-claimed` | serveur → clients | `{ wordId, letters, by, scores }` |
 | `word-wrong` | serveur → client fautif | `{ wordId, scores, lockedUntil, serverNow }` |
-| `word-locked` | serveur → client fautif | `{ wordId, lockedUntil, reason, serverNow }` (renvoi pendant un blocage, sans pénalité ; `reason` : `wrong` ou `freeze`) |
+| `word-locked` | serveur → client fautif | `{ wordId, lockedUntil, serverNow }` (renvoi pendant le blocage de 3 s, sans pénalité) |
 | `scores` | serveur → adversaire | `{ scores }` (après une erreur ou un achat de l'autre joueur) |
 | `buy-letter` | client → serveur | `{ roomId, wordId }` |
 | `letter-revealed` | serveur → acheteur | `{ wordId, index, letter, scores }` |
 | `use-power` | client → serveur | `{ roomId }` |
-| `power-hit` | serveur → cible | `{ power, duration, payload, from }` (`power` : `freeze`, `trip` ou `verlan` ; `payload.cells` pour le Freeze) |
+| `power-hit` | serveur → cible | `{ power, duration, payload, from }` (`power` : `freeze`, `trip` ou `verlan` ; `payload.layers` = couches de givre pour le Freeze) |
 | `power-used` | serveur → lanceur | `{ power, remaining }` |
-| `power-refused` | serveur → lanceur | `{ reason }` (solo, plus d'utilisation, partie finie) |
+| `power-refused` | serveur → lanceur | `{ reason }` (solo, plus d'utilisation, déjà gelé, partie finie) |
+| `scrape` | client gelé → serveur | `{ roomId }` (un coup de raclette sur son avatar) |
+| `frost` | serveur → client gelé | `{ layers }` (couches de givre restantes, après un coup ou quand ça repousse) |
+| `unfrozen` | serveur → clients | `{ slot }` (ce joueur est dégivré et peut rejouer) |
 | `game-over` | serveur → clients | `{ scores, winner }` (en solo : `{ scores: [score], winner: null, found, total }`) |
 | `opponent-left` | serveur → client | |
 

@@ -18,6 +18,7 @@ Puis ouvrir http://localhost:3000 dans deux onglets (un par joueur), choisir un 
 - « Acheter une lettre (-1) » révèle une lettre du mot sélectionné, à toi seul.
 - La partie s'arrête au bout de 4 minutes ou quand la grille est pleine. Le plus gros score gagne.
 - Avant la partie, choisis un avatar. Son pouvoir (bouton à côté de « Acheter une lettre ») sert 2 fois par partie : Freeze (Le Givré), Trip (Le Perché) ou Verlan (Le Verlan). Pas de pouvoir en solo.
+- Gelé par un Freeze ? Racle le givre de ton avatar en passant vite ta souris d'un bord à l'autre, plusieurs fois.
 
 ## Tests
 ```bash
