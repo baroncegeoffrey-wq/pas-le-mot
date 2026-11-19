@@ -42,7 +42,8 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 - [x] Impacts : hit-stop 80 ms, tremblement proportionnel, flash blanc, recul, chiffres de dégâts, étincelles et sang stylisé
 - [x] K.O. au ralenti avec zoom
 - [x] Une super attaque par partie, vidéo plein écran synchronisée par le serveur (flash blanc si la vidéo manque)
-- [x] `scripts/prepare-assets.js` (`npm run assets`) : fond vert retiré, sprites 160 px nets, vidéos .webm < 2 Mo
+- [x] `scripts/prepare-assets.js` (`npm run assets`) : sources .jpeg, fond retiré depuis les bords (garde la fumée verte du Perché), recadrage, sprites 160 px nets, arène GIF → .webm en boucle (+ image de secours), vidéos .webm < 2 Mo
+- [x] Fond d'arène : vidéo en boucle, sinon image de secours, sinon la ville CSS ; perso de droite en miroir
 - [ ] Vraies images des avatars et vraies vidéos (à fournir dans assets-src/)
 - [ ] Tester le rendu animé (ralenti, impacts) sur un écran visible, à deux
 - [ ] Fusionner dans main et mettre en ligne

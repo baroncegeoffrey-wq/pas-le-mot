@@ -88,6 +88,24 @@ function cleanLetter(text) {
   return letter.slice(-1);
 }
 
+/* ---------- Fond d'arène : vidéo en boucle, sinon image de secours, sinon la ville CSS ---------- */
+
+(function setupArenaBackground() {
+  const video = $('arena-bg');
+  const useImage = () => {
+    const img = new Image();
+    img.onload = () => {
+      arena.style.setProperty('--arena-image', `url("${img.src}")`);
+      arena.classList.add('bg-image');
+    };
+    img.src = 'assets/arena/arene.png'; // si elle n'existe pas non plus : on garde la ville en CSS
+  };
+  video.addEventListener('error', () => { arena.classList.remove('bg-video'); useImage(); }, { once: true });
+  video.addEventListener('playing', () => arena.classList.add('bg-video'), { once: true });
+  video.src = 'assets/arena/arene.webm';
+  video.play().catch(() => { if (!arena.classList.contains('bg-video')) useImage(); });
+}());
+
 /* ---------- Son : bouton pour couper, et déblocage au premier clic ---------- */
 
 const muteBtn = $('mute-btn');

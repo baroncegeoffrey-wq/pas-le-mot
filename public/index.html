@@ -84,6 +84,8 @@
   <section id="game" class="screen" hidden>
     <!-- L'arène : la ville de nuit, les deux personnages sur leur plateforme -->
     <div class="arena" id="arena">
+      <!-- Fond d'arène : assets/arena/arene.webm en boucle, sinon arene.png, sinon la ville en CSS -->
+      <video class="arena-bg" id="arena-bg" muted loop playsinline preload="auto" aria-hidden="true"></video>
       <div class="skyline" aria-hidden="true">
         <div class="building b1"></div>
         <div class="building b2"><span class="sign pink">ARGOT</span></div>

@@ -81,7 +81,9 @@ Quand elle est lancée, une **vidéo plein écran** se joue chez les deux joueur
 - Une arène en haut de l'écran : moi à gauche sur une plateforme verte, l'adversaire à droite sur une plateforme rose, devant une ville de nuit.
 - Arène : les deux avatars face à face au-dessus de la grille, sur leurs plateformes, devant la ville de nuit, avec leurs barres de PV animées (la partie perdue reste blanche un instant).
 - Un seul visuel par avatar : `public/assets/avatars/<avatar>.png` (160 px de haut, pixels nets). Pour l'instant, des silhouettes colorées provisoires.
-- Les images et vidéos se préparent avec `npm run assets` (voir `scripts/prepare-assets.js`) à partir de `~/Documents/01-Projets/pas-le-mot/assets-src/` : fond vert retiré, sprites réduits à 160 px sans lissage, vidéos converties en .webm de moins de 2 Mo.
+- Les avatars sont dessinés tournés vers la droite ; celui de droite est affiché en miroir pour que les deux se fassent face.
+- Fond d'arène : `arene.webm` en boucle (pixels nets), sinon l'image de secours `arene.png`, sinon la ville de nuit en CSS.
+- Les images et vidéos se préparent avec `npm run assets` (voir `scripts/prepare-assets.js`) à partir de `~/Documents/01-Projets/pas-le-mot/assets-src/` (sources en .jpeg) : fond retiré par remplissage depuis les bords (une couleur proche du fond à l'intérieur du perso, comme la fumée verte du Perché, est gardée), recadrage au plus près, sprites réduits à 160 px sans lissage ; `arene.gif` converti en .webm en boucle ; vidéos de super attaque en .webm de moins de 2 Mo.
 
 ## Salons privés et attente
 

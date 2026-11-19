@@ -12,7 +12,7 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 - `matchmaking.js` : la file d'attente et les salons (repris du morpion)
 - `powers.js` : les avatars, leurs pouvoirs et leurs durées
 - `public/` : index.html, style.css, client.js, sounds.js (les sons, fabriqués avec Web Audio)
-- `public/assets/` : `avatars/<avatar>.png` (un visuel par avatar), `cine/<avatar>.webm` (vidéos de super attaque), `arena/` (décors)
+- `public/assets/` : `avatars/<avatar>.png` (un visuel par avatar, tourné vers la droite), `cine/<avatar>.webm` (vidéos de super attaque), `arena/arene.webm` (fond en boucle) et `arena/arene.png` (secours)
 - `scripts/prepare-assets.js` : prépare images et vidéos depuis `assets-src/` (`npm run assets`, nécessite ffmpeg)
 
 ## Stack

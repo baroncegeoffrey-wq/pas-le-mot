@@ -289,6 +289,23 @@ body {
 .sign.pink { top: 18px; left: -6px; color: var(--pink); border: 1px solid var(--pink); box-shadow: 0 0 10px var(--pink); animation: flicker 4s linear infinite; }
 .sign.cyan { top: -26px; left: 10px; color: var(--cyan); border: 1px solid var(--cyan); box-shadow: 0 0 10px var(--cyan); animation: flicker 5.5s linear infinite 1s; }
 
+/* Fond d'arène préparé par scripts/prepare-assets.js (pixels nets) */
+.arena-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+  display: none;
+}
+.arena.bg-video .arena-bg { display: block; }
+.arena.bg-image {
+  background: var(--arena-image) center / cover no-repeat, #07080d;
+  image-rendering: pixelated;
+}
+.arena.bg-video .skyline, .arena.bg-image .skyline { display: none; }
+
 /* Plateformes isométriques (3 faces) */
 .platform { position: absolute; bottom: 22px; width: 220px; height: 140px; }
 .platform.me { left: 12%; filter: drop-shadow(0 0 10px rgba(198, 255, 0, 0.7)); }

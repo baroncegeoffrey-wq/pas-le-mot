@@ -50,11 +50,18 @@ Règles du jeu : `docs/brief.md`. Avancement : `docs/roadmap.md`.
 
 ## Préparer les images et vidéos
 1. Dépose les fichiers bruts dans `~/Documents/01-Projets/pas-le-mot/assets-src/` :
-   - `givre.png`, `perche.png`, `verlan.png` : les avatars, sur fond vert uni ;
+   - `givre.jpeg`, `perche.jpeg`, `verlan.jpeg` : les avatars, tournés vers la droite, sur un fond uni ;
    - `givre.mp4`, `perche.mp4`, `verlan.mp4` : les vidéos de super attaque ;
-   - un fichier qui commence par `fond`, `arene` ou `bg` : un décor d'arène.
+   - `arene.gif` : le fond d'arène animé, et `arene.jpeg` : son image de secours.
 2. Lance (ffmpeg doit être installé) :
 ```bash
 npm run assets
 ```
-3. Les fichiers prêts arrivent dans `public/assets/` : avatars en 160 px de haut (pixels nets, fond transparent), vidéos en .webm de moins de 2 Mo.
+3. Les fichiers prêts arrivent dans `public/assets/` :
+   - avatars : le fond est retiré par un remplissage qui part des bords de l'image (la fumée verte du Perché, au milieu, est gardée), puis recadrés au plus près du perso et réduits à 160 px de haut, pixels nets ;
+   - arène : `arene.webm` (boucle vidéo agrandie sans lissage) et `arene.png` (secours) ;
+   - vidéos de super attaque : .webm de moins de 2 Mo.
+
+Trop ou pas assez de fond retiré ? Règle la tolérance : `BG_TOLERANCE=50 npm run assets` (défaut 70).
+
+Dans l'arène, le perso de droite est affiché en miroir pour que les deux se fassent face : dessine-les tous les deux tournés vers la droite.
