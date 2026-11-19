@@ -1,0 +1,19 @@
+{
+  "name": "pas-le-mot",
+  "version": "0.1.0",
+  "description": "C'est pas le mot que tu crois : mots croisés multijoueur en temps réel",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^5.3.0",
+    "socket.io": "^4.8.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

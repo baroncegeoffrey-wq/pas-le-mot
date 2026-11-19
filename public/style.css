@@ -1,0 +1,14 @@
+/* Charte provisoire (voir CLAUDE.md) */
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: #14161F;
+  color: #F2EEE3;
+  font-family: system-ui, sans-serif;
+  text-align: center;
+}
+h1 { font-size: 3rem; margin: 0; letter-spacing: .05em; }
+.sub { opacity: .7; margin-top: .25rem; }
+#status { margin-top: 2rem; }
