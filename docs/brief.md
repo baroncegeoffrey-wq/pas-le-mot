@@ -66,7 +66,12 @@ Avant la partie, chaque joueur choisit un avatar. Chaque avatar a un pouvoir, ut
 - À chaque partie, on pioche des mots au hasard (moitié classique, moitié argot) et un algorithme les place dans une grille qui se croise.
 - Règle absolue : pas de mot inventé, pas de fausse définition.
 
+## Design
+
+- Direction « Néon acide » : maquette https://claude.ai/artifact/PYEdxibqoKmARi29Gpj1wJ (direction D ; privée, à partager depuis la page si besoin).
+- Une arène en haut de l'écran : moi à gauche sur une plateforme verte, l'adversaire à droite sur une plateforme rose, devant une ville de nuit.
+- Quand un pouvoir est lancé, les deux joueurs voient la super attaque : une cinématique (bande diagonale, le personnage en gros plan, le nom de l'attaque) puis un rayon géant avec éclairs et explosion à l'impact. L'effet du pouvoir commence juste après (environ 2,7 s).
+
 ## Hors périmètre du rendu (vendredi)
-- La direction artistique finale (inspiration JRPG rétro)
 - Le confort sur téléphone
 - Les salons privés avec un code

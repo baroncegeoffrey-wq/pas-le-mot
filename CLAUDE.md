@@ -11,7 +11,7 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 - `grid.js` : le placement des mots dans une grille qui se croise
 - `matchmaking.js` : la file d'attente et les salons (repris du morpion)
 - `powers.js` : les avatars, leurs pouvoirs et leurs durées
-- `public/` : index.html, style.css, client.js
+- `public/` : index.html, style.css, client.js, sprites.js (les personnages 8 bits)
 
 ## Stack
 - Node.js + Express : serveur HTTP, sert les fichiers statiques
@@ -61,11 +61,13 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 - Commentaires de code en français
 - Noms de variables et de fonctions en anglais
 
-## Charte graphique (provisoire, à remplacer)
-- Fond sombre `#14161F`, cases claires `#F2EEE3`, texte `#1A1A1A`
-- Joueur 1 : bleu `#3A7BD5` / Joueur 2 : rouge `#D64545`
-- Police : système, sans-serif
-- Direction prévue pour plus tard : JRPG rétro au tour par tour, avec des fenêtres de menu bleues à bord clair, une police pixel et des avatars originaux. Ne reprendre aucun personnage ni visuel d'un jeu existant.
+## Charte graphique : « Néon acide »
+- Ambiance : nuit, ville isométrique, néons acides, petits glitchs. Maquette de référence : direction D de la maquette (lien dans `docs/brief.md`).
+- Couleurs (variables dans `public/style.css`, jamais en dur ailleurs) : fond `#0a0c12`, panneaux `#10131b`, texte `#e8ecf5`, moi = vert acide `#c6ff00`, l'adversaire = rose `#ff2a6d`, accents jaune `#f5e100` et cyan `#00e5ff`.
+- Moi toujours à gauche, l'adversaire à droite.
+- Polices (Google Fonts) : Silkscreen (titres, étiquettes), VT323 (texte).
+- Personnages : 3 personnages 8 bits originaux, dessinés pixel par pixel dans `public/sprites.js`. Ne reprendre aucun personnage ni visuel d'un jeu ou d'une série existants (l'inspiration se limite à l'ambiance).
+- Animations coupées si le système demande de réduire les animations.
 
 ## À ne pas faire
 - Ne jamais faire confiance au client pour valider un mot ou un score

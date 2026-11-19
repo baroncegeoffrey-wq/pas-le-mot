@@ -35,8 +35,10 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 - [x] **En ligne sur Render**, testé avec 2 joueurs simulés sur le site en ligne (nouveau Freeze compris)
 
 ## Après le rendu
-- [ ] Direction artistique JRPG rétro
-- [ ] Petits personnages 8 bits originaux (animations très simples) à la place des badges : les deux joueurs se font face, s'affrontent, et on voit les pouvoirs partir avec des effets spéciaux
+- [x] Direction artistique « Néon acide » (dark, ville isométrique, néons, glitchs), d'après la maquette D
+- [x] Petits personnages 8 bits originaux, face à face sur des plateformes isométriques, qui respirent
+- [x] Super attaque vue par les deux joueurs : cinématique (1,2 s) puis rayon géant avec éclairs et impact (1,5 s), puis l'effet du pouvoir
+- [ ] Stats de fin de partie (mots trouvés, erreurs, lettres achetées)
 - [ ] Mobile
 - [ ] Salons privés avec code
 - [ ] Agrandir la bibliothèque de mots

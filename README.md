@@ -35,7 +35,7 @@ Les tests lancent le vrai serveur et simulent deux joueurs avec `socket.io-clien
 | `powers.js` | Les avatars et leurs pouvoirs |
 | `grid.js` | Pioche les mots et les place dans une grille qui se croise |
 | `data/mots.json` | La bibliothèque de mots et de définitions |
-| `public/` | La page du jeu (HTML, CSS, JS sans framework) |
+| `public/` | La page du jeu (HTML, CSS, JS sans framework), avec `sprites.js` pour les personnages 8 bits |
 | `tests/` | Les tests automatiques |
 
 ## Mise en ligne (Render)
