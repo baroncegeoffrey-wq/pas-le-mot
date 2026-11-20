@@ -106,6 +106,8 @@ let mySlot = null;
 let words = new Map(); // wordId -> { id, number, direction, cells: ["r,c", ...] }
 let cells = new Map(); // "r,c" -> { el, input, across, down, locked }
 let currentWord = null; // wordId sélectionné
+let focusSent = null; // dernier mot annoncé au serveur (on n'envoie qu'au changement)
+let oppFocus = null; // mot sur lequel est l'adversaire
 let players = []; // [{ pseudo, slot, avatar }] rangés par slot (un seul en solo)
 let opponent = null; // { pseudo, slot, avatar }, ou null en solo
 let oppPowersLeft = 0; // compté à chaque pouvoir reçu
@@ -386,6 +388,9 @@ socket.on('game-start', (data) => {
   setPowerButton(data.opponent ? data.you.powersLeft : 0);
   powerBtn.hidden = !data.opponent; // pas de pouvoir en solo
 
+  focusSent = null;
+  oppFocus = null;
+  $('opp-badge').hidden = true;
   buildBoard(data.grid);
   buildClues(data.clues);
   gameStatus.textContent = 'Remplis un mot puis appuie sur Entrée.';
@@ -989,6 +994,28 @@ function buildClues(clues) {
 /* ---------- Sélection d'un mot et déplacement ---------- */
 
 // Affiche la définition du mot sélectionné juste au-dessus de la grille.
+// Le mot sur lequel est l'adversaire : entouré de sa couleur sur ma grille,
+// sa définition surlignée, et un badge « Mogeo est sur le 4 ↓ ».
+function showOpponentFocus(wordId) {
+  if (oppFocus && words.get(oppFocus)) {
+    const old = words.get(oppFocus);
+    old.cells.forEach((k) => cells.get(k).el.classList.remove('opp-focus'));
+    old.clueEl.classList.remove('opp-focus');
+  }
+  oppFocus = wordId;
+  const badge = $('opp-badge');
+  const w = wordId ? words.get(wordId) : null;
+  if (!w) { badge.hidden = true; return; }
+  w.cells.forEach((k) => cells.get(k).el.classList.add('opp-focus'));
+  w.clueEl.classList.add('opp-focus');
+  badge.textContent = `${opponent ? opponent.pseudo : 'L\'adversaire'} est sur le ${w.number} ${w.direction === 'across' ? '→' : '↓'}`;
+  badge.hidden = false;
+}
+
+socket.on('opponent-focus', ({ wordId } = {}) => {
+  if (typeof wordId === 'string') showOpponentFocus(wordId);
+});
+
 function showCurrentClue(w) {
   $('cc-num').textContent = w.number;
   $('cc-dir').textContent = w.direction === 'across' ? '→' : '↓';
@@ -1030,6 +1057,11 @@ function selectWord(wordId, focusFirstEmpty) {
   w.clueEl.classList.add('current');
   buyBtn.disabled = Boolean(w.claimed);
   showCurrentClue(w);
+  // L'adversaire voit où je joue : juste l'identifiant du mot, une fois par changement.
+  if (roomId && opponent && wordId !== focusSent) {
+    focusSent = wordId;
+    socket.emit('focus-word', { roomId, wordId });
+  }
 
   if (focusFirstEmpty) {
     // En Verlan, on commence par la dernière case du mot.

@@ -247,3 +247,29 @@ test('3 parties d\'affilée : soin à chaque mot trouvé, et aucun mot ne revien
     server.stop();
   }
 });
+
+test('où joue l\'adversaire : seul l\'identifiant du mot est relayé, une fois par changement', async () => {
+  const server = await startServer();
+  const { p1, p2, g1 } = await startMatch(server);
+  try {
+    const [a, b] = g1.clues;
+    const got = waitFor(p2, 'opponent-focus');
+    p1.emit('focus-word', { roomId: g1.roomId, wordId: a.wordId });
+    assert.deepStrictEqual(await got, { wordId: a.wordId }); // rien d'autre : ni lettres, ni réponse
+    // Même mot renvoyé : pas de nouveau message.
+    p1.emit('focus-word', { roomId: g1.roomId, wordId: a.wordId });
+    // Mots inconnus ou absurdes : ignorés.
+    p1.emit('focus-word', { roomId: g1.roomId, wordId: 'w999' });
+    p1.emit('focus-word', { roomId: g1.roomId, wordId: { evil: true } });
+    p1.emit('focus-word', null);
+    await sleep(300);
+    assert.strictEqual(p2.received.filter((m) => m.event === 'opponent-focus').length, 1);
+    // Il change de mot : un nouveau message. Lui-même ne reçoit rien.
+    const next = waitFor(p2, 'opponent-focus');
+    p1.emit('focus-word', { roomId: g1.roomId, wordId: b.wordId });
+    assert.deepStrictEqual(await next, { wordId: b.wordId });
+    assert.ok(!p1.received.some((m) => m.event === 'opponent-focus'));
+  } finally {
+    p1.close(); p2.close(); server.stop();
+  }
+});

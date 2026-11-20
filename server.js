@@ -300,6 +300,20 @@ function handleUsePower(socket, data) {
   }
 }
 
+// L'adversaire voit sur quel mot je suis. On ne relaie QUE l'identifiant du
+// mot (jamais les lettres tapées), et seulement quand il change.
+function handleFocusWord(socket, data) {
+  if (!data || typeof data.wordId !== 'string') return;
+  const found = findPlayerGame(socket, data.roomId);
+  if (!found || found.slot < 0) return;
+  const { roomId, room, slot } = found;
+  if (room.game.over || !room.game.getWord(data.wordId)) return;
+  if (!room.focus) room.focus = [null, null];
+  if (room.focus[slot] === data.wordId) return; // même mot : rien à envoyer
+  room.focus[slot] = data.wordId;
+  socket.to(roomId).emit('opponent-focus', { wordId: data.wordId });
+}
+
 io.on('connection', (socket) => {
   console.log('Player connected', socket.id);
 
@@ -312,6 +326,7 @@ io.on('connection', (socket) => {
   socket.on('buy-letter', safe('buy-letter', (data) => handleBuyLetter(socket, data)));
   socket.on('use-power', safe('use-power', (data) => handleUsePower(socket, data)));
   socket.on('scrape', safe('scrape', (data) => handleScrape(socket, data)));
+  socket.on('focus-word', safe('focus-word', (data) => handleFocusWord(socket, data)));
 
   socket.on('disconnect', safe('disconnect', (reason) => {
     console.log('Player disconnected', socket.id, reason);

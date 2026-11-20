@@ -693,6 +693,8 @@ body.hitstop * { animation-play-state: paused !important; }
 .board .cell.theirs { background: var(--pink); border-color: var(--pink); box-shadow: 0 0 10px rgba(255, 42, 109, 0.6); }
 .board .cell.mine input, .board .cell.theirs input, .board .cell.mine .num, .board .cell.theirs .num { color: var(--ink); }
 .board .cell.hover { box-shadow: inset 0 0 0 2px var(--cyan); }
+/* Le mot sur lequel joue l'adversaire : entouré de sa couleur (rose) */
+.board .cell.opp-focus { box-shadow: inset 0 0 0 2px var(--pink), 0 0 8px rgba(255, 42, 109, 0.55); }
 .board .cell.bought { box-shadow: inset 0 0 0 2px var(--cyan); }
 .board .cell.wrong { animation: shake 0.4s; background: var(--wrong); }
 
@@ -704,6 +706,18 @@ body.hitstop * { animation-play-state: paused !important; }
 .clues li .n { font-family: var(--title); font-weight: 700; font-size: 17px; margin-right: 10px; color: var(--yellow); }
 .clues li.current { background: rgba(245, 225, 0, 0.1); border-left-color: var(--yellow); }
 .clues li.hover { background: rgba(0, 229, 255, 0.12); border-left-color: var(--cyan); }
+.clues li.opp-focus:not(.current) { background: rgba(255, 42, 109, 0.16); border-left-color: var(--pink); }
+.opp-badge {
+  margin-left: auto;
+  padding: 3px 10px;
+  font-family: var(--title);
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--ink);
+  background: var(--pink);
+  box-shadow: 0 0 10px rgba(255, 42, 109, 0.6);
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
 .clues li .dir { color: var(--muted); margin-right: 6px; }
 .clues li.mine, .clues li.theirs { text-decoration: line-through; opacity: 0.55; }
 .clues li.mine .n { color: var(--acid); }
@@ -1038,6 +1052,10 @@ body.stress-10 .scanline { background: linear-gradient(180deg, transparent, rgba
   #game .actions { flex: none; }
   #game .actions .btn { padding-top: 8px; padding-bottom: 8px; }
 }
+
+/* En partie, le bouton du son descend en bas à gauche : en haut à droite, il
+   cacherait le nom de l'adversaire. */
+body:has(#game:not([hidden])) .mute-btn { top: auto; bottom: 6px; right: auto; left: 6px; }
 
 /* Animations coupées si le système le demande (le flou du Trip reste) */
 @media (prefers-reduced-motion: reduce) {
