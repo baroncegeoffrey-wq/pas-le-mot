@@ -34,7 +34,7 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 - [x] 2 utilisations par partie, compteur affiché, pas de pouvoir en solo
 - [x] **En ligne sur Render**, testé avec 2 joueurs simulés sur le site en ligne (nouveau Freeze compris)
 
-## Combat JRPG (branche `combat`, pas encore sur main ni en ligne) [ ]
+## Combat JRPG (branche `combat`, fusionnée dans main) [x]
 - [x] 100 PV par joueur, dégâts = lettres × 3, recul de 5 PV sur erreur, lettre achetée = 3 PV, calculés par le serveur
 - [x] Fin au K.O. ou au chrono (le plus de PV gagne)
 - [x] Arène : avatars face à face, barres de PV animées, fond d'arène
@@ -62,7 +62,7 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 - [x] Mini-cinématiques critiques cadrées sur la tête des persos
 - [x] Musique de combat en boucle (partie et menu), suit SON ON/OFF, baisse pendant les cinématiques
 - [ ] Tester le rendu animé (ralenti, impacts) sur un écran visible, à deux
-- [ ] Fusionner dans main et mettre en ligne
+- [x] Fusionné dans main et **en ligne sur Render**, testé avec 2 joueurs simulés sur le site en ligne (soin, critique, adversaire visible, K.O.)
 
 ## Après le rendu
 - [x] Direction artistique « Néon acide » (dark, ville isométrique, néons, glitchs), d'après la maquette D
