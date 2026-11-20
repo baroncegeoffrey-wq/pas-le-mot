@@ -212,3 +212,38 @@ test('compte à rebours : rien ne compte avant le GO, puis la partie dure son te
     p1.close(); p2.close(); server.stop();
   }
 });
+
+test('3 parties d\'affilée : soin à chaque mot trouvé, et aucun mot ne revient d\'une grille à l\'autre', async () => {
+  const server = await startServer();
+  const seen = new Set();
+  try {
+    for (let round = 1; round <= 3; round++) {
+      const { p1, p2, g1 } = await startMatch(server);
+      try {
+        // Anti-répétition : aucun mot de cette grille n'était dans les précédentes.
+        const answers = g1.clues.map((c) => answerOfClue(c.clue));
+        const again = answers.filter((a) => seen.has(a));
+        assert.deepStrictEqual(again, [], `partie ${round} : mots déjà vus ${again}`);
+        answers.forEach((a) => seen.add(a));
+
+        // Soin : p1 se fait mal (erreur, -5), puis trouve un mot : il récupère
+        // lettres × 2 PV, sans dépasser 100.
+        const [first, second] = g1.clues;
+        const wrong = waitFor(p1, 'word-wrong');
+        p1.emit('submit-word', { roomId: g1.roomId, wordId: first.wordId, letters: 'Q'.repeat(answerOfClue(first.clue).length) });
+        assert.deepStrictEqual((await wrong).hp, [95, 100]);
+        const claimed = waitFor(p2, 'word-claimed');
+        p1.emit('submit-word', { roomId: g1.roomId, wordId: second.wordId, letters: answerOfClue(second.clue) });
+        const c = await claimed;
+        const len = answerOfClue(second.clue).length;
+        assert.strictEqual(c.heal, Math.min(5, len * 2));
+        assert.deepStrictEqual(c.hp, [Math.min(100, 95 + len * 2), 100 - damageOf(second.clue)]);
+      } finally {
+        p1.close(); p2.close();
+      }
+    }
+    assert.strictEqual(seen.size, 36);
+  } finally {
+    server.stop();
+  }
+});

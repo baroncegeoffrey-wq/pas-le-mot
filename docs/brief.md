@@ -3,7 +3,7 @@
 **En 5 lignes**
 1. Un combat de mots croisés en ligne, façon JRPG : 2 joueurs, face à face dans une arène, sur la même grille de 12 mots très croisés (chaque mot trouvé donne des lettres à ceux qu'il croise).
 2. La moitié des mots est classique, l'autre moitié vient de l'argot d'aujourd'hui (vulgaire autorisé). Ce sont des mots qui existent, avec de vraies définitions.
-3. Chacun a 100 PV. Tu remplis les cases d'un mot puis tu appuies sur Entrée : juste = tu frappes l'adversaire (3 dégâts par lettre, × 1,5 à partir de 7 lettres), faux = 5 dégâts de recul pour toi.
+3. Chacun a 100 PV. Tu remplis les cases d'un mot puis tu appuies sur Entrée : juste = tu frappes l'adversaire (3 dégâts par lettre, × 1,5 à partir de 7 lettres) et tu te soignes (2 PV par lettre, sans dépasser 100), faux = 5 dégâts de recul pour toi.
 4. Un mot validé s'affiche chez les deux joueurs dans la couleur de celui qui l'a trouvé, et ses lettres aident pour les mots qui le croisent.
 5. K.O. dès qu'un joueur tombe à 0 PV. Sinon, au bout de 2 minutes (ou grille pleine), celui qui a le plus de PV gagne.
 
@@ -13,7 +13,8 @@
 
 **Déroulé**
 - Le joueur choisit un pseudo, clique « Trouver une partie », et il est apparié avec le prochain joueur en attente (même système que le morpion).
-- Les deux joueurs reçoivent la même grille, tirée au hasard dans la bibliothèque de mots.
+- Les deux joueurs reçoivent la même grille, tirée au hasard dans la bibliothèque de mots (247 mots).
+- Anti-répétition : le serveur garde en mémoire les mots des 5 dernières grilles (toutes parties confondues) et les évite pour la suivante, sauf s'il ne reste pas assez de mots.
 - Avant de jouer, un compte à rebours « 3, 2, 1, GO ! » (3,5 s) : rien ne compte avant le GO.
 - Chrono : 2 minutes. Les 30 dernières secondes deviennent de plus en plus stressantes (30 s, 20 s, puis compte à rebours géant sur les 10 dernières).
 
@@ -28,6 +29,7 @@
 |---|---|
 | Départ | 100 PV chacun |
 | Mot juste | Dégâts à l'adversaire = lettres × 3 (FLEX = 12, LIMACE = 18) |
+| Soin (mot juste) | Celui qui trouve le mot récupère lettres × 2 PV, sans dépasser 100 (FLEX = +8). Affiché en « +X » vert avec un halo vert, au moment du tir |
 | Coup critique (mot de 7 lettres ou plus) | Dégâts × 1,5, arrondis (TCHATCHE = 24 × 1,5 = 36, CHAUSSETTE = 45) |
 | Mot faux | 5 PV de dégâts de recul pour toi, et ce mot est bloqué 3 secondes pour toi (anti-spam) |
 | Acheter une lettre (révélée pour toi seul) | 3 PV |
@@ -54,7 +56,7 @@
 ## Mode solo
 
 - Bouton « Jouer seul » à l'accueil : la partie démarre tout de suite, sans adversaire.
-- On frappe un mannequin d'entraînement (100 PV). Mêmes règles qu'à deux : chrono de 2 minutes, dégâts lettres × 3 (× 1,5 à partir de 7 lettres), recul de 5 PV par erreur, lettre achetée à 3 PV.
+- On frappe un mannequin d'entraînement (100 PV). Mêmes règles qu'à deux : chrono de 2 minutes, dégâts lettres × 3 (× 1,5 à partir de 7 lettres), soin lettres × 2, recul de 5 PV par erreur, lettre achetée à 3 PV.
 - Fin au K.O. du mannequin, au chrono ou quand la grille est pleine. L'écran de fin affiche les dégâts infligés et le nombre de mots trouvés.
 - « Rejouer » relance une partie solo.
 

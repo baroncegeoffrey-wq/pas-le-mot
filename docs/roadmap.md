@@ -51,6 +51,9 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 - [x] Persos animés : GIF détourés image par image (fumée du Perché gardée), WebP animé transparent, .png en secours
 - [x] Attaque visible à chaque mot trouvé : charge, projectile géant propre à chaque perso, explosion et onde de choc (canvas en mode additif, 60 i/s)
 - [x] Coup critique : 7 lettres ou plus = dégâts × 1,5, mini-cinématique dans l'arène avec « CRITIQUE ! », projectile encore plus gros
+- [x] Soin : un mot trouvé rend lettres × 2 PV à celui qui l'a trouvé (plafond 100), « +X » vert et halo
+- [x] 72 nouveaux mots (247 au total : 132 argot, 115 classiques), sans doublon
+- [x] Anti-répétition : les mots des 5 dernières grilles sont évités
 - [ ] Remplacer la vidéo provisoire du Perché (même nom de fichier, puis `npm run assets`)
 - [ ] Tester le rendu animé (ralenti, impacts) sur un écran visible, à deux
 - [ ] Fusionner dans main et mettre en ligne

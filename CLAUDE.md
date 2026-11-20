@@ -43,7 +43,7 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 | `waiting` | serveur → client | |
 | `game-start` | serveur → clients | `{ roomId, grid, clues, you, opponent, startsAt, endsAt, maxHp, serverNow }` (`startsAt` = le « GO » après le compte à rebours ; rien n'est accepté avant) (sans solutions ; `you` = `{ pseudo, slot, avatar, powersLeft }`, `opponent` = `{ pseudo, slot, avatar }` ou `null` en solo) |
 | `submit-word` | client → serveur | `{ roomId, wordId, letters }` |
-| `word-claimed` | serveur → clients | `{ wordId, letters, by, target, damage, critical, hp }` (`hp` = PV des deux joueurs ; `critical` = mot de 7 lettres ou plus, dégâts × 1,5) |
+| `word-claimed` | serveur → clients | `{ wordId, letters, by, target, damage, critical, heal, hp }` (`hp` = PV des deux joueurs, après dégâts et soin ; `critical` = mot de 7 lettres ou plus, dégâts × 1,5 ; `heal` = PV rendus à `by`) |
 | `word-wrong` | serveur → client fautif | `{ wordId, target, damage, hp, lockedUntil, serverNow }` |
 | `word-locked` | serveur → client fautif | `{ wordId, lockedUntil, serverNow }` (renvoi pendant le blocage de 3 s, sans pénalité) |
 | `hp` | serveur → adversaire | `{ target, damage, hp }` (recul ou lettre achetée par l'autre joueur) |

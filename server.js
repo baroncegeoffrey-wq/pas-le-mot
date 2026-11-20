@@ -45,26 +45,35 @@ function safe(name, fn) {
 process.on('uncaughtException', (err) => console.error('Erreur inattendue :', err));
 process.on('unhandledRejection', (err) => console.error('Promesse rejetée :', err));
 
-// Mots vus récemment par chaque pseudo, pour ne pas retomber sur les mêmes.
-const RECENT_WORDS_PER_PLAYER = 24;
-const MAX_REMEMBERED_PLAYERS = 1000;
-const recentWords = new Map(); // pseudo en minuscules -> [mots]
+// Anti-répétition : le serveur garde les mots des 5 dernières grilles (toutes
+// parties confondues) et les évite pour la grille suivante. S'il ne reste pas
+// assez de mots d'un type, grid.js reprend toute la bibliothèque (voir poolOf).
+const RECENT_GRIDS = 5;
+const recentGrids = []; // [[mots de la grille], ...], la plus ancienne en premier
 
-function rememberWords(pseudo, words) {
-  const k = pseudo.toLowerCase();
-  const list = (recentWords.get(k) || []).concat(words).slice(-RECENT_WORDS_PER_PLAYER);
-  recentWords.delete(k); // le remettre en dernier = le plus récent
-  recentWords.set(k, list);
-  if (recentWords.size > MAX_REMEMBERED_PLAYERS) recentWords.delete(recentWords.keys().next().value);
+function rememberGrid(grid) {
+  recentGrids.push(grid.words.map((w) => w.answer));
+  if (recentGrids.length > RECENT_GRIDS) recentGrids.shift();
+}
+
+// Une nouvelle grille, sans les mots des 5 dernières si c'est possible.
+function freshGrid() {
+  const exclude = new Set(recentGrids.flat());
+  let grid;
+  try {
+    grid = generateGrid({ exclude });
+  } catch (err) {
+    grid = generateGrid(); // pas assez de mots en évitant : on prend tout
+  }
+  rememberGrid(grid);
+  return grid;
 }
 
 // Deux joueurs viennent d'être appariés (ou un joueur lance une partie solo) :
 // on crée la grille et on envoie à chacun la version publique (sans les solutions).
 function startGame(roomId, room) {
-  // Les mots que ces joueurs ont vus récemment sont évités.
-  const exclude = new Set(room.players.flatMap((p) => recentWords.get(p.pseudo.toLowerCase()) || []));
-  const fullGrid = generateGrid({ exclude });
-  room.players.forEach((p) => rememberWords(p.pseudo, fullGrid.words.map((w) => w.answer)));
+  // Les mots des 5 dernières grilles sont évités.
+  const fullGrid = freshGrid();
   const startsAt = Date.now() + START_DELAY_MS;
   room.game = new Game(fullGrid, room.players.map((p) => p.avatar), startsAt);
   // Minuteries du Freeze, par joueur gelé : { regrow, safety }
