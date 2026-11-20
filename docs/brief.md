@@ -88,6 +88,11 @@ Pendant la vidéo, **le chrono est en pause pour les deux joueurs** et plus rien
 - Direction « Néon acide » : maquette https://claude.ai/artifact/PYEdxibqoKmARi29Gpj1wJ (direction D ; privée, à partager depuis la page si besoin).
 - Une arène en haut de l'écran : moi à gauche sur une plateforme verte, l'adversaire à droite sur une plateforme rose, devant une ville de nuit.
 - Arène : les deux avatars face à face au-dessus de la grille, sur leurs plateformes, devant la ville de nuit, avec leurs barres de PV animées (la partie perdue reste blanche un instant).
+- Sur ordinateur, la partie tient dans la fenêtre sans défilement (vérifié en 1366×768 et 1920×1080) : l'arène prend 40 % de la hauteur, la grille et les définitions le reste, et la taille des cases s'adapte à la place disponible.
+- Les deux persos ont les pieds sur la même ligne de sol, chacun au centre de sa moitié d'arène, et la même hauteur à l'écran (d'après la mesure de leur corps, `avatars/sprites.json`).
+- Interface façon jeu de combat : nom, perso, barre de PV et super attaque dans les coins du haut de l'arène (moi à gauche, l'adversaire à droite), au-dessus de la tête des persos : rien ne les cache.
+- Je vois où joue l'adversaire : son mot est entouré de rose sur ma grille, sa définition est surlignée, et un badge dit « Mogeo est sur le 4 ↓ ». Le serveur ne transmet que l'identifiant du mot (jamais les lettres tapées), une fois par changement de mot.
+- Mini-cinématiques de coup critique : cadrées sur la tête du perso (l'arène est bien plus large que haute, on ne voit qu'une bande de la vidéo).
 - Un seul visuel par avatar : `public/assets/avatars/<avatar>.png` (160 px de haut, pixels nets).
 - Les avatars sont dessinés tournés vers la droite ; celui de droite est affiché en miroir pour que les deux se fassent face.
 - Fond d'arène : `arene.webm` en boucle (pixels nets), sinon l'image de secours `arene.jpg`, sinon la ville de nuit en CSS.
@@ -100,5 +105,6 @@ Pendant la vidéo, **le chrono est en pause pour les deux joueurs** et plus rien
 
 ## Sons et téléphone
 
+- Musique de combat en boucle, pendant les parties (40 %) et sur le menu (un peu moins fort). Elle démarre au premier clic (les navigateurs bloquent le son avant), suit le bouton « SON : ON/OFF » et baisse pendant les cinématiques.
 - Sons fabriqués dans le navigateur (aucun fichier, aucun service) : compte à rebours, mot juste ou faux, alertes, battement de cœur des 30 dernières secondes, super attaque, givre, fin. Un bouton « SON : ON/OFF » les coupe (choix retenu).
 - Sur téléphone : la grille s'adapte à la largeur de l'écran, le Trip suit le doigt et le Freeze se racle au doigt.

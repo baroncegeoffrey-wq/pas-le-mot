@@ -11,8 +11,8 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 - `grid.js` : le placement des mots dans une grille qui se croise
 - `matchmaking.js` : la file d'attente et les salons (repris du morpion)
 - `powers.js` : les avatars, leurs pouvoirs et leurs durées
-- `public/` : index.html, style.css, client.js, attack.js (les attaques à chaque mot : charge, projectile, explosion, sur un canvas), sounds.js (les sons, fabriqués avec Web Audio)
-- `public/assets/` : `avatars/<avatar>.png` (un visuel fixe par avatar, tourné vers la droite) et `avatars/<avatar>.webp` (le même, animé, utilisé en combat), `cine/<avatar>-crit.webm` (mini-cinématique de coup critique, 3 s), `cine/<avatar>.webm` (vidéos de super attaque) + `cine/<avatar>.jpg` (image d'attente) + `cine/durations.json` (durées en secondes, lues par powers.js), `arena/arene.webm` (fond en boucle) et `arena/arene.jpg` (secours)
+- `public/` : index.html, style.css, client.js, attack.js (les attaques à chaque mot : charge, projectile, explosion, sur un canvas), sounds.js (les sons, fabriqués avec Web Audio, et la musique de combat : objet `Music`)
+- `public/assets/` : `avatars/<avatar>.png` (un visuel fixe par avatar, tourné vers la droite) et `avatars/<avatar>.webp` (le même, animé, utilisé en combat) + `avatars/sprites.json` (où est le corps dans chaque image, pour poser les persos au sol), `music/musique-combat.ogg` (+ `.mp3` pour Safari), `cine/<avatar>-crit.webm` (mini-cinématique de coup critique, 3 s), `cine/<avatar>.webm` (vidéos de super attaque) + `cine/<avatar>.jpg` (image d'attente) + `cine/durations.json` (durées en secondes, lues par powers.js), `arena/arene.webm` (fond en boucle) et `arena/arene.jpg` (secours)
 - `scripts/prepare-assets.js` : prépare images et vidéos depuis `assets-src/` (`npm run assets`, nécessite ffmpeg)
 
 ## Stack
@@ -54,6 +54,8 @@ Un jeu de mots croisés multijoueur en temps réel : 2 joueurs font la course su
 | `power-used` | serveur → lanceur | `{ power, remaining, duration, cine }` |
 | `power-refused` | serveur → lanceur | `{ reason }` (solo, plus d'utilisation, déjà gelé, partie finie) |
 | `scrape` | client gelé → serveur | `{ roomId }` (un coup de raclette sur son avatar) |
+| `focus-word` | client → serveur | `{ roomId, wordId }` (le mot que je viens de sélectionner ; envoyé seulement quand il change) |
+| `opponent-focus` | serveur → adversaire | `{ wordId }` (seulement l'identifiant, jamais les lettres ; un message par changement de mot) |
 | `frost` | serveur → client gelé | `{ layers }` (couches de givre restantes, après un coup ou quand ça repousse) |
 | `unfrozen` | serveur → clients | `{ slot }` (ce joueur est dégivré et peut rejouer) |
 | `game-over` | serveur → clients | `{ hp, winner, ko, stats, solutions }` (`ko` = slot tombé à 0 PV ou null ; en solo : `{ hp, winner, ko, found, total, stats, solutions }`, le slot 1 étant le mannequin) ; `stats[slot]` = `{ found, wrong, bought, powers, damage }`, `solutions` = `[{ number, direction, word, clue, foundBy }]` |

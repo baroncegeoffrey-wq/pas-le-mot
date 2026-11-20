@@ -54,7 +54,13 @@ Un lot est coché seulement quand il est livré ET en ligne sur Render.
 - [x] Soin : un mot trouvé rend lettres × 2 PV à celui qui l'a trouvé (plafond 100), « +X » vert et halo
 - [x] 72 nouveaux mots (247 au total : 132 argot, 115 classiques), sans doublon
 - [x] Anti-répétition : les mots des 5 dernières grilles sont évités
-- [ ] Remplacer la vidéo provisoire du Perché (même nom de fichier, puis `npm run assets`)
+- [x] Nouvelle super attaque du Perché (perche-cine-v2)
+- [x] En partie, tout tient dans la fenêtre sans défilement (1366×768 et 1920×1080)
+- [x] Persos sur la même ligne de sol, centrés dans leur moitié d'arène, même hauteur
+- [x] Interface façon jeu de combat dans les coins du haut de l'arène, plus rien sur les persos
+- [x] Voir où joue l'adversaire (mot entouré, définition surlignée, badge)
+- [x] Mini-cinématiques critiques cadrées sur la tête des persos
+- [x] Musique de combat en boucle (partie et menu), suit SON ON/OFF, baisse pendant les cinématiques
 - [ ] Tester le rendu animé (ralenti, impacts) sur un écran visible, à deux
 - [ ] Fusionner dans main et mettre en ligne
 

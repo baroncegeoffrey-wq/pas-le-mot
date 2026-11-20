@@ -54,7 +54,10 @@ Règles du jeu : `docs/brief.md`. Avancement : `docs/roadmap.md`.
    - `givre.gif`, `perche.gif`, `verlan.gif` : les mêmes, animés (boucle), sur fond vert ;
    - `givre-cine.gif`, `perche-cine.gif`, `verlan-cine.gif` : les mini-cinématiques de coup critique (3 s) ;
    - `givre-cine.mp4`, `perche-cine.mp4`, `verlan-cine.mp4` : les vidéos de super attaque (une dizaine de secondes), et si tu veux `givre-cine.jpeg`... : l'image affichée le temps que la vidéo démarre ;
-   - `arene.gif` : le fond d'arène animé, et `arene.jpeg` : son image de secours.
+   - `arene.gif` : le fond d'arène animé, et `arene.jpeg` : son image de secours ;
+   - `musique-combat.mp3` : la musique (convertie en .ogg compressé + .mp3 pour Safari, dans `public/assets/music/`).
+
+Nouvelle version d'une vidéo : ajoute `-v2`, `-v3`... au nom (ex. `perche-cine-v2.mp4`). Le script prend toujours la version la plus récente. Les persos animés produisent aussi `avatars/sprites.json` (où est le corps dans chaque image), dont le jeu se sert pour les poser au sol à la même taille.
 2. Lance (ffmpeg doit être installé) :
 ```bash
 npm run assets

@@ -492,9 +492,19 @@ const Attack = (() => {
     from.style.setProperty('--aura', rgba(color, 1));
     from.classList.add('charging');
     inFlight++;
-    attacks.push({
+    const atk = {
       kind, a, b, size, boomSize, color, t: 0, emit: 16.67, dir: Math.sign(b.x - a.x) || 1, shot: false, hit: false, onShot, onImpact, from,
-    });
+    };
+    attacks.push(atk);
+    // Sécurité : si l'écran ne dessine plus (onglet en arrière-plan, fenêtre
+    // cachée), l'animation ne progresse pas. Le coup touche quand même au plus
+    // tard 1 s après le lancement : PV à jour, et le K.O. n'attend jamais.
+    atk.safety = setTimeout(() => {
+      if (atk.hit) return;
+      if (!atk.shot) { atk.shot = true; atk.from.classList.remove('charging'); if (atk.onShot) atk.onShot(); }
+      atk.t = Math.max(atk.t, CHARGE_MS + SHOT_MS);
+      impact(atk);
+    }, CHARGE_MS + SHOT_MS + 400);
     if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); }
   }
 
@@ -508,6 +518,7 @@ const Attack = (() => {
   }
 
   function impact(atk) {
+    clearTimeout(atk.safety);
     atk.hit = true;
     atk.from.classList.remove('charging');
     atk.kind.explode(atk.b.x, atk.b.y, atk.boomSize);
@@ -647,6 +658,7 @@ const Attack = (() => {
   // Coupe tout (nouvelle partie, fin de partie).
   function clear() {
     attacks.forEach((atk) => {
+      clearTimeout(atk.safety);
       atk.from.classList.remove('charging');
       if (!atk.hit && atk.onImpact) atk.onImpact();
     });
