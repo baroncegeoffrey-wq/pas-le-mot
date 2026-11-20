@@ -101,7 +101,7 @@ const Attack = (() => {
   // Centre d'un perso dans l'arène (en px de l'arène, même si elle est zoomée).
   function centerOf(el) {
     const a = arena.getBoundingClientRect();
-    const b = el.getBoundingClientRect();
+    const b = (el.querySelector('img') || el).getBoundingClientRect(); // l'image du perso
     const zoom = a.width / arena.clientWidth || 1;
     return {
       x: (b.left - a.left + b.width / 2) / zoom,

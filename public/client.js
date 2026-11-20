@@ -48,6 +48,41 @@ const DUMMY = { pseudo: 'MANNEQUIN', slot: 1, avatar: 'mannequin' }; // l'advers
 
 const ANIMATED_AVATARS = new Set(['givre', 'perche', 'verlan']);
 
+// Mesures du corps de chaque perso animé (préparées par scripts/prepare-assets.js) :
+// { top, foot, cx, ratio }, en fractions de l'image. Voir .fighter dans style.css.
+let spriteMetrics = {};
+fetch('assets/avatars/sprites.json', { cache: 'no-cache' })
+  .then((res) => (res.ok ? res.json() : {}))
+  .then((data) => { spriteMetrics = data; })
+  .catch(() => {});
+
+// Pose un perso dans l'arène : pieds sur la ligne de sol, centré, même taille
+// que l'autre. mirrored : celui de droite, affiché en miroir.
+function placeFighter(fighter, who, mirrored) {
+  const img = fighter.querySelector('img');
+  const apply = (m) => {
+    fighter.style.setProperty('--top', m.top);
+    fighter.style.setProperty('--foot', m.foot);
+    fighter.style.setProperty('--cx', mirrored ? 1 - m.cx : m.cx);
+    fighter.style.setProperty('--ratio', m.ratio);
+  };
+  avatarImg(img, who, true);
+  // Mesures connues (perso animé) ; sinon (image fixe de secours, mannequin) :
+  // valeurs par défaut, et la vraie largeur une fois l'image chargée.
+  const known = spriteMetrics[who];
+  apply(known || {
+    top: 0.02, foot: 0.98, cx: 0.5, ratio: 0.8,
+  });
+  img.onload = () => {
+    const usingStill = !img.src.endsWith('.webp');
+    if (!known || usingStill) {
+      apply({
+        top: 0.02, foot: 0.98, cx: 0.5, ratio: img.naturalWidth / img.naturalHeight || 0.8,
+      });
+    }
+  };
+}
+
 // animated : le perso animé (.webp) en combat ; si le fichier manque ou ne se
 // lit pas, on retombe sur l'image fixe (.png).
 function avatarImg(img, who, animated = false) {
@@ -343,8 +378,8 @@ socket.on('game-start', (data) => {
   const foe = opponent || DUMMY;
   fillPlayerBox(boxMe, data.you, true, data.opponent ? data.you.powersLeft : 0);
   fillPlayerBox(boxOpp, foe, false, oppPowersLeft);
-  avatarImg(fighterMe.querySelector('img'), data.you.avatar, true);
-  avatarImg(fighterOpp.querySelector('img'), foe.avatar, true);
+  placeFighter(fighterMe, data.you.avatar, false);
+  placeFighter(fighterOpp, foe.avatar, true);
   resetFighters();
   setHp([maxHp, maxHp], true);
   preloadCinematics(); // les 3 vidéos, pour qu'elles se lancent sans délai
@@ -496,7 +531,7 @@ function popDamage(x, y, damage, kind) {
 function hitFx(side, damage, kind) {
   if (!damage) return;
   const target = side === 'me' ? fighterMe : fighterOpp;
-  const box = target.getBoundingClientRect();
+  const box = target.querySelector('img').getBoundingClientRect();
   const origin = arena.getBoundingClientRect();
   const x = box.left - origin.left + box.width / 2;
   const y = box.top - origin.top + box.height * 0.4;
@@ -560,7 +595,7 @@ function attackFx(by, target, letters, damage, critical = false, heal = 0) {
 // Soin : chiffre vert « +X » qui monte au-dessus du perso, et un halo vert.
 function healFx(slot, amount) {
   const fighter = fighterOf(slot);
-  const box = fighter.getBoundingClientRect();
+  const box = fighter.querySelector('img').getBoundingClientRect();
   const origin = arena.getBoundingClientRect();
   const zoom = origin.width / arena.clientWidth || 1;
   const n = document.createElement('span');

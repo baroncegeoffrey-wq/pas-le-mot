@@ -91,8 +91,25 @@ function checkFfmpeg() {
   }
 }
 
-// « givre-cine.mp4 » → « givre » : le nom de l'avatar, sans le suffixe -cine.
-const cineName = (file) => slug(file).replace(/-cine$/, '');
+// « givre-cine.mp4 » → « givre » : le nom de l'avatar, sans le suffixe -cine
+// (ni la version : « perche-cine-v2.mp4 » → « perche »).
+const cineName = (file) => slug(file).replace(/-cine(-v\d+)?$/, '');
+const versionOf = (file) => Number((slug(file).match(/-v(\d+)$/) || [])[1] || 1);
+
+// Plusieurs versions d'une même cinématique (perche-cine.mp4, perche-cine-v2.mp4) :
+// seule la plus récente (le plus grand numéro) est préparée.
+function latestVersions(files) {
+  const best = new Map();
+  for (const name of files) {
+    if (!VIDEO_EXT.has(path.extname(name).toLowerCase()) || !/-cine(-v\d+)?$/.test(slug(name))) continue;
+    const k = cineName(name);
+    if (!best.has(k) || versionOf(name) > versionOf(best.get(k))) best.set(k, name);
+  }
+  return files.filter((name) => {
+    if (!VIDEO_EXT.has(path.extname(name).toLowerCase()) || !/-cine(-v\d+)?$/.test(slug(name))) return true;
+    return best.get(cineName(name)) === name;
+  });
+}
 
 const slug = (file) => path.basename(file, path.extname(file))
   .normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -281,6 +298,45 @@ function unionBox(frames) {
   return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
 }
 
+// Où est le corps du perso dans son image (en fractions, de 0 à 1) : les
+// lignes où le perso occupe au moins 12 % de la largeur (en moyenne sur toutes
+// les images) forment le corps ; les petites particules autour ne comptent pas.
+// Le jeu s'en sert pour poser les pieds au sol et donner la même taille à tous.
+function bodyMetrics(frames, box) {
+  const rows = new Float64Array(box.h);
+  const cols = new Float64Array(box.w);
+  for (const { w, data } of frames) {
+    for (let y = 0; y < box.h; y++) {
+      for (let x = 0; x < box.w; x++) {
+        if (data[((box.y + y) * w + box.x + x) * 4 + 3] > 128) { rows[y]++; cols[x]++; }
+      }
+    }
+  }
+  const limit = box.w * 0.12 * frames.length;
+  let top = 0;
+  let bottom = box.h - 1;
+  while (top < box.h - 1 && rows[top] < limit) top++;
+  while (bottom > top && rows[bottom] < limit) bottom--;
+  let mass = 0;
+  let sum = 0;
+  for (let x = 0; x < box.w; x++) { mass += cols[x]; sum += x * cols[x]; }
+  const r3 = (v) => Math.round(v * 1000) / 1000;
+  return {
+    top: r3(top / box.h), // haut de la tête
+    foot: r3((bottom + 1) / box.h), // dessous des pieds
+    cx: r3((mass ? sum / mass : box.w / 2) / box.w), // centre du corps, de gauche à droite
+    ratio: r3(box.w / box.h), // largeur / hauteur de l'image
+  };
+}
+
+function writeSpriteMetrics(name, metrics) {
+  const file = path.join(OUT, 'avatars', 'sprites.json');
+  let current = {};
+  try { current = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { /* pas encore de fichier */ }
+  current[name] = metrics;
+  fs.writeFileSync(file, `${JSON.stringify(current, null, 2)}\n`);
+}
+
 // Perso animé : fond retiré image par image, cadrage commun, WebP animé
 // transparent (sans perte, pixels nets) qui boucle.
 function prepareAnimatedSprite(file) {
@@ -294,6 +350,7 @@ function prepareAnimatedSprite(file) {
     if (!NO_DESPILL.has(name)) despill(frame);
   }
   const box = unionBox(frames);
+  writeSpriteMetrics(name, bodyMetrics(frames, box));
   const row = box.w * 4;
   const raw = Buffer.alloc(frames.length * box.h * row);
   frames.forEach(({ w, data }, i) => {
@@ -450,7 +507,7 @@ function main() {
   for (const dir of ['avatars', 'arena', 'cine']) fs.mkdirSync(path.join(OUT, dir), { recursive: true });
 
   const only = process.env.ONLY ? new RegExp(process.env.ONLY, 'i') : null;
-  const files = fs.readdirSync(SRC).filter((f) => !f.startsWith('.') && (!only || only.test(f))).sort();
+  const files = latestVersions(fs.readdirSync(SRC).filter((f) => !f.startsWith('.'))).filter((f) => !only || only.test(f)).sort();
   if (files.length === 0) {
     console.log(`Rien à préparer : ${SRC} est vide.`);
     return;

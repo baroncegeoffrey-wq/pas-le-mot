@@ -340,10 +340,15 @@ body {
 }
 .arena.bg-video .skyline, .arena.bg-image .skyline { display: none; }
 
-/* Plateformes isométriques (3 faces) */
-.platform { position: absolute; bottom: 22px; width: 220px; height: 140px; }
-.platform.me { left: 12%; filter: drop-shadow(0 0 10px rgba(198, 255, 0, 0.7)); }
-.platform.opp { right: 12%; filter: drop-shadow(0 0 10px rgba(255, 42, 109, 0.7)); }
+/* L'arène sert de repère de taille (unités cqh = % de sa hauteur) */
+.arena { container-type: size; }
+
+/* Plateformes isométriques (3 faces), réduites de moitié, centrées sous chaque
+   perso (25 % et 75 % de la largeur). Le centre de leur face du dessus est la
+   ligne de sol : 8 px + (140 - 55) × 0,55 ≈ 55 px au-dessus du bas de l'arène. */
+.platform { position: absolute; bottom: 8px; width: 220px; height: 140px; transform: scale(0.55); transform-origin: 50% 100%; }
+.platform.me { left: calc(25% - 110px); filter: drop-shadow(0 0 10px rgba(198, 255, 0, 0.7)); }
+.platform.opp { left: calc(75% - 110px); filter: drop-shadow(0 0 10px rgba(255, 42, 109, 0.7)); }
 .platform .face { position: absolute; inset: 0; }
 .platform .face.left { clip-path: polygon(0 55px, 110px 110px, 110px 140px, 0 85px); }
 .platform .face.right { clip-path: polygon(110px 110px, 220px 55px, 220px 85px, 110px 140px); }
@@ -355,10 +360,33 @@ body {
 .platform.opp .face.right { background: #2a0917; }
 .platform.opp .face.top { background: repeating-linear-gradient(-26.5deg, var(--pink-dark) 0 14px, var(--pink) 14px 15px), var(--pink-dark); }
 
-.fighter { position: absolute; left: 60px; top: -100px; animation: bob 1.6s steps(2) infinite; }
-.fighter img { height: 150px; width: auto; }
-.platform.opp .fighter img { transform: scaleX(-1); }
-.platform.opp .fighter { animation-delay: 0.4s; }
+/* Un perso = un point au sol (ses pieds), au centre de sa moitié d'arène.
+   L'image est placée autour de ce point grâce aux mesures de son corps
+   (sprites.json, données par client.js) : --top / --foot = haut de la tête et
+   dessous des pieds, --cx = centre du corps, --ratio = largeur / hauteur.
+   --body-h = hauteur du corps à l'écran, la même pour tous : la place entre le
+   sol et le bandeau des PV en haut de l'arène. */
+.fighter {
+  --ground: 55px;
+  --body-h: clamp(80px, calc(100cqh - var(--ground) - 92px), 64cqh);
+  --img-h: calc(var(--body-h) / (var(--foot, 0.98) - var(--top, 0.02)));
+  position: absolute;
+  bottom: var(--ground);
+  width: 0;
+  height: 0;
+  z-index: 1;
+}
+#fighter-me { left: 25%; }
+#fighter-opp { left: 75%; }
+.fighter img {
+  position: absolute;
+  height: var(--img-h);
+  width: auto;
+  max-width: none;
+  bottom: calc((var(--foot, 0.98) - 1) * var(--img-h));
+  left: calc(var(--cx, 0.5) * var(--img-h) * var(--ratio, 0.8) * -1);
+}
+#fighter-opp img { transform: scaleX(-1); } /* en miroir : les deux se font face */
 .fighter.iced img { filter: saturate(0.2) brightness(1.4) drop-shadow(0 0 10px var(--givre)); }
 
 /* ---------- Combat : barres de PV et impacts ---------- */
@@ -927,9 +955,6 @@ body.stress-10 .scanline { background: linear-gradient(180deg, transparent, rgba
 @media (max-width: 760px) {
   .screen { padding: 12px; }
   .arena { height: 230px; }
-  .platform { transform: scale(0.62); transform-origin: 50% 100%; bottom: 10px; }
-  .platform.me { left: -24px; }
-  .platform.opp { right: -24px; }
   .nameplate { font-size: 15px; }
   .player-box { top: 12px; }
   .player-box.me { left: 12px; }
@@ -939,8 +964,6 @@ body.stress-10 .scanline { background: linear-gradient(180deg, transparent, rgba
   .timer { font-size: 30px; }
   .vs { font-size: 20px; }
   .skyline .b3, .skyline .b5 { display: none; }
-  .fighter img { height: 120px; }
-  .fighter { top: -66px; left: 56px; }
   .hp { width: 150px; }
   .grid-panel { padding: 8px; clip-path: none; }
   .sign { display: none; }
