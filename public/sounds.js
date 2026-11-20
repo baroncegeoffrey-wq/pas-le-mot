@@ -86,3 +86,59 @@ const Sound = (() => {
     unlock: () => { if (!muted) audio(); }, // à appeler sur un clic
   };
 })();
+
+// La musique de combat (assets/music/, préparée par scripts/prepare-assets.js),
+// en boucle pendant les parties et sur le menu (un peu moins fort).
+// - Elle démarre au premier clic ou à la première touche : les navigateurs
+//   bloquent le son tant que le joueur n'a rien fait.
+// - Elle suit le bouton SON ON/OFF (Sound.isMuted()).
+// - Elle baisse pendant les cinématiques (duck), puis remonte.
+const Music = (() => {
+  const VOLUME = { game: 0.4, menu: 0.28, ducked: 0.08 }; // volume de base : 40 % en partie
+  const FADE_MS = 500;
+  const FILE = 'assets/music/musique-combat';
+  let el = null;
+  let mode = 'menu';
+  let ducked = false;
+  let fadeTimer = null;
+
+  function target() {
+    if (Sound.isMuted()) return 0;
+    if (ducked) return VOLUME.ducked;
+    return VOLUME[mode];
+  }
+
+  // Fondu doux vers le bon volume ; à 0, la musique est mise en pause.
+  function apply() {
+    if (!el) return;
+    const goal = target();
+    if (goal > 0 && el.paused) el.play().catch(() => {});
+    clearInterval(fadeTimer);
+    const from = el.volume;
+    const start = performance.now();
+    fadeTimer = setInterval(() => {
+      const t = Math.min(1, (performance.now() - start) / FADE_MS);
+      el.volume = from + (goal - from) * t;
+      if (t === 1) {
+        clearInterval(fadeTimer);
+        if (goal === 0) el.pause();
+      }
+    }, 40);
+  }
+
+  return {
+    // À appeler sur chaque clic ou touche : ne fait quelque chose que la 1re fois.
+    start() {
+      if (el) return;
+      el = new Audio();
+      // Ogg (plus léger) si le navigateur le lit, sinon MP3 (Safari).
+      el.src = el.canPlayType('audio/ogg; codecs="vorbis"') ? `${FILE}.ogg` : `${FILE}.mp3`;
+      el.loop = true;
+      el.volume = 0;
+      apply();
+    },
+    setMode(next) { mode = next === 'game' ? 'game' : 'menu'; apply(); },
+    duck(on) { ducked = Boolean(on); apply(); },
+    refresh: apply, // après un clic sur SON ON/OFF
+  };
+})();

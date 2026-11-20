@@ -38,6 +38,10 @@
 // - Mini-cinématiques de coup critique (givre-cine.gif...) : .webm de moins de
 //   1,5 Mo, sans son, dans <sortie>/cine/givre-crit.webm.
 //
+// - Musique (musique-combat.mp3...) : .ogg compressé (Vorbis, ~96 kb/s) dans
+//   <sortie>/music/, plus une copie .mp3 au même débit pour Safari, qui ne lit
+//   pas l'Ogg.
+//
 // Pour ne refaire qu'une partie : ONLY=gif npm run assets (filtre sur le nom).
 //
 // Réglage : BG_TOLERANCE=60 node scripts/prepare-assets.js pour retirer plus
@@ -73,6 +77,7 @@ const HOLE_MIN_SHARE = 0.0004; // taille minimale d'une poche : 0,04 % de l'imag
 const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 const ARENA_NAME = /^(fond|arene|arène|bg)/i;
 const VIDEO_EXT = new Set(['.mp4', '.mov', '.mkv', '.webm']);
+const AUDIO_EXT = new Set(['.mp3', '.wav', '.ogg', '.flac', '.m4a']);
 
 function run(cmd, args) {
   const res = spawnSync(cmd, args, { encoding: 'utf8' });
@@ -490,6 +495,15 @@ function prepareVideo(file) {
   throw new Error(`impossible de passer ${path.basename(file)} sous 4 Mo`);
 }
 
+// Musique : .ogg (Vorbis qualité 2, ~96 kb/s) + .mp3 96 kb/s pour Safari.
+function prepareMusic(file) {
+  const base = path.join(OUT, 'music', slug(file));
+  run('ffmpeg', ['-y', '-loglevel', 'error', '-i', file, '-vn', '-c:a', 'libvorbis', '-q:a', '2', `${base}.ogg`]);
+  run('ffmpeg', ['-y', '-loglevel', 'error', '-i', file, '-vn', '-c:a', 'libmp3lame', '-b:a', '96k', `${base}.mp3`]);
+  const mb = (f) => (fs.statSync(f).size / 1024 / 1024).toFixed(2);
+  return { out: `${base}.ogg`, detail: `${durationOf(`${base}.ogg`).toFixed(0)} s, ogg ${mb(`${base}.ogg`)} Mo + mp3 ${mb(`${base}.mp3`)} Mo` };
+}
+
 // Durées des cinématiques, lues par le serveur pour la pause du chrono.
 function writeDurations(durations) {
   const file = path.join(OUT, 'cine', 'durations.json');
@@ -504,7 +518,7 @@ function main() {
     console.error(`Dossier source introuvable : ${SRC}`);
     process.exit(1);
   }
-  for (const dir of ['avatars', 'arena', 'cine']) fs.mkdirSync(path.join(OUT, dir), { recursive: true });
+  for (const dir of ['avatars', 'arena', 'cine', 'music']) fs.mkdirSync(path.join(OUT, dir), { recursive: true });
 
   const only = process.env.ONLY ? new RegExp(process.env.ONLY, 'i') : null;
   const files = latestVersions(fs.readdirSync(SRC).filter((f) => !f.startsWith('.'))).filter((f) => !only || only.test(f)).sort();
@@ -530,6 +544,9 @@ function main() {
         else if (/-cine$/.test(slug(file))) result = prepareCinePoster(file);
         else result = prepareSprite(file);
         console.log(`✓ ${name} → ${path.relative(process.cwd(), result.out)} (${result.detail})`);
+      } else if (AUDIO_EXT.has(ext)) {
+        const { out, detail } = prepareMusic(file);
+        console.log(`✓ ${name} → ${path.relative(process.cwd(), out)} (${detail})`);
       } else if (VIDEO_EXT.has(ext)) {
         const {
           out, size, seconds, head, tail,

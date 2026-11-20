@@ -167,7 +167,14 @@ function showMute() {
   muteBtn.setAttribute('aria-pressed', String(muted));
 }
 showMute();
-muteBtn.addEventListener('click', () => { Sound.toggle(); showMute(); });
+muteBtn.addEventListener('click', () => { Sound.toggle(); showMute(); Music.start(); Music.refresh(); });
+
+// La musique démarre au premier clic ou à la première touche (le navigateur
+// bloque le son avant), et passe du volume « menu » au volume « partie » quand
+// l'écran de jeu s'affiche ou se cache.
+['pointerdown', 'keydown'].forEach((type) => document.addEventListener(type, () => Music.start(), { capture: true }));
+new MutationObserver(() => Music.setMode(gameScreen.hidden ? 'menu' : 'game'))
+  .observe(gameScreen, { attributes: true, attributeFilter: ['hidden'] });
 document.addEventListener('pointerdown', () => Sound.unlock(), { once: true });
 document.addEventListener('keydown', () => Sound.unlock(), { once: true });
 
@@ -1350,6 +1357,7 @@ function preloadCinematics() {
 }
 
 function stopCine() {
+  Music.duck(false);
   cineTimers.forEach(clearTimeout);
   cineTimers = [];
   cineVideo.pause();
@@ -1377,6 +1385,7 @@ function playCine(cine, done) {
   stopCine();
   if (!cine) { done(); return; }
   cinePlaying = true;
+  Music.duck(true); // la musique baisse pendant la cinématique (remonte dans stopCine)
   // Écart d'horloge, mesuré à la réception : heure du serveur → heure locale.
   const offset = cine.serverNow - Date.now();
   const local = (serverTime) => Math.max(0, serverTime - offset - Date.now());
