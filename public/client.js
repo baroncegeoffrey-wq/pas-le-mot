@@ -617,6 +617,11 @@ function healFx(slot, amount) {
 
 const CRIT_MS = 3000; // durée des mini-cinématiques (-crit.webm)
 const CRIT_TEXT_MS = 900; // sans vidéo : juste « CRITIQUE ! »
+// Cadrage vertical de chaque mini-cinématique : l'arène est bien plus large que
+// haute, on ne voit qu'une bande de la vidéo (40 à 60 % de sa hauteur). Ces
+// valeurs placent la bande sur la tête du perso (Givré vers 30 % de la
+// hauteur de la vidéo, Perché vers 25 %, Verlan vers 42 %).
+const CRIT_FRAMING = { givre: '42%', perche: '33%', verlan: '50%' };
 const critLayer = $('crit');
 const critVideo = $('crit-video');
 const critFiles = {}; // avatar -> adresse locale (blob) de la mini-cinématique, ou 'missing'
@@ -639,6 +644,7 @@ function playCrit(avatar, done) {
   critLayer.classList.toggle('no-video', !withVideo);
   replay(critLayer, 'show');
   if (withVideo) {
+    critVideo.style.objectPosition = `50% ${CRIT_FRAMING[avatar] || '50%'}`;
     critVideo.src = file;
     critVideo.currentTime = 0;
     critVideo.play().catch(() => {});
