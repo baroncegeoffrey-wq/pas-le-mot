@@ -368,7 +368,7 @@ body {
    sol et le bandeau des PV en haut de l'arène. */
 .fighter {
   --ground: 55px;
-  --body-h: clamp(80px, calc(100cqh - var(--ground) - 92px), 64cqh);
+  --body-h: clamp(80px, calc(100cqh - var(--ground) - 82px), 66cqh); /* 82 px = bandeau des PV (≈ 70 px) + marge */
   --img-h: calc(var(--body-h) / (var(--foot, 0.98) - var(--top, 0.02)));
   position: absolute;
   bottom: var(--ground);
@@ -566,18 +566,40 @@ body.hitstop * { animation-play-state: paused !important; }
 @keyframes cine-end { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0.95; } }
 @keyframes cine-flash { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
 
-.player-box { position: absolute; top: 18px; display: flex; flex-direction: column; gap: 6px; z-index: 6; } /* au-dessus des effets */
-.player-box.me { left: 24px; }
-.player-box.opp { right: 24px; align-items: flex-end; }
+/* Bandeau de chaque joueur, façon jeu de combat : en haut de l'arène, dans
+   son coin (moi à gauche, l'adversaire à droite). Nom et perso sur une ligne,
+   longue barre de PV dessous, puis la super attaque. Il reste au-dessus de la
+   tête des persos (voir --body-h dans .fighter) : rien ne les cache. */
+.player-box {
+  position: absolute;
+  top: 10px;
+  width: min(36%, 440px);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "name label" "hp hp" "pips pips";
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 4px;
+  z-index: 6; /* au-dessus des effets */
+}
+.player-box.me { left: 20px; }
+.player-box.opp { right: 20px; grid-template-columns: 1fr auto; grid-template-areas: "label name" "hp hp" "pips pips"; }
+.player-box .nameplate { grid-area: name; }
+.player-box .avatar-label { grid-area: label; font-size: 18px; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.player-box.opp .avatar-label { text-align: right; }
+.player-box .hp { grid-area: hp; width: 100%; }
+.player-box .pips { grid-area: pips; }
+.player-box.opp .pips { justify-content: flex-end; }
 .nameplate {
   font-family: var(--title);
   font-weight: 700;
-  font-size: 22px;
+  font-size: 16px;
+  line-height: 1;
   color: var(--ink);
-  padding: 6px 26px 6px 12px;
+  padding: 4px 22px 4px 10px;
 }
 .player-box.me .nameplate { background: var(--acid); clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%); }
-.player-box.opp .nameplate { background: var(--pink); padding: 6px 12px 6px 26px; clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%); }
+.player-box.opp .nameplate { background: var(--pink); padding: 4px 10px 4px 22px; clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%); }
 .player-box.me .avatar-label { color: var(--acid); }
 .player-box.opp .avatar-label { color: var(--pink); }
 .pips { display: flex; gap: 6px; }
@@ -964,7 +986,6 @@ body.stress-10 .scanline { background: linear-gradient(180deg, transparent, rgba
   .timer { font-size: 30px; }
   .vs { font-size: 20px; }
   .skyline .b3, .skyline .b5 { display: none; }
-  .hp { width: 150px; }
   .grid-panel { padding: 8px; clip-path: none; }
   .sign { display: none; }
   .current-clue { font-size: 21px; min-height: 64px; }
