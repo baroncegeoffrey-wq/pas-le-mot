@@ -873,9 +873,10 @@ function buildBoard(grid) {
   words = new Map();
   cells = new Map();
   board.innerHTML = '';
-  // Taille des cases : 2,4 rem au maximum, plus petites si l'écran est étroit
-  // (téléphone) pour que la grille entière tienne en largeur.
-  board.style.setProperty('--size', `min(2.4rem, calc((100vw - 64px - ${(grid.width - 1) * 3}px) / ${grid.width}))`);
+  // Taille des cases : calculée en CSS (style.css, .board) d'après la place
+  // disponible et le nombre de colonnes et de lignes de la grille.
+  board.style.setProperty('--cols', grid.width);
+  board.style.setProperty('--rows', grid.height);
   board.style.gridTemplateColumns = `repeat(${grid.width}, var(--size))`;
 
   for (const w of grid.words) {
